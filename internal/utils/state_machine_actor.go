@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
+	"sync"
 
 	"github.com/tochemey/goakt/v3/actor"
 )
@@ -28,6 +29,9 @@ type StateHandlerMap map[StateID]StateHandler
 
 // StateMachineActor implements an actor that behaves as a finite state machine
 type StateMachineActor struct {
+	// Mutex to protect concurrent access to state and data
+	mu sync.RWMutex
+
 	// Current state identifier
 	currentState StateID
 
@@ -69,7 +73,11 @@ func (a *StateMachineActor) WhenUnhandled(handler func(ctx *actor.ReceiveContext
 
 // PreStart is called when the actor is started
 func (a *StateMachineActor) PreStart(ctx context.Context) error {
-	slog.DebugContext(ctx, "Starting state machine actor", "initial_state", a.initialState)
+	a.mu.RLock()
+	initialState := a.initialState
+	a.mu.RUnlock()
+	
+	slog.DebugContext(ctx, "Starting state machine actor", "initial_state", initialState)
 	return nil
 }
 
@@ -77,19 +85,30 @@ func (a *StateMachineActor) PreStart(ctx context.Context) error {
 func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 	message := ctx.Message()
 
+	// Get current state and data safely
+	a.mu.RLock()
+	currentState := a.currentState
+	currentData := a.data
+	handler, exists := a.stateHandlers[currentState]
+	unhandledHandler := a.unhandledHandler
+	a.mu.RUnlock()
+
 	// Log state transition information for debugging
 	msgType := reflect.TypeOf(message).String()
 	ctx.Logger().Debug("StateMachineActor processing message",
-		"current_state", a.currentState,
+		"current_state", currentState,
 		"message_type", msgType)
 
 	// If the current state has a handler, process the message
-	if handler, exists := a.stateHandlers[a.currentState]; exists {
-		result, err := handler(ctx, a.data)
+	if exists {
+		result, err := handler(ctx, currentData)
 		if err != nil {
 			ctx.Err(fmt.Errorf("error processing message: %w", err))
+			return
 		}
 
+		// Update state and data safely
+		a.mu.Lock()
 		// Check if state transition is needed
 		if result.NextStateId != nil && *result.NextStateId != a.currentState {
 			ctx.Logger().Debug("StateMachineActor state transition",
@@ -100,25 +119,33 @@ func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 
 		// Update data
 		a.data = result.NextData
+		a.mu.Unlock()
 		return
 	}
 
 	// If message was not handled by the current state handler
-	if a.unhandledHandler != nil {
+	if unhandledHandler != nil {
 		// Use the unhandled message handler
-		a.data = a.unhandledHandler(ctx, a.data, message)
+		newData := unhandledHandler(ctx, currentData, message)
+		a.mu.Lock()
+		a.data = newData
+		a.mu.Unlock()
 	} else {
 		// Mark message as unhandled
 		ctx.Unhandled()
 		ctx.Logger().Warn("Unhandled message in state machine actor",
-			"current_state", a.currentState,
+			"current_state", currentState,
 			"message_type", msgType)
 	}
 }
 
 // PostStop is called when the actor is stopped
 func (a *StateMachineActor) PostStop(ctx context.Context) error {
-	slog.DebugContext(ctx, "Stopping state machine actor", "final_state", a.currentState)
+	a.mu.RLock()
+	finalState := a.currentState
+	a.mu.RUnlock()
+	
+	slog.DebugContext(ctx, "Stopping state machine actor", "final_state", finalState)
 	return nil
 }
 
@@ -145,10 +172,14 @@ func Shutdown(ctx *actor.ReceiveContext) {
 
 // GetCurrentState returns the current state of the actor
 func (a *StateMachineActor) GetCurrentState() StateID {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return a.currentState
 }
 
 // GetData returns the current data of the actor
 func (a *StateMachineActor) GetData() Data {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return a.data
 }
