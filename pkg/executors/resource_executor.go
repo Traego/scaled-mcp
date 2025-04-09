@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/resources"
 )
 
 // ResourceExecutor handles resource-related methods in the MCP protocol

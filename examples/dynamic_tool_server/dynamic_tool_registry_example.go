@@ -9,9 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/server"
 )
 
 func main() {

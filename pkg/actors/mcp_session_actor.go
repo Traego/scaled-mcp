@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/internal/utils"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
+	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/config"
 	"log/slog"
 	"time"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
 // McpSessionActor represents an actor that handles MCP session requests

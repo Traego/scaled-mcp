@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 )
 
 // convertJSONToProtoRequest converts a JSON-RPC message to a protobuf request

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"time"
 )
 

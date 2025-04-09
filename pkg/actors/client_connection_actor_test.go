@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/internal/utils"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 )
 
 // InMemoryChannel is an in-memory implementation of OneWayChannel for testing

@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/resources"
 )
 
 // TestToolRegistry is an in-memory implementation of resources.ToolRegistry for testing

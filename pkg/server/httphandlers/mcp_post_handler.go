@@ -7,12 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/actors"
+	"github.com/traego/scaled-mcp/pkg/actors"
 
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/internal/utils"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
+	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
 // HandleMCPPost handles an MCP request

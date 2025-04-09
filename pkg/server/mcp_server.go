@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/executors"
+	"github.com/traego/scaled-mcp/pkg/executors"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -15,11 +15,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server/httphandlers"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/session/store"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/server/httphandlers"
+	"github.com/traego/scaled-mcp/pkg/session/store"
 )
 
 // McpServer represents an MCP server

@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/server"
 )
 
 func main() {
@@ -354,7 +354,7 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	docsResource := resources.NewResource("docs/getting-started", "Getting Started Guide").
 		WithDescription("Documentation for getting started with the MCP server").
 		WithMimeType("text/markdown").
-		WithSize(int64(len("# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp/scaled-mcp-server\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```"))).
+		WithSize(int64(len("# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```"))).
 		Build()
 
 	// Register the resource with its provider
@@ -363,7 +363,7 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 			{
 				URI:      uri,
 				MimeType: "text/markdown",
-				Content:  "# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp/scaled-mcp-server\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```",
+				Content:  "# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```",
 			},
 		}, nil
 	})

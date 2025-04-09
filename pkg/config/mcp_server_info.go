@@ -2,9 +2,9 @@ package config
 
 import (
 	"context"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
+	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/resources"
 )
 
 type McpServerInfo interface {

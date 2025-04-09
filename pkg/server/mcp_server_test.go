@@ -4,14 +4,14 @@ package server
 //import (
 //	"bytes"
 //	"encoding/json"
-//	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
+//	"github.com/traego/scaled-mcp/pkg/protocol"
 //	"net/http"
 //	"net/http/httptest"
 //	"testing"
 //
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
-//	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
+//	"github.com/traego/scaled-mcp/pkg/config"
 //)
 //
 //func TestInitializeRequest(t *testing.T) {

@@ -2,9 +2,9 @@ package httphandlers
 
 import (
 	"fmt"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/internal/utils"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/actors"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/channels"
+	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/actors"
+	"github.com/traego/scaled-mcp/pkg/channels"
 	"net/http"
 )
 

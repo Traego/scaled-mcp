@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package mcppb;
 
-option go_package = "github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppb";
+option go_package = "github.com/traego/scaled-mcp/pkg/proto/mcppb";
 
 // MessageType defines the types of messages that can be sent to a session actor
 enum MessageType {

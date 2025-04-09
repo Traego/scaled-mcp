@@ -42,9 +42,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/server"
 )
 
 func main() {
@@ -178,9 +178,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/transport"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/server"
+	"github.com/traego/scaled-mcp/pkg/transport"
 )
 
 func main() {

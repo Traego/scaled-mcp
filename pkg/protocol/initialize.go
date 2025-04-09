@@ -2,7 +2,7 @@ package protocol
 
 //
 //import (
-//	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
+//	"github.com/traego/scaled-mcp/pkg/config"
 //)
 //
 //// CreateInitializeResponse creates a JSON-RPC response for an initialize request

@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/protocol"
-	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/session/store"
+	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/session/store"
 )
 
 // MCPHandler handles MCP protocol requests

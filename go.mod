@@ -1,4 +1,4 @@
-module github.com/traego/scaled-mcp/scaled-mcp-server
+module github.com/traego/scaled-mcp
 
 go 1.24.2
 

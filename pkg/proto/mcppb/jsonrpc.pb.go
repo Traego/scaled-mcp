@@ -816,7 +816,7 @@ const file_proto_mcppb_jsonrpc_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
 	"\n" +
 	"prefer_sse\x18\x02 \x01(\bR\tpreferSse\x128\n" +
-	"\x18server_capabilities_json\x18\x03 \x01(\tR\x16serverCapabilitiesJsonB@Z>github.com/traego/scaled-mcp/scaled-mcp-server/pkg/proto/mcppbb\x06proto3"
+	"\x18server_capabilities_json\x18\x03 \x01(\tR\x16serverCapabilitiesJsonB@Z>github.com/traego/scaled-mcp/pkg/proto/mcppbb\x06proto3"
 
 var (
 	file_proto_mcppb_jsonrpc_proto_rawDescOnce sync.Once
