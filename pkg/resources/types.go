@@ -47,7 +47,6 @@ type ToolHandler func(ctx context.Context, params map[string]interface{}) (inter
 // ToolListOptions provides pagination options for listing resources
 type ToolListOptions struct {
 	Cursor string // Cursor for pagination
-	Limit  int    // Maximum number of items to return
 }
 
 // ToolListResult represents a paginated list of resources

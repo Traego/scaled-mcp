@@ -11,7 +11,7 @@ type ToolProvider interface {
 	GetTool(ctx context.Context, name string) (Tool, bool)
 
 	// ListTools returns a list of available resources
-	ListTools(ctx context.Context, cursor string, limit int) ([]Tool, string)
+	ListTools(ctx context.Context, cursor string) ([]Tool, string)
 
 	// HandleToolInvocation handles a tool invocation
 	HandleToolInvocation(ctx context.Context, name string, params map[string]interface{}) (interface{}, error)
@@ -40,7 +40,7 @@ func (r *DynamicToolRegistry) GetTool(ctx context.Context, name string) (Tool, b
 
 // ListTools returns a paginated list of resources
 func (r *DynamicToolRegistry) ListTools(ctx context.Context, opts ToolListOptions) ToolListResult {
-	tools, nextCursor := r.provider.ListTools(ctx, opts.Cursor, opts.Limit)
+	tools, nextCursor := r.provider.ListTools(ctx, opts.Cursor)
 
 	return ToolListResult{
 		Tools:      tools,

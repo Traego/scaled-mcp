@@ -53,11 +53,6 @@ func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Default limit if not specified
-	if opts.Limit <= 0 {
-		opts.Limit = 50
-	}
-
 	// Get all tool names and sort them for consistent pagination
 	names := make([]string, 0, len(r.tools))
 	for name := range r.tools {
@@ -77,7 +72,7 @@ func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions
 	}
 
 	// Calculate end position
-	endPos := startPos + opts.Limit
+	endPos := startPos + 20
 	if endPos > len(names) {
 		endPos = len(names)
 	}
