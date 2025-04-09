@@ -7,3 +7,7 @@ Please only use slog for logging.
 Please check in all the appropriate places BEFORE implementing an interface. Only implement interfaces if you're 100% sure they don't exist.
 
 If you have an interface - don't ever create an adapter interface to simply wrap it, instead, pass that interface around.
+
+Please don't use mocks - instead, use real types and test implementations, in memory implemenations, and when possible use concrete servers that call into in memory repositories.
+
+When writing tests, please always examine the code under test to make sure you're using it correctly, and ask questions if it's unclear how to work with something.

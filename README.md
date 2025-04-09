@@ -29,41 +29,139 @@ go get github.com/traego/scaled-mcp@latest
 
 ## Usage
 
-### Basic Server
+### Basic Server with Static Tool
 
 ```go
 package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/config"
+	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/resources"
 	"github.com/traego/scaled-mcp/scaled-mcp-server/pkg/server"
 )
 
 func main() {
+	// Configure logging
+	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	slog.SetDefault(slog.New(logHandler))
+
 	// Create a server with default configuration
 	cfg := config.DefaultConfig()
 	
 	// Use in-memory session store for simplicity
 	cfg.Session.UseInMemory = true
 	
-	// Create and start the server
-	srv, err := server.NewServer(cfg)
+	// Create a static tool registry
+	registry := resources.NewStaticToolRegistry()
+	
+	// Define and register a simple calculator tool
+	calculatorTool := resources.NewTool("calculator").
+		WithDescription("Performs basic arithmetic operations").
+		WithString("operation").
+		Required().
+		Description("Operation to perform (add, subtract, multiply, divide)").
+		Add().
+		WithNumber("a").
+		Required().
+		Description("First operand").
+		Add().
+		WithNumber("b").
+		Required().
+		Description("Second operand").
+		Add().
+		Build()
+	
+	// Register the tool with the registry
+	registry.RegisterTool(calculatorTool)
+	
+	// Define a prompt for the server
+	prompt := "You are a helpful AI assistant that can perform calculations using the calculator tool."
+	
+	// Create the server with the tool registry and prompt
+	srv, err := server.NewMcpServer(cfg,
+		server.WithToolRegistry(registry),
+		server.WithServerInfo("Example MCP Server", "1.0.0"),
+		server.WithPrompt(prompt),
+	)
 	if err != nil {
-		log.Fatalf("Failed to create server: %v", err)
+		slog.Error("Failed to create server", "error", err)
+		os.Exit(1)
 	}
 	
-	// Start the server
-	if err := srv.Start(context.Background()); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	// Set up the tool handler
+	registry.SetToolHandler("calculator", func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+		// Extract parameters
+		operation, ok := params["operation"].(string)
+		if !ok {
+			return nil, fmt.Errorf("%w: operation must be a string", resources.ErrInvalidParams)
+		}
+		
+		a, ok := params["a"].(float64)
+		if !ok {
+			return nil, fmt.Errorf("%w: a must be a number", resources.ErrInvalidParams)
+		}
+		
+		b, ok := params["b"].(float64)
+		if !ok {
+			return nil, fmt.Errorf("%w: b must be a number", resources.ErrInvalidParams)
+		}
+		
+		// Perform the calculation
+		var result float64
+		switch operation {
+		case "add":
+			result = a + b
+		case "subtract":
+			result = a - b
+		case "multiply":
+			result = a * b
+		case "divide":
+			if b == 0 {
+				return nil, fmt.Errorf("%w: division by zero", resources.ErrInvalidParams)
+			}
+			result = a / b
+		default:
+			return nil, fmt.Errorf("%w: unknown operation %s", resources.ErrInvalidParams, operation)
+		}
+		
+		return map[string]interface{}{
+			"result": result,
+		}, nil
+	})
+	
+	// Start the server in a goroutine
+	go func() {
+		if err := srv.Start(context.Background()); err != nil {
+			slog.Error("Failed to start server", "error", err)
+			os.Exit(1)
+		}
+	}()
+	
+	slog.Info("Server started", "host", cfg.HTTP.Host, "port", cfg.HTTP.Port)
 	
 	// Wait for termination signal
-	<-make(chan struct{})
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
+	
+	// Shutdown the server
+	slog.Info("Shutting down server...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.HTTP.ShutdownTimeout)
+	defer cancel()
+	
+	if err := srv.Stop(shutdownCtx); err != nil {
+		slog.Error("Failed to stop server", "error", err)
+	}
+	
+	slog.Info("Server stopped")
 }
-```
 
 ### Using an External HTTP Server
 
@@ -144,7 +242,6 @@ func main() {
 		log.Fatalf("HTTP server error: %v", err)
 	}
 }
-```
 
 ## Dynamic Tool Registry Example
 

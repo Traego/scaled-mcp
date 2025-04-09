@@ -90,7 +90,7 @@ func (t *ToolExecutor) HandleMethod(ctx context.Context, method string, req *mcp
 }
 
 // handleListTools handles a request to list tools
-func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]interface{}) (resources.ToolListResult, error) {
 	var cursor string
 
 	// Extract cursor
@@ -110,22 +110,22 @@ func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]in
 }
 
 // handleGetTool handles a request to get a specific tool
-func (t *ToolExecutor) handleGetTool(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+func (t *ToolExecutor) handleGetTool(ctx context.Context, params map[string]interface{}) (resources.Tool, error) {
 	// Extract name
 	nameVal, ok := params["name"]
 	if !ok {
-		return nil, fmt.Errorf("%w: tool name is required", resources.ErrInvalidParams)
+		return resources.Tool{}, fmt.Errorf("%w: tool name is required", resources.ErrInvalidParams)
 	}
 
 	name, ok := nameVal.(string)
 	if !ok || name == "" {
-		return nil, fmt.Errorf("%w: tool name must be a non-empty string", resources.ErrInvalidParams)
+		return resources.Tool{}, fmt.Errorf("%w: tool name must be a non-empty string", resources.ErrInvalidParams)
 	}
 
 	// Get the tool
 	tool, found := t.serverInfo.GetFeatureRegistry().ToolRegistry.GetTool(ctx, name)
 	if !found {
-		return nil, fmt.Errorf("%w: tool '%s' not found", resources.ErrToolNotFound, name)
+		return resources.Tool{}, fmt.Errorf("%w: tool '%s' not found", resources.ErrToolNotFound, name)
 	}
 
 	return tool, nil
