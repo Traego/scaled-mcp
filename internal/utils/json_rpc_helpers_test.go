@@ -93,8 +93,8 @@ func TestCreateErrorResponseFromJsonRpcError(t *testing.T) {
 				},
 				Response: &mcppb.JsonRpcResponse_Error{
 					Error: &mcppb.JsonRpcError{
-						Code:    -32602,
-						Message: "Invalid params",
+						Code:     -32602,
+						Message:  "Invalid params",
 						DataJson: `{"details":"Required parameter is missing","missing":"param1"}`,
 					},
 				},
@@ -109,7 +109,7 @@ func TestCreateErrorResponseFromJsonRpcError(t *testing.T) {
 
 			// Verify the response
 			assert.Equal(t, tc.expectedRes.Jsonrpc, response.Jsonrpc)
-			
+
 			// Check ID based on type
 			switch id := tc.expectedRes.Id.(type) {
 			case *mcppb.JsonRpcResponse_StringId:
@@ -117,21 +117,21 @@ func TestCreateErrorResponseFromJsonRpcError(t *testing.T) {
 			case *mcppb.JsonRpcResponse_IntId:
 				assert.Equal(t, id.IntId, response.GetIntId())
 			}
-			
+
 			// Check error
 			assert.Equal(t, tc.expectedRes.GetError().Code, response.GetError().Code)
 			assert.Equal(t, tc.expectedRes.GetError().Message, response.GetError().Message)
-			
+
 			// If data is provided, check it matches
 			if tc.jsonRpcErr.Data != nil {
 				// Parse both JSON strings to compare the actual data
 				var expectedData, actualData map[string]interface{}
 				err := json.Unmarshal([]byte(tc.expectedRes.GetError().DataJson), &expectedData)
 				require.NoError(t, err)
-				
+
 				err = json.Unmarshal([]byte(response.GetError().DataJson), &actualData)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, expectedData, actualData)
 			} else {
 				assert.Empty(t, response.GetError().DataJson)
@@ -221,8 +221,8 @@ func TestCreateErrorResponse(t *testing.T) {
 				},
 				Response: &mcppb.JsonRpcResponse_Error{
 					Error: &mcppb.JsonRpcError{
-						Code:    -32602,
-						Message: "Invalid params",
+						Code:     -32602,
+						Message:  "Invalid params",
 						DataJson: `{"details":"Required parameter is missing","missing":"param1"}`,
 					},
 				},
@@ -237,7 +237,7 @@ func TestCreateErrorResponse(t *testing.T) {
 
 			// Verify the response
 			assert.Equal(t, tc.expectedRes.Jsonrpc, response.Jsonrpc)
-			
+
 			// Check ID based on type
 			switch id := tc.expectedRes.Id.(type) {
 			case *mcppb.JsonRpcResponse_StringId:
@@ -245,21 +245,21 @@ func TestCreateErrorResponse(t *testing.T) {
 			case *mcppb.JsonRpcResponse_IntId:
 				assert.Equal(t, id.IntId, response.GetIntId())
 			}
-			
+
 			// Check error
 			assert.Equal(t, tc.expectedRes.GetError().Code, response.GetError().Code)
 			assert.Equal(t, tc.expectedRes.GetError().Message, response.GetError().Message)
-			
+
 			// If data is provided, check it matches
 			if tc.data != nil {
 				// Parse both JSON strings to compare the actual data
 				var expectedData, actualData map[string]interface{}
 				err := json.Unmarshal([]byte(tc.expectedRes.GetError().DataJson), &expectedData)
 				require.NoError(t, err)
-				
+
 				err = json.Unmarshal([]byte(response.GetError().DataJson), &actualData)
 				require.NoError(t, err)
-				
+
 				assert.Equal(t, expectedData, actualData)
 			} else {
 				assert.Empty(t, response.GetError().DataJson)

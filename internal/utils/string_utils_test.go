@@ -38,16 +38,16 @@ func TestGenerateSecureID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Generate an ID
 			id, err := GenerateSecureID(tc.length)
-			
+
 			// Check there's no error
 			require.NoError(t, err)
-			
+
 			// Check the length is correct
 			assert.Equal(t, tc.length, len(id))
-			
+
 			// Check the ID contains only valid characters
 			assert.True(t, validCharsRegex.MatchString(id), "ID contains invalid characters: %s", id)
-			
+
 			// Generate another ID to ensure they're different (very low probability of collision)
 			if tc.length > 0 {
 				anotherId, err := GenerateSecureID(tc.length)
@@ -88,13 +88,13 @@ func TestMustGenerateSecureID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// This should not panic
 			id := MustGenerateSecureID(tc.length)
-			
+
 			// Check the length is correct
 			assert.Equal(t, tc.length, len(id))
-			
+
 			// Check the ID contains only valid characters
 			assert.True(t, validCharsRegex.MatchString(id), "ID contains invalid characters: %s", id)
-			
+
 			// Generate another ID to ensure they're different (very low probability of collision)
 			if tc.length > 0 {
 				anotherId := MustGenerateSecureID(tc.length)
