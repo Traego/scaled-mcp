@@ -175,7 +175,7 @@ func TestStateMachineActor(t *testing.T) {
 			err := testActorSystem.Stop(testCtx)
 			require.NoError(t, err)
 		}()
-		
+
 		// Create initial data
 		initialData := &TestActorData{
 			Counter:         0,
@@ -224,7 +224,7 @@ func TestStateMachineActor(t *testing.T) {
 			err := testActorSystem.Stop(testCtx)
 			require.NoError(t, err)
 		}()
-		
+
 		// Create a fresh actor system for this test to avoid any interference
 		testActorSystem2, err := actor.NewActorSystem("test-unhandled-system-3",
 			actor.WithPassivationDisabled(),
@@ -237,7 +237,7 @@ func TestStateMachineActor(t *testing.T) {
 			err := testActorSystem2.Stop(testCtx)
 			require.NoError(t, err)
 		}()
-		
+
 		// Create initial data with a clean state
 		initialData := &TestActorData{
 			Counter:         0,
