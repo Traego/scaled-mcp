@@ -119,7 +119,6 @@ func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]in
 	// Create options
 	opts := resources.ToolListOptions{
 		Cursor: cursor,
-		Limit:  limit,
 	}
 
 	// Call the registry

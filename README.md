@@ -184,19 +184,33 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Testing
+## Development
 
-Run tests with Go's testing package:
+### Testing
 
-```bash
-go test -v ./...
-```
-
-For test coverage:
+Run tests:
 
 ```bash
-go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+go test ./...
 ```
+
+Run tests with coverage:
+
+```bash
+go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+```
+
+View coverage report in browser:
+
+```bash
+go tool cover -html=coverage.txt
+```
+
+### Code Coverage
+
+This project uses [Codecov](https://codecov.io/) for code coverage reporting. Coverage reports are automatically generated and uploaded during CI runs.
+
+To view the coverage dashboard, visit [codecov.io/gh/traego/scaled-mcp](https://codecov.io/gh/traego/scaled-mcp).
 
 ## License
 

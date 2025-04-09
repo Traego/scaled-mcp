@@ -106,12 +106,7 @@ func (p *ExampleToolProvider) GetTool(ctx context.Context, name string) (resourc
 }
 
 // ListTools returns a list of available tools
-func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string, limit int) ([]resources.Tool, string) {
-	// Default limit if not specified
-	if limit <= 0 {
-		limit = 50
-	}
-
+func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string) ([]resources.Tool, string) {
 	// Get all tool names and sort them
 	names := make([]string, 0, len(p.tools))
 	for name := range p.tools {
@@ -130,7 +125,7 @@ func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string, limi
 	}
 
 	// Calculate end position
-	endPos := startPos + limit
+	endPos := startPos + 20
 	if endPos > len(names) {
 		endPos = len(names)
 	}
