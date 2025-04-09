@@ -42,3 +42,4 @@ jobs:
           file: ./coverage.txt
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: Traego/scaled-mcp
