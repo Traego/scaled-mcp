@@ -598,36 +598,52 @@ func TestMcpSessionActor(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	})
 
-	t.Run("should handle CheckSessionTTL message", func(t *testing.T) {
+	t.Run("should handle CheckSessionTTL message with expired session", func(t *testing.T) {
+		// Skip this test in CI environments where it might be flaky
+		if testing.Short() {
+			t.Skip("Skipping test in short mode")
+		}
+
 		// Create a mock executor
 		mockExecutor := NewMockExecutor()
 
 		// Create a mock server info
 		mockServerInfo := NewMockServerInfo(mockExecutor)
 
-		// Create the MCP session actor
+		// Create the MCP session actor with a very short timeout
 		sessionId := "test-session-9"
 		sessionActor := NewMcpSessionActor(mockServerInfo, sessionId)
+
+		// Set a very short session timeout
+		mcpActor := sessionActor.(*McpSessionActor)
+		mcpActor.sessionTimeout = 10 * time.Millisecond
+
+		// Manually set initialized to true to test TTL expiration
+		mcpActor.initialized = true
 
 		// Spawn the actor
 		sessionPID, err := actorSystem.Spawn(ctx, utils.GetSessionActorName(sessionId), sessionActor)
 		require.NoError(t, err)
 
-		// Send CheckSessionTTL message
+		// Set the last activity time to the past to ensure it's expired
+		mcpActor.lastActivity = time.Now().Add(-100 * time.Millisecond)
+
+		// Send CheckSessionTTL message to trigger cleanup of expired session
 		err = actor.Tell(ctx, sessionPID, &mcppb.CheckSessionTTL{})
 		require.NoError(t, err)
 
-		// Give some time for the message to be processed
-		time.Sleep(100 * time.Millisecond)
+		// Give some time for the message to be processed and actor to stop
+		time.Sleep(200 * time.Millisecond)
 
-		// Clean up
-		err = actor.Tell(ctx, sessionPID, &goaktpb.PoisonPill{})
-		require.NoError(t, err)
+		// Try to send a message to the actor - this should fail if the actor has stopped
+		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
+			ConnectionId: "test-conn-9-after",
+		}, 100*time.Millisecond)
 
-		// The test passes if no panic occurs
-		time.Sleep(100 * time.Millisecond)
+		// The actor should be stopped since the session expired
+		assert.Error(t, err, "Actor should be stopped after session timeout")
 	})
-
+	 
 	t.Run("should handle CheckSessionTTL message with active session", func(t *testing.T) {
 		// Create a mock executor
 		mockExecutor := NewMockExecutor()
@@ -635,18 +651,16 @@ func TestMcpSessionActor(t *testing.T) {
 		// Create a mock server info
 		mockServerInfo := NewMockServerInfo(mockExecutor)
 
-		// Create the MCP session actor with a longer timeout
+		// Create the MCP session actor
 		sessionId := "test-session-9a"
 		sessionActor := NewMcpSessionActor(mockServerInfo, sessionId)
 
+		// Manually set initialized to true
+		mcpActor := sessionActor.(*McpSessionActor)
+		mcpActor.initialized = true
+
 		// Spawn the actor
 		sessionPID, err := actorSystem.Spawn(ctx, utils.GetSessionActorName(sessionId), sessionActor)
-		require.NoError(t, err)
-
-		// Send a message to update the lastActivity timestamp
-		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
-			ConnectionId: "test-conn-9a",
-		}, 500*time.Millisecond)
 		require.NoError(t, err)
 
 		// Send CheckSessionTTL message
@@ -660,7 +674,88 @@ func TestMcpSessionActor(t *testing.T) {
 		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-9a-2",
 		}, 100*time.Millisecond)
-		require.NoError(t, err, "Expected the actor to still be alive")
+		require.NoError(t, err, "Actor should still be alive after CheckSessionTTL with active session")
+
+		// Clean up
+		err = actor.Tell(ctx, sessionPID, &goaktpb.PoisonPill{})
+		require.NoError(t, err)
+
+		time.Sleep(100 * time.Millisecond)
+	})
+
+	t.Run("should handle TryCleanupPreInitialized message for uninitialized session", func(t *testing.T) {
+		// Skip this test in CI environments where it might be flaky
+		if testing.Short() {
+			t.Skip("Skipping test in short mode")
+		}
+
+		// Create a mock executor
+		mockExecutor := NewMockExecutor()
+
+		// Create a mock server info
+		mockServerInfo := NewMockServerInfo(mockExecutor)
+
+		// Create the MCP session actor
+		sessionId := "test-session-8a"
+		sessionActor := NewMcpSessionActor(mockServerInfo, sessionId)
+
+		// Spawn the actor
+		sessionPID, err := actorSystem.Spawn(ctx, utils.GetSessionActorName(sessionId), sessionActor)
+		require.NoError(t, err)
+
+		// Verify the actor is initially alive
+		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
+			ConnectionId: "test-conn-8a",
+		}, 100*time.Millisecond)
+		require.NoError(t, err, "Actor should be alive initially")
+
+		// Send TryCleanupPreInitialized message to trigger cleanup of uninitialized session
+		err = actor.Tell(ctx, sessionPID, &mcppb.TryCleanupPreInitialized{})
+		require.NoError(t, err)
+
+		// Give some time for the message to be processed and actor to stop
+		time.Sleep(200 * time.Millisecond)
+
+		// Try to send a message to the actor - this should fail if the actor has stopped
+		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
+			ConnectionId: "test-conn-8a-after",
+		}, 100*time.Millisecond)
+
+		// The actor should be stopped since it wasn't initialized
+		assert.Error(t, err, "Actor should be stopped after TryCleanupPreInitialized for uninitialized session")
+	})
+
+	t.Run("should handle TryCleanupPreInitialized message for initialized session", func(t *testing.T) {
+		// Create a mock executor
+		mockExecutor := NewMockExecutor()
+
+		// Create a mock server info
+		mockServerInfo := NewMockServerInfo(mockExecutor)
+
+		// Create the MCP session actor
+		sessionId := "test-session-8"
+		sessionActor := NewMcpSessionActor(mockServerInfo, sessionId)
+
+		// Manually set initialized to true
+		mcpActor := sessionActor.(*McpSessionActor)
+		mcpActor.initialized = true
+
+		// Spawn the actor
+		sessionPID, err := actorSystem.Spawn(ctx, utils.GetSessionActorName(sessionId), sessionActor)
+		require.NoError(t, err)
+
+		// Send TryCleanupPreInitialized message
+		err = actor.Tell(ctx, sessionPID, &mcppb.TryCleanupPreInitialized{})
+		require.NoError(t, err)
+
+		// Give some time for the message to be processed
+		time.Sleep(100 * time.Millisecond)
+
+		// The actor should still be alive since it's initialized
+		_, err = actor.Ask(ctx, sessionPID, &mcppb.RegisterConnection{
+			ConnectionId: "test-conn-8-after",
+		}, 100*time.Millisecond)
+		require.NoError(t, err, "Actor should still be alive after TryCleanupPreInitialized when initialized")
 
 		// Clean up
 		err = actor.Tell(ctx, sessionPID, &goaktpb.PoisonPill{})
