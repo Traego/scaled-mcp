@@ -11,3 +11,5 @@ If you have an interface - don't ever create an adapter interface to simply wrap
 Please don't use mocks - instead, use real types and test implementations, in memory implemenations, and when possible use concrete servers that call into in memory repositories.
 
 When writing tests, please always examine the code under test to make sure you're using it correctly, and ask questions if it's unclear how to work with something.
+
+When writing tests - be sure to test the interface, and try not to test the inners of the implementation too much. This is part of why I don't like mocks, they make assumptions about how things function internally. So, try your best to test method calls that are exercising the interface or the outward facing behavior of the implementation.
