@@ -32,7 +32,7 @@ package main
 //type JsonRpcError struct {
 //	Code    int         `json:"code"`
 //	Message string      `json:"message"`
-//	Data    interface{} `json:"data,omitempty"`
+//	NextData    interface{} `json:"data,omitempty"`
 //}
 //
 //// Initialize params

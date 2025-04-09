@@ -189,6 +189,50 @@ func (x *RegisterConnectionResponse) GetError() string {
 	return ""
 }
 
+type StringMsg struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StringMsg) Reset() {
+	*x = StringMsg{}
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StringMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StringMsg) ProtoMessage() {}
+
+func (x *StringMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StringMsg.ProtoReflect.Descriptor instead.
+func (*StringMsg) Descriptor() ([]byte, []int) {
+	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StringMsg) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_mcppb_mcp_messages_proto protoreflect.FileDescriptor
 
 const file_proto_mcppb_mcp_messages_proto_rawDesc = "" +
@@ -200,7 +244,9 @@ const file_proto_mcppb_mcp_messages_proto_rawDesc = "" +
 	"\fconnectionId\x18\x01 \x01(\tR\fconnectionId\"L\n" +
 	"\x1aRegisterConnectionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05errorB4Z2github.com/traego/scaled-mcp/pkg/proto/mcppb;mcppbb\x06proto3"
+	"\x05error\x18\x02 \x01(\tR\x05error\"%\n" +
+	"\tStringMsg\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessageB4Z2github.com/traego/scaled-mcp/pkg/proto/mcppb;mcppbb\x06proto3"
 
 var (
 	file_proto_mcppb_mcp_messages_proto_rawDescOnce sync.Once
@@ -214,12 +260,13 @@ func file_proto_mcppb_mcp_messages_proto_rawDescGZIP() []byte {
 	return file_proto_mcppb_mcp_messages_proto_rawDescData
 }
 
-var file_proto_mcppb_mcp_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_mcppb_mcp_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_mcppb_mcp_messages_proto_goTypes = []any{
 	(*TryCleanupPreInitialized)(nil),   // 0: mcppb.TryCleanupPreInitialized
 	(*CheckSessionTTL)(nil),            // 1: mcppb.CheckSessionTTL
 	(*RegisterConnection)(nil),         // 2: mcppb.RegisterConnection
 	(*RegisterConnectionResponse)(nil), // 3: mcppb.RegisterConnectionResponse
+	(*StringMsg)(nil),                  // 4: mcppb.StringMsg
 }
 var file_proto_mcppb_mcp_messages_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -240,7 +287,7 @@ func file_proto_mcppb_mcp_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_mcppb_mcp_messages_proto_rawDesc), len(file_proto_mcppb_mcp_messages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
