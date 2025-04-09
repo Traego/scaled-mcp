@@ -108,7 +108,10 @@ func main() {
 	cfg1 := config.DefaultConfig()
 	cfg1.HTTP.Port = 8080
 	cfg1.ServerInfo.Name = "Server1"
-	os.Setenv("SERVER_NAME", "Server1")
+	err := os.Setenv("SERVER_NAME", "Server1")
+	if err != nil {
+		panic(err)
+	}
 
 	// Enable remote actors for clustering
 	cfg1.Actor.UseRemoteActors = true
@@ -134,7 +137,10 @@ func main() {
 	cfg2 := config.DefaultConfig()
 	cfg2.HTTP.Port = 8081
 	cfg2.ServerInfo.Name = "Server2"
-	os.Setenv("SERVER_NAME", "Server2")
+	err = os.Setenv("SERVER_NAME", "Server2")
+	if err != nil {
+		panic(err)
+	}
 
 	// Enable remote actors for clustering
 	cfg2.Actor.UseRemoteActors = true

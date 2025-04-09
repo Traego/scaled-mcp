@@ -34,7 +34,6 @@ type PromptArgument struct {
 // PromptListOptions provides pagination options for listing prompts
 type PromptListOptions struct {
 	Cursor string // Cursor for pagination
-	Limit  int    // Maximum number of items to return
 }
 
 // PromptListResult represents a paginated list of prompts

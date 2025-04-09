@@ -51,11 +51,6 @@ func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListO
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Default limit if not specified
-	if opts.Limit <= 0 {
-		opts.Limit = 50
-	}
-
 	// Get all prompt names and sort them for consistent pagination
 	names := make([]string, 0, len(r.prompts))
 	for name := range r.prompts {
@@ -75,7 +70,7 @@ func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListO
 	}
 
 	// Calculate end position
-	endPos := startPos + opts.Limit
+	endPos := startPos + 20
 	if endPos > len(names) {
 		endPos = len(names)
 	}

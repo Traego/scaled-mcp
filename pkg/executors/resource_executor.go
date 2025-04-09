@@ -98,7 +98,6 @@ func (r *ResourceExecutor) HandleMethod(ctx context.Context, method string, req 
 // handleListResources handles a request to list resources
 func (r *ResourceExecutor) handleListResources(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	var cursor string
-	var limit int
 
 	// Extract cursor
 	if cursorVal, ok := params["cursor"]; ok {
@@ -107,25 +106,9 @@ func (r *ResourceExecutor) handleListResources(ctx context.Context, params map[s
 		}
 	}
 
-	// Extract limit
-	if limitVal, ok := params["limit"]; ok {
-		switch v := limitVal.(type) {
-		case float64:
-			limit = int(v)
-		case int:
-			limit = v
-		}
-	}
-
-	// Default limit if not specified or invalid
-	if limit <= 0 {
-		limit = 50
-	}
-
 	// Create options
 	opts := resources.ResourceListOptions{
 		Cursor: cursor,
-		Limit:  limit,
 	}
 
 	// Call the registry
@@ -216,7 +199,6 @@ func (r *ResourceExecutor) handleUnsubscribeResource(ctx context.Context, params
 // handleListResourceTemplates handles a request to list resource templates
 func (r *ResourceExecutor) handleListResourceTemplates(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	var cursor string
-	var limit int
 
 	// Extract cursor
 	if cursorVal, ok := params["cursor"]; ok {
@@ -225,25 +207,9 @@ func (r *ResourceExecutor) handleListResourceTemplates(ctx context.Context, para
 		}
 	}
 
-	// Extract limit
-	if limitVal, ok := params["limit"]; ok {
-		switch v := limitVal.(type) {
-		case float64:
-			limit = int(v)
-		case int:
-			limit = v
-		}
-	}
-
-	// Default limit if not specified or invalid
-	if limit <= 0 {
-		limit = 50
-	}
-
 	// Create options
 	opts := resources.ResourceTemplateListOptions{
 		Cursor: cursor,
-		Limit:  limit,
 	}
 
 	// Call the registry

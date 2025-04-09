@@ -92,28 +92,12 @@ func (t *ToolExecutor) HandleMethod(ctx context.Context, method string, req *mcp
 // handleListTools handles a request to list tools
 func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	var cursor string
-	var limit int
 
 	// Extract cursor
 	if cursorVal, ok := params["cursor"]; ok {
 		if cursorStr, ok := cursorVal.(string); ok {
 			cursor = cursorStr
 		}
-	}
-
-	// Extract limit
-	if limitVal, ok := params["limit"]; ok {
-		switch v := limitVal.(type) {
-		case float64:
-			limit = int(v)
-		case int:
-			limit = v
-		}
-	}
-
-	// Default limit if not specified or invalid
-	if limit <= 0 {
-		limit = 50
 	}
 
 	// Create options

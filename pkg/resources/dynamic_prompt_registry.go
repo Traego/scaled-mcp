@@ -11,7 +11,7 @@ type PromptProvider interface {
 	GetPrompt(ctx context.Context, name string) (Prompt, bool)
 
 	// ListPrompts returns a list of available prompts
-	ListPrompts(ctx context.Context, cursor string, limit int) ([]Prompt, string)
+	ListPrompts(ctx context.Context, cursor string) ([]Prompt, string)
 
 	// ProcessPrompt processes a prompt template with the given arguments
 	ProcessPrompt(ctx context.Context, name string, arguments map[string]string) ([]PromptMessage, error)
@@ -40,7 +40,7 @@ func (r *DynamicPromptRegistry) GetPrompt(ctx context.Context, name string) (Pro
 
 // ListPrompts returns a paginated list of prompts
 func (r *DynamicPromptRegistry) ListPrompts(ctx context.Context, opts PromptListOptions) PromptListResult {
-	prompts, nextCursor := r.provider.ListPrompts(ctx, opts.Cursor, opts.Limit)
+	prompts, nextCursor := r.provider.ListPrompts(ctx, opts.Cursor)
 
 	return PromptListResult{
 		Prompts:    prompts,

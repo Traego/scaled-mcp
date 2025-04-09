@@ -38,7 +38,6 @@ type ResourceTemplate struct {
 // ResourceListOptions provides pagination options for listing resources
 type ResourceListOptions struct {
 	Cursor string // Cursor for pagination
-	Limit  int    // Maximum number of items to return
 }
 
 // ResourceListResult represents a paginated list of resources
@@ -50,7 +49,6 @@ type ResourceListResult struct {
 // ResourceTemplateListOptions provides pagination options for listing resource templates
 type ResourceTemplateListOptions struct {
 	Cursor string // Cursor for pagination
-	Limit  int    // Maximum number of items to return
 }
 
 // ResourceTemplateListResult represents a paginated list of resource templates

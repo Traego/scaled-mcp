@@ -93,7 +93,6 @@ func (p *PromptExecutor) HandleMethod(ctx context.Context, method string, req *m
 // handleListPrompts handles a request to list prompts
 func (p *PromptExecutor) handleListPrompts(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	var cursor string
-	var limit int
 
 	// Extract cursor
 	if cursorVal, ok := params["cursor"]; ok {
@@ -102,15 +101,9 @@ func (p *PromptExecutor) handleListPrompts(ctx context.Context, params map[strin
 		}
 	}
 
-	// Default limit if not specified or invalid
-	if limit <= 0 {
-		limit = 50
-	}
-
 	// Create options
 	opts := resources.PromptListOptions{
 		Cursor: cursor,
-		Limit:  limit,
 	}
 
 	// Call the registry

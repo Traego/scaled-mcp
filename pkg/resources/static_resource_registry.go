@@ -67,11 +67,6 @@ func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts Resourc
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Default limit if not specified
-	if opts.Limit <= 0 {
-		opts.Limit = 50
-	}
-
 	// Get all resource URIs and sort them for consistent pagination
 	uris := make([]string, 0, len(r.resources))
 	for uri := range r.resources {
@@ -91,7 +86,7 @@ func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts Resourc
 	}
 
 	// Calculate end position
-	endPos := startPos + opts.Limit
+	endPos := startPos + 20
 	if endPos > len(uris) {
 		endPos = len(uris)
 	}
@@ -196,11 +191,6 @@ func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Default limit if not specified
-	if opts.Limit <= 0 {
-		opts.Limit = 50
-	}
-
 	// Get all template URIs and sort them for consistent pagination
 	uris := make([]string, 0, len(r.resourceTemplates))
 	for uri := range r.resourceTemplates {
@@ -220,7 +210,7 @@ func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts
 	}
 
 	// Calculate end position
-	endPos := startPos + opts.Limit
+	endPos := startPos + 20
 	if endPos > len(uris) {
 		endPos = len(uris)
 	}

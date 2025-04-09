@@ -8,7 +8,7 @@ import (
 // ResourceProvider defines the interface for dynamically providing resources
 type ResourceProviderInterface interface {
 	// ListResources returns a list of available resources
-	ListResources(ctx context.Context, cursor string, limit int) ([]Resource, string)
+	ListResources(ctx context.Context, cursor string) ([]Resource, string)
 
 	// ReadResource reads a resource by URI
 	ReadResource(ctx context.Context, uri string) ([]ResourceContents, error)
@@ -20,7 +20,7 @@ type ResourceProviderInterface interface {
 	UnsubscribeResource(ctx context.Context, uri string) error
 
 	// ListResourceTemplates returns a list of available resource templates
-	ListResourceTemplates(ctx context.Context, cursor string, limit int) ([]ResourceTemplate, string)
+	ListResourceTemplates(ctx context.Context, cursor string) ([]ResourceTemplate, string)
 }
 
 // DynamicResourceRegistry is a registry that dynamically provides resources through a provider
@@ -37,7 +37,7 @@ func NewDynamicResourceRegistry(provider ResourceProviderInterface) *DynamicReso
 
 // ListResources returns a paginated list of resources
 func (r *DynamicResourceRegistry) ListResources(ctx context.Context, opts ResourceListOptions) ResourceListResult {
-	resources, nextCursor := r.provider.ListResources(ctx, opts.Cursor, opts.Limit)
+	resources, nextCursor := r.provider.ListResources(ctx, opts.Cursor)
 
 	return ResourceListResult{
 		Resources:  resources,
@@ -77,7 +77,7 @@ func (r *DynamicResourceRegistry) UnsubscribeResource(ctx context.Context, uri s
 
 // ListResourceTemplates returns a paginated list of resource templates
 func (r *DynamicResourceRegistry) ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) ResourceTemplateListResult {
-	templates, nextCursor := r.provider.ListResourceTemplates(ctx, opts.Cursor, opts.Limit)
+	templates, nextCursor := r.provider.ListResourceTemplates(ctx, opts.Cursor)
 
 	return ResourceTemplateListResult{
 		ResourceTemplates: templates,
