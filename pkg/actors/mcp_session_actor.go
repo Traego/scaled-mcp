@@ -136,6 +136,15 @@ func (a *McpSessionActor) Receive(ctx *actor.ReceiveContext) {
 				slog.ErrorContext(ctx.Context(), "error in shutdown", "session_id", a.sessionId)
 			}
 		}
+		err := ctx.ActorSystem().Schedule(ctx.Context(), &mcppb.CheckSessionTTL{}, ctx.Self(), 1*time.Minute)
+		if err != nil {
+			ctx.Err(fmt.Errorf("error in scheduling session TTL check message: %v", err))
+		}
+	case *mcppb.CheckSessionTTL:
+		if a.lastActivity.Add(a.sessionTimeout).Before(time.Now()) {
+			ctx.Logger().Debug("mcp session actor timeout", "session_id", a.sessionId)
+			ctx.Shutdown()
+		}
 	default:
 		// Mark message as unhandled
 		ctx.Unhandled()

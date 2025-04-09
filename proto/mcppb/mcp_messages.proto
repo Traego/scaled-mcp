@@ -6,6 +6,8 @@ option go_package = "github.com/traego/scaled-mcp/pkg/proto/mcppb;mcppb";
 
 message TryCleanupPreInitialized{}
 
+message CheckSessionTTL{}
+
 message RegisterConnection {
   string connectionId = 1;
 }

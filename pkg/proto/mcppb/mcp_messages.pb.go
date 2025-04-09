@@ -57,6 +57,42 @@ func (*TryCleanupPreInitialized) Descriptor() ([]byte, []int) {
 	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{0}
 }
 
+type CheckSessionTTL struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckSessionTTL) Reset() {
+	*x = CheckSessionTTL{}
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckSessionTTL) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckSessionTTL) ProtoMessage() {}
+
+func (x *CheckSessionTTL) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckSessionTTL.ProtoReflect.Descriptor instead.
+func (*CheckSessionTTL) Descriptor() ([]byte, []int) {
+	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{1}
+}
+
 type RegisterConnection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connectionId,proto3" json:"connectionId,omitempty"`
@@ -66,7 +102,7 @@ type RegisterConnection struct {
 
 func (x *RegisterConnection) Reset() {
 	*x = RegisterConnection{}
-	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[1]
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -78,7 +114,7 @@ func (x *RegisterConnection) String() string {
 func (*RegisterConnection) ProtoMessage() {}
 
 func (x *RegisterConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[1]
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -91,7 +127,7 @@ func (x *RegisterConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterConnection.ProtoReflect.Descriptor instead.
 func (*RegisterConnection) Descriptor() ([]byte, []int) {
-	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{1}
+	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RegisterConnection) GetConnectionId() string {
@@ -111,7 +147,7 @@ type RegisterConnectionResponse struct {
 
 func (x *RegisterConnectionResponse) Reset() {
 	*x = RegisterConnectionResponse{}
-	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[2]
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -123,7 +159,7 @@ func (x *RegisterConnectionResponse) String() string {
 func (*RegisterConnectionResponse) ProtoMessage() {}
 
 func (x *RegisterConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[2]
+	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -136,7 +172,7 @@ func (x *RegisterConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterConnectionResponse.ProtoReflect.Descriptor instead.
 func (*RegisterConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{2}
+	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RegisterConnectionResponse) GetSuccess() bool {
@@ -158,7 +194,8 @@ var File_proto_mcppb_mcp_messages_proto protoreflect.FileDescriptor
 const file_proto_mcppb_mcp_messages_proto_rawDesc = "" +
 	"\n" +
 	"\x1eproto/mcppb/mcp_messages.proto\x12\x05mcppb\"\x1a\n" +
-	"\x18TryCleanupPreInitialized\"8\n" +
+	"\x18TryCleanupPreInitialized\"\x11\n" +
+	"\x0fCheckSessionTTL\"8\n" +
 	"\x12RegisterConnection\x12\"\n" +
 	"\fconnectionId\x18\x01 \x01(\tR\fconnectionId\"L\n" +
 	"\x1aRegisterConnectionResponse\x12\x18\n" +
@@ -177,11 +214,12 @@ func file_proto_mcppb_mcp_messages_proto_rawDescGZIP() []byte {
 	return file_proto_mcppb_mcp_messages_proto_rawDescData
 }
 
-var file_proto_mcppb_mcp_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_mcppb_mcp_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_mcppb_mcp_messages_proto_goTypes = []any{
 	(*TryCleanupPreInitialized)(nil),   // 0: mcppb.TryCleanupPreInitialized
-	(*RegisterConnection)(nil),         // 1: mcppb.RegisterConnection
-	(*RegisterConnectionResponse)(nil), // 2: mcppb.RegisterConnectionResponse
+	(*CheckSessionTTL)(nil),            // 1: mcppb.CheckSessionTTL
+	(*RegisterConnection)(nil),         // 2: mcppb.RegisterConnection
+	(*RegisterConnectionResponse)(nil), // 3: mcppb.RegisterConnectionResponse
 }
 var file_proto_mcppb_mcp_messages_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -202,7 +240,7 @@ func file_proto_mcppb_mcp_messages_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_mcppb_mcp_messages_proto_rawDesc), len(file_proto_mcppb_mcp_messages_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
