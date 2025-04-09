@@ -149,22 +149,3 @@ func TestUtilitiesExecutor_HandleMethod_IntId(t *testing.T) {
 	// The ping response should be an empty object according to the implementation
 	assert.Empty(t, result)
 }
-
-// Test that the handlePing method returns a proper response
-func TestUtilitiesExecutor_handlePing(t *testing.T) {
-	// Create a test server info
-	serverInfo := NewTestUtilitiesServerInfo()
-
-	// Create a utilities executor
-	executor := NewUtilitiesExecutor(serverInfo)
-
-	// Test the handlePing method directly
-	ctx := context.Background()
-	result, err := executor.handlePing(ctx)
-	require.NoError(t, err)
-
-	// The result should be an empty map
-	resultMap, ok := result.(map[string]interface{})
-	assert.True(t, ok)
-	assert.Empty(t, resultMap)
-}

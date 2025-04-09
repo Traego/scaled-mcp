@@ -163,7 +163,7 @@ const file_proto_mcppb_mcp_messages_proto_rawDesc = "" +
 	"\fconnectionId\x18\x01 \x01(\tR\fconnectionId\"L\n" +
 	"\x1aRegisterConnectionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05errorBFZDgithub.com/traego/scaled-mcp/pkg/proto/mcppb;mcppbb\x06proto3"
+	"\x05error\x18\x02 \x01(\tR\x05errorB4Z2github.com/traego/scaled-mcp/pkg/proto/mcppb;mcppbb\x06proto3"
 
 var (
 	file_proto_mcppb_mcp_messages_proto_rawDescOnce sync.Once

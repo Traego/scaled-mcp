@@ -314,7 +314,7 @@ const file_proto_mcppb_session_proto_rawDesc = "" +
 	"\x05CLOSE\x10\x02\x12\x0e\n" +
 	"\n" +
 	"INITIALIZE\x10\x03\x12\r\n" +
-	"\tHEARTBEAT\x10\x04B@Z>github.com/traego/scaled-mcp/pkg/proto/mcppbb\x06proto3"
+	"\tHEARTBEAT\x10\x04B.Z,github.com/traego/scaled-mcp/pkg/proto/mcppbb\x06proto3"
 
 var (
 	file_proto_mcppb_session_proto_rawDescOnce sync.Once
