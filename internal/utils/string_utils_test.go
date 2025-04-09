@@ -109,7 +109,7 @@ func TestMustGenerateSecureID(t *testing.T) {
 // but we can verify the function signature and behavior in normal cases.
 func TestMustGenerateSecureID_Signature(t *testing.T) {
 	// Verify that the function takes an int and returns a string
-	var length int = 10
-	result := MustGenerateSecureID(length)
+	result := MustGenerateSecureID(10)
 	assert.IsType(t, "", result)
+	require.Len(t, result, 10)
 }
