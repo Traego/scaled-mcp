@@ -32,6 +32,11 @@ func (r *StaticToolRegistry) RegisterTool(tool Tool, handler ToolHandler) error 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// Check if a tool with this name already exists
+	if _, exists := r.tools[tool.Name]; exists {
+		return fmt.Errorf("tool with name %q already exists", tool.Name)
+	}
+
 	r.tools[tool.Name] = tool
 	r.handlers[tool.Name] = handler
 
