@@ -170,7 +170,7 @@ func DefaultConfig() *ServerConfig {
 			Host:        "0.0.0.0",
 			Port:        8080,
 			MCPPath:     "/mcp",
-			SSEPath:     "/channels",
+			SSEPath:     "/sse",
 			MessagePath: "/messages",
 			TLS: TLSConfig{
 				Enable: false,

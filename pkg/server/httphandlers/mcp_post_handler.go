@@ -10,9 +10,9 @@ import (
 	"github.com/traego/scaled-mcp/pkg/actors"
 
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/utils"
 )
 
 // HandleMCPPost handles an MCP request

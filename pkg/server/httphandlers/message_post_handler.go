@@ -4,7 +4,7 @@ import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"net/http"
 
-	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/utils"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/protocol"

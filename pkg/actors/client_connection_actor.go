@@ -6,11 +6,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/channels"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/utils"
 	"log/slog"
 )
 
