@@ -64,18 +64,26 @@ func main() {
 	// Define and register a simple calculator tool
 	calculatorTool := resources.NewTool("calculator").
 		WithDescription("Performs basic arithmetic operations").
-		WithString("operation").
-		Required().
-		Description("Operation to perform (add, subtract, multiply, divide)").
-		Add().
-		WithNumber("a").
-		Required().
-		Description("First operand").
-		Add().
-		WithNumber("b").
-		Required().
-		Description("Second operand").
-		Add().
+		WithInputs([]resources.ToolInput{
+			{
+				Name:        "operation",
+				Type:        "string",
+				Description: "Operation to perform (add, subtract, multiply, divide)",
+				Required:    true,
+			},
+			{
+				Name:        "a",
+				Type:        "number",
+				Description: "First operand",
+				Required:    true,
+			},
+			{
+				Name:        "b",
+				Type:        "number",
+				Description: "Second operand",
+				Required:    true,
+			},
+		}).
 		Build()
 	
 	// Register the tool with the registry
@@ -259,6 +267,52 @@ cfg := config.DefaultConfig()
 mcpServer, err := server.NewMcpServer(cfg,
     server.WithToolRegistry(registry),
 )
+```
+
+### Tool Definition
+
+The library provides two ways to define tool inputs:
+
+#### 1. Using WithInputs (Recommended)
+
+```go
+weatherTool := resources.NewTool("weather").
+    WithDescription("Get weather information for a location").
+    WithInputs([]resources.ToolInput{
+        {
+            Name:        "location",
+            Type:        "string",
+            Description: "The location to get weather for",
+            Required:    true,
+        },
+        {
+            Name:        "units",
+            Type:        "string",
+            Description: "Temperature units (celsius or fahrenheit)",
+            Default:     "celsius",
+        },
+    }).
+    Build()
+```
+
+#### 2. Using Individual Parameter Methods
+
+```go
+calculatorTool := resources.NewTool("calculator").
+    WithDescription("Performs basic arithmetic operations").
+    WithString("operation").
+    Required().
+    Description("Operation to perform (add, subtract, multiply, divide)").
+    Add().
+    WithNumber("a").
+    Required().
+    Description("First operand").
+    Add().
+    WithNumber("b").
+    Required().
+    Description("Second operand").
+    Add().
+    Build()
 ```
 
 ## Important Notes

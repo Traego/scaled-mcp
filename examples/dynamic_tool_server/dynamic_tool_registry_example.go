@@ -70,30 +70,44 @@ func NewExampleToolProvider() *ExampleToolProvider {
 	// Register some example tools
 	provider.tools["weather"] = resources.NewTool("weather").
 		WithDescription("Get weather information for a location").
-		WithString("location").
-		Required().
-		Description("The location to get weather for").
-		Add().
-		WithString("units").
-		Description("Temperature units (celsius or fahrenheit)").
-		Default("celsius").
-		Add().
+		WithInputs([]resources.ToolInput{
+			{
+				Name:        "location",
+				Type:        "string",
+				Description: "The location to get weather for",
+				Required:    true,
+			},
+			{
+				Name:        "units",
+				Type:        "string",
+				Description: "Temperature units (celsius or fahrenheit)",
+				Default:     "celsius",
+			},
+		}).
 		Build()
 
 	provider.tools["calculator"] = resources.NewTool("calculator").
 		WithDescription("Perform a calculation").
-		WithString("operation").
-		Required().
-		Description("The operation to perform (add, subtract, multiply, divide)").
-		Add().
-		WithInteger("a").
-		Required().
-		Description("First operand").
-		Add().
-		WithInteger("b").
-		Required().
-		Description("Second operand").
-		Add().
+		WithInputs([]resources.ToolInput{
+			{
+				Name:        "operation",
+				Type:        "string",
+				Description: "The operation to perform (add, subtract, multiply, divide)",
+				Required:    true,
+			},
+			{
+				Name:        "a",
+				Type:        "integer",
+				Description: "First operand",
+				Required:    true,
+			},
+			{
+				Name:        "b",
+				Type:        "integer",
+				Description: "Second operand",
+				Required:    true,
+			},
+		}).
 		Build()
 
 	return provider

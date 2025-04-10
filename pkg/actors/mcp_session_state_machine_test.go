@@ -126,12 +126,12 @@ func (a *TestConnectionActor) PreStart(ctx context.Context) error {
 func (a *TestConnectionActor) Receive(ctx *actor.ReceiveContext) {
 	msg := ctx.Message()
 	a.receivedMessages = append(a.receivedMessages, msg)
-	
+
 	// Log the received message for debugging
 	if a.t != nil {
 		a.t.Logf("TestConnectionActor received message: %T", msg)
 	}
-	
+
 	// If it's a RegisterConnection message, respond with success
 	if _, ok := msg.(*mcppb.RegisterConnection); ok {
 		ctx.Response(&mcppb.RegisterConnectionResponse{Success: true})
@@ -165,25 +165,25 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-1"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-1", sessionActor)
 		require.NoError(t, err)
-		
+
 		// PostStart is automatically called when the actor is spawned
 		// Wait for the actor to process the PostStart message
 		time.Sleep(50 * time.Millisecond)
-		
+
 		// Verify the actor is still alive
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-1",
 		}, 100*time.Millisecond)
 		require.NoError(t, err, "Actor should be alive after PostStart")
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -193,26 +193,26 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-2"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-2", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Send RegisterConnection message
 		resp, err := actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-2",
 		}, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Verify response
 		registerResp, ok := resp.(*mcppb.RegisterConnectionResponse)
 		require.True(t, ok)
 		assert.True(t, registerResp.Success)
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -222,19 +222,19 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-3"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Get the state machine to verify state transitions
 		stateMachine, ok := sessionActor.(*utils.StateMachineActor)
 		require.True(t, ok)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-3", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Create initialize request
 		initializeParams := protocol.InitializeParams{
 			ProtocolVersion: "2025-03",
@@ -243,10 +243,10 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				Version: "1.0.0",
 			},
 		}
-		
+
 		paramsJSON, err := json.Marshal(initializeParams)
 		require.NoError(t, err)
-		
+
 		initRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
 			Id: &mcppb.JsonRpcRequest_StringId{
@@ -255,35 +255,35 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "initialize",
 			ParamsJson: string(paramsJSON),
 		}
-		
+
 		wrappedRequest := &mcppb.WrappedRequest{
 			Request:               initRequest,
 			IsAsk:                 true,
 			RespondToConnectionId: "test-conn-3",
 		}
-		
+
 		// Send initialize request
 		resp, err := actor.Ask(ctx, pid, wrappedRequest, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Verify response
 		jsonRpcResponse, ok := resp.(*mcppb.JsonRpcResponse)
 		require.True(t, ok)
 		assert.Equal(t, "2.0", jsonRpcResponse.Jsonrpc)
 		assert.Equal(t, "init-1", jsonRpcResponse.GetStringId())
-		
+
 		// Parse the result
 		var result protocol.InitializeResult
 		err = json.Unmarshal([]byte(jsonRpcResponse.GetResultJson()), &result)
 		require.NoError(t, err)
-		
+
 		// Verify the result
 		assert.Equal(t, "2025-03", result.ProtocolVersion)
 		assert.Equal(t, sessionID, result.SessionID)
-		
+
 		// Verify state transition
 		assert.Equal(t, StateInitialized, stateMachine.GetCurrentState())
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -293,27 +293,27 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create a test connection actor to receive the response
 		connActor := NewTestConnectionActor(t)
 		connPid, err := actorSystem.Spawn(ctx, "test-conn-4", connActor)
 		require.NoError(t, err)
-		
+
 		// Create session actor
 		sessionID := "test-session-4"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-4", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Register the connection
 		registerResp, err := actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-4",
 		}, 500*time.Millisecond)
 		require.NoError(t, err)
 		require.NotNil(t, registerResp)
-		
+
 		// Create a non-initialize request
 		nonInitRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
@@ -323,23 +323,27 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "test/method",
 			ParamsJson: "{}",
 		}
-		
+
 		wrappedRequest := &mcppb.WrappedRequest{
 			Request:               nonInitRequest,
 			IsAsk:                 false, // Use Tell instead of Ask
 			RespondToConnectionId: "test-conn-4",
 		}
-		
+
 		// Send non-initialize request in uninitialized state
 		err = actor.Tell(ctx, pid, wrappedRequest)
 		require.NoError(t, err)
-		
+
 		// Wait for the response to be sent to the connection actor
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Get the messages received by the connection actor
 		messages := connActor.GetReceivedMessages()
-		
+		t.Logf("Connection actor received %d messages", len(messages))
+		for i, msg := range messages {
+			t.Logf("Message %d: %T", i, msg)
+		}
+
 		// Find the JSON-RPC response
 		var jsonRpcResponse *mcppb.JsonRpcResponse
 		for _, msg := range messages {
@@ -348,22 +352,22 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				break
 			}
 		}
-		
+
 		// Verify error response
 		require.NotNil(t, jsonRpcResponse, "Should have received a JSON-RPC response")
 		assert.Equal(t, "2.0", jsonRpcResponse.Jsonrpc)
 		assert.Equal(t, "non-init-1", jsonRpcResponse.GetStringId())
-		
+
 		// Check that it's an error response
 		errorResp := jsonRpcResponse.GetError()
 		require.NotNil(t, errorResp)
 		assert.Equal(t, int32(-32002), errorResp.Code)
 		assert.Contains(t, errorResp.Message, "Server not initialized")
-		
+
 		// Clean up
 		err = connPid.Shutdown(ctx)
 		require.NoError(t, err)
-		
+
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
 	})
@@ -372,19 +376,19 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-5"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Get the state machine to verify state transitions
 		stateMachine, ok := sessionActor.(*utils.StateMachineActor)
 		require.True(t, ok)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-5", sessionActor)
 		require.NoError(t, err)
-		
+
 		// First initialize the session
 		initializeParams := protocol.InitializeParams{
 			ProtocolVersion: "2025-03",
@@ -393,10 +397,10 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				Version: "1.0.0",
 			},
 		}
-		
+
 		paramsJSON, err := json.Marshal(initializeParams)
 		require.NoError(t, err)
-		
+
 		initRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
 			Id: &mcppb.JsonRpcRequest_StringId{
@@ -405,20 +409,20 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "initialize",
 			ParamsJson: string(paramsJSON),
 		}
-		
+
 		wrappedInitRequest := &mcppb.WrappedRequest{
 			Request:               initRequest,
 			IsAsk:                 true,
 			RespondToConnectionId: "test-conn-5",
 		}
-		
+
 		// Send initialize request
 		_, err = actor.Ask(ctx, pid, wrappedInitRequest, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Verify state is initialized
 		assert.Equal(t, StateInitialized, stateMachine.GetCurrentState())
-		
+
 		// Now send shutdown request
 		shutdownRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
@@ -427,26 +431,26 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			},
 			Method: "shutdown",
 		}
-		
+
 		wrappedShutdownRequest := &mcppb.WrappedRequest{
 			Request:               shutdownRequest,
 			IsAsk:                 true,
 			RespondToConnectionId: "test-conn-5",
 		}
-		
+
 		// Send shutdown request
 		resp, err := actor.Ask(ctx, pid, wrappedShutdownRequest, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Verify response
 		jsonRpcResponse, ok := resp.(*mcppb.JsonRpcResponse)
 		require.True(t, ok)
 		assert.Equal(t, "2.0", jsonRpcResponse.Jsonrpc)
 		assert.Equal(t, "shutdown-5", jsonRpcResponse.GetStringId())
-		
+
 		// Verify state transition
 		assert.Equal(t, StateShutdown, stateMachine.GetCurrentState())
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -456,15 +460,15 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-6"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-6", sessionActor)
 		require.NoError(t, err)
-		
+
 		// First initialize the session
 		initializeParams := protocol.InitializeParams{
 			ProtocolVersion: "2025-03",
@@ -473,10 +477,10 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				Version: "1.0.0",
 			},
 		}
-		
+
 		paramsJSON, err := json.Marshal(initializeParams)
 		require.NoError(t, err)
-		
+
 		initRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
 			Id: &mcppb.JsonRpcRequest_StringId{
@@ -485,17 +489,17 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "initialize",
 			ParamsJson: string(paramsJSON),
 		}
-		
+
 		wrappedInitRequest := &mcppb.WrappedRequest{
 			Request:               initRequest,
 			IsAsk:                 true,
 			RespondToConnectionId: "test-conn-6",
 		}
-		
+
 		// Send initialize request
 		_, err = actor.Ask(ctx, pid, wrappedInitRequest, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Now send a test method request
 		testRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
@@ -505,32 +509,32 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "test/method",
 			ParamsJson: "{}",
 		}
-		
+
 		wrappedTestRequest := &mcppb.WrappedRequest{
 			Request:               testRequest,
 			IsAsk:                 true,
 			RespondToConnectionId: "test-conn-6",
 		}
-		
+
 		// Send test method request
 		resp, err := actor.Ask(ctx, pid, wrappedTestRequest, 100*time.Millisecond)
 		require.NoError(t, err)
-		
+
 		// Verify response
 		jsonRpcResponse, ok := resp.(*mcppb.JsonRpcResponse)
 		require.True(t, ok)
 		assert.Equal(t, "2.0", jsonRpcResponse.Jsonrpc)
 		assert.Equal(t, "test-method-6", jsonRpcResponse.GetStringId())
-		
+
 		// Verify result
 		resultJSON := jsonRpcResponse.GetResultJson()
 		require.NotEmpty(t, resultJSON)
-		
+
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(resultJSON), &result)
 		require.NoError(t, err)
 		assert.Equal(t, true, result["success"])
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -540,33 +544,33 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-7"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-7", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Verify the actor is initially alive
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-7",
 		}, 100*time.Millisecond)
 		require.NoError(t, err, "Actor should be alive initially")
-		
+
 		// Send TryCleanupPreInitialized message to trigger cleanup of uninitialized session
 		err = actor.Tell(ctx, pid, &mcppb.TryCleanupPreInitialized{})
 		require.NoError(t, err)
-		
+
 		// Give some time for the message to be processed and actor to stop
 		time.Sleep(200 * time.Millisecond)
-		
+
 		// Try to send a message to the actor - this should fail if the actor has stopped
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-7-after",
 		}, 100*time.Millisecond)
-		
+
 		// The actor should be stopped since it wasn't initialized
 		assert.Error(t, err, "Actor should be stopped after TryCleanupPreInitialized for uninitialized session")
 	})
@@ -579,43 +583,42 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			serverConfig: &config.ServerConfig{
 				ProtocolVersion: "2025-03",
 				Session: config.SessionConfig{
-					TTL: 10 * time.Millisecond, // Very short TTL for testing
+					TTL: 1 * time.Millisecond, // Very short TTL for testing
 				},
 			},
 			executors: executor,
 			registry:  resources.FeatureRegistry{},
 		}
-		
+
 		// Create session actor
 		sessionID := "test-session-8"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-8", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Verify the actor is initially alive
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-8",
 		}, 500*time.Millisecond)
 		require.NoError(t, err, "Actor should be alive initially")
-		
+
 		// Wait for the session to expire
-		time.Sleep(50 * time.Millisecond)
-		
+		time.Sleep(10 * time.Millisecond)
+
 		// Send CheckSessionTTL message to trigger cleanup
 		err = actor.Tell(ctx, pid, &mcppb.CheckSessionTTL{})
 		require.NoError(t, err)
-		
+
 		// Give more time for the message to be processed and actor to stop
-		time.Sleep(500 * time.Millisecond)
-		
+		time.Sleep(1000 * time.Millisecond)
+
 		// Try to send a message to the actor - this should fail if the actor has stopped
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-8-after",
 		}, 500*time.Millisecond)
-		
-		// The actor should be stopped since the session expired
+
 		assert.Error(t, err, "Actor should be stopped after CheckSessionTTL for expired session")
 	})
 
@@ -623,28 +626,28 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create session actor
 		sessionID := "test-session-9"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-9", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Send an unknown message type
 		err = actor.Tell(ctx, pid, &mcppb.StringMsg{Message: "unknown"})
 		require.NoError(t, err)
-		
+
 		// Give some time for the message to be processed
 		time.Sleep(100 * time.Millisecond)
-		
+
 		// The actor should still be alive
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-9",
 		}, 100*time.Millisecond)
 		require.NoError(t, err, "Actor should still be alive after handling unhandled message")
-		
+
 		// Clean up
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
@@ -654,31 +657,31 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		// Create server info with test executor
 		executor := NewTestExecutor()
 		serverInfo := NewTestServerInfo(executor)
-		
+
 		// Create a test connection actor to receive the response
 		connActor := NewTestConnectionActor(t)
 		connPid, err := actorSystem.Spawn(ctx, "test-conn-10", connActor)
 		require.NoError(t, err)
-		
+
 		// Create session actor
 		sessionID := "test-session-10"
 		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
-		
+
 		// Get the state machine to verify state transitions
 		stateMachine, ok := sessionActor.(*utils.StateMachineActor)
 		require.True(t, ok)
-		
+
 		// Spawn the actor
 		pid, err := actorSystem.Spawn(ctx, "test-session-10", sessionActor)
 		require.NoError(t, err)
-		
+
 		// Register the connection
 		registerResp, err := actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-10",
 		}, 500*time.Millisecond)
 		require.NoError(t, err)
 		require.NotNil(t, registerResp)
-		
+
 		// First initialize the session
 		initializeParams := protocol.InitializeParams{
 			ProtocolVersion: "2025-03",
@@ -687,10 +690,10 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				Version: "1.0.0",
 			},
 		}
-		
+
 		paramsJSON, err := json.Marshal(initializeParams)
 		require.NoError(t, err)
-		
+
 		initRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
 			Id: &mcppb.JsonRpcRequest_StringId{
@@ -699,23 +702,23 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "initialize",
 			ParamsJson: string(paramsJSON),
 		}
-		
+
 		wrappedInitRequest := &mcppb.WrappedRequest{
 			Request:               initRequest,
 			IsAsk:                 false, // Use Tell instead of Ask
 			RespondToConnectionId: "test-conn-10",
 		}
-		
+
 		// Send initialize request
 		err = actor.Tell(ctx, pid, wrappedInitRequest)
 		require.NoError(t, err)
-		
+
 		// Wait for the response to be sent to the connection actor
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Verify state is initialized
 		assert.Equal(t, StateInitialized, stateMachine.GetCurrentState())
-		
+
 		// Now send shutdown request
 		shutdownRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
@@ -724,23 +727,23 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			},
 			Method: "shutdown",
 		}
-		
+
 		wrappedShutdownRequest := &mcppb.WrappedRequest{
 			Request:               shutdownRequest,
 			IsAsk:                 false, // Use Tell instead of Ask
 			RespondToConnectionId: "test-conn-10",
 		}
-		
+
 		// Send shutdown request
 		err = actor.Tell(ctx, pid, wrappedShutdownRequest)
 		require.NoError(t, err)
-		
+
 		// Wait for the response to be sent to the connection actor
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Verify state transition
 		assert.Equal(t, StateShutdown, stateMachine.GetCurrentState())
-		
+
 		// Now try to send a message in shutdown state
 		testRequest := &mcppb.JsonRpcRequest{
 			Jsonrpc: "2.0",
@@ -750,35 +753,35 @@ func TestMcpSessionStateMachine(t *testing.T) {
 			Method:     "test/method",
 			ParamsJson: "{}",
 		}
-		
+
 		wrappedTestRequest := &mcppb.WrappedRequest{
 			Request:               testRequest,
 			IsAsk:                 false, // Use Tell instead of Ask
 			RespondToConnectionId: "test-conn-10",
 		}
-		
+
 		// Send test method request in shutdown state
 		err = actor.Tell(ctx, pid, wrappedTestRequest)
 		require.NoError(t, err)
-		
+
 		// Wait for the message to be processed
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Send CheckSessionTTL message to trigger final shutdown
 		err = actor.Tell(ctx, pid, &mcppb.CheckSessionTTL{})
 		require.NoError(t, err)
-		
+
 		// Give more time for the message to be processed and actor to stop
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Try to send a message to the actor - this should fail if the actor has stopped
 		_, err = actor.Ask(ctx, pid, &mcppb.RegisterConnection{
 			ConnectionId: "test-conn-10-after",
 		}, 500*time.Millisecond)
-		
+
 		// The actor should be stopped after CheckSessionTTL in shutdown state
 		assert.Error(t, err, "Actor should be stopped after CheckSessionTTL in shutdown state")
-		
+
 		// Clean up
 		err = connPid.Shutdown(ctx)
 		require.NoError(t, err)

@@ -87,13 +87,16 @@ func main() {
 // registerEchoTool registers an echo tool with the server
 func registerEchoTool(registry *resources.StaticToolRegistry) {
 	// Create the echo tool
-
 	echoTool := resources.NewTool("echo").
 		WithDescription("Echo back the input message").
-		WithString("message").
-		Required().
-		Description("The message to echo back").
-		Add().
+		WithInputs([]resources.ToolInput{
+			{
+				Name:        "message",
+				Type:        "string",
+				Description: "The message to echo back",
+				Required:    true,
+			},
+		}).
 		Build()
 
 	// Register the tool with its handler
@@ -118,14 +121,20 @@ func registerGreetingTool(registry *resources.StaticToolRegistry) {
 	// Create the greeting tool
 	greetingTool := resources.NewTool("greeting").
 		WithDescription("Generate a greeting for a person").
-		WithString("name").
-		Required().
-		Description("The name of the person to greet").
-		Add().
-		WithString("language").
-		Description("The language for the greeting (en, es, fr)").
-		Default("en").
-		Add().
+		WithInputs([]resources.ToolInput{
+			{
+				Name:        "name",
+				Type:        "string",
+				Description: "The name of the person to greet",
+				Required:    true,
+			},
+			{
+				Name:        "language",
+				Type:        "string",
+				Description: "The language for the greeting (en, es, fr)",
+				Default:     "en",
+			},
+		}).
 		Build()
 
 	// Register the tool with its handler

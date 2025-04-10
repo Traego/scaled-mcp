@@ -12,6 +12,15 @@ type ParameterBuilder struct {
 	tool     *ToolBuilder
 }
 
+// ToolInput represents a single input parameter for a tool
+type ToolInput struct {
+	Name        string
+	Type        string
+	Description string
+	Required    bool
+	Default     interface{}
+}
+
 // NewTool creates a new tool builder
 func NewTool(name string) *ToolBuilder {
 	return &ToolBuilder{
@@ -29,6 +38,28 @@ func NewTool(name string) *ToolBuilder {
 // WithDescription sets the description of the tool
 func (b *ToolBuilder) WithDescription(description string) *ToolBuilder {
 	b.tool.Description = description
+	return b
+}
+
+// WithInputs adds multiple input parameters to the tool at once
+func (b *ToolBuilder) WithInputs(inputs []ToolInput) *ToolBuilder {
+	for _, input := range inputs {
+		property := SchemaProperty{
+			Type:        input.Type,
+			Description: input.Description,
+		}
+		
+		if input.Default != nil {
+			property.Default = input.Default
+		}
+		
+		b.tool.InputSchema.Properties[input.Name] = property
+		
+		if input.Required {
+			b.tool.InputSchema.Required = append(b.tool.InputSchema.Required, input.Name)
+		}
+	}
+	
 	return b
 }
 
