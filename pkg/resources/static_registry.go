@@ -131,5 +131,19 @@ func (r *StaticToolRegistry) CallTool(ctx context.Context, name string, params m
 	return handler(ctx, params)
 }
 
+// SetToolHandler sets a handler for an existing tool
+func (r *StaticToolRegistry) SetToolHandler(name string, handler ToolHandler) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, exists := r.tools[name]; !exists {
+		return fmt.Errorf("%w: tool %s not found", ErrToolNotFound, name)
+	}
+
+	r.handlers[name] = handler
+	slog.Info("Set handler for tool", "name", name)
+	return nil
+}
+
 // Ensure StaticToolRegistry implements ToolRegistry
 var _ ToolRegistry = (*StaticToolRegistry)(nil)

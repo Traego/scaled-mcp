@@ -31,6 +31,11 @@ func NewDynamicToolRegistry(provider ToolProvider) *DynamicToolRegistry {
 
 // GetTool returns a tool by name
 func (r *DynamicToolRegistry) GetTool(ctx context.Context, name string) (Tool, bool) {
+	if r.provider == nil {
+		slog.Debug("Tool provider is nil")
+		return Tool{}, false
+	}
+	
 	tool, found := r.provider.GetTool(ctx, name)
 	if !found {
 		slog.Debug("Tool not found", "name", name)
@@ -40,6 +45,14 @@ func (r *DynamicToolRegistry) GetTool(ctx context.Context, name string) (Tool, b
 
 // ListTools returns a paginated list of resources
 func (r *DynamicToolRegistry) ListTools(ctx context.Context, opts ToolListOptions) ToolListResult {
+	if r.provider == nil {
+		slog.Debug("Tool provider is nil")
+		return ToolListResult{
+			Tools:      []Tool{},
+			NextCursor: "",
+		}
+	}
+
 	tools, nextCursor := r.provider.ListTools(ctx, opts.Cursor)
 
 	return ToolListResult{
@@ -50,6 +63,11 @@ func (r *DynamicToolRegistry) ListTools(ctx context.Context, opts ToolListOption
 
 // InvokeTool invokes a tool with the given parameters
 func (r *DynamicToolRegistry) CallTool(ctx context.Context, name string, params map[string]interface{}) (interface{}, error) {
+	if r.provider == nil {
+		slog.Debug("Tool provider is nil")
+		return nil, ErrToolNotFound
+	}
+	
 	return r.provider.HandleToolInvocation(ctx, name, params)
 }
 

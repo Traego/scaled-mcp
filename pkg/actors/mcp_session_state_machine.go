@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/traego/scaled-mcp/internal/actorutils"
 	"log/slog"
 	"time"
 
@@ -108,6 +109,8 @@ func handleInitializedState(ctx *actor.ReceiveContext, data utils.Data) (utils.M
 		return handleWrappedRequestInitialized(ctx, sessionData, msg)
 	case *mcppb.CheckSessionTTL:
 		return handleCheckSessionTTL(ctx, sessionData)
+	case *mcppb.TryCleanupPreInitialized:
+		return handleTryCleanupPreInitialized(ctx, sessionData)
 	default:
 		// Log unhandled message
 		slog.WarnContext(ctx.Context(), "Initialized state: Received unknown message type",
@@ -150,10 +153,8 @@ func handleUnhandledMessage(ctx *actor.ReceiveContext, data utils.Data, message 
 // handlePostStart handles the PostStart message
 func handlePostStart(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
 	ctx.Logger().Debug("mcp session actor finished starting, sending cleanup message", "session_id", sessionData.SessionID)
-	err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), new(mcppb.TryCleanupPreInitialized), ctx.Self(), 10*time.Second)
-	if err != nil {
-		slog.ErrorContext(ctx.Context(), "error scheduling pre-initialized mcp session", "err", err)
-	}
+	//err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), &mcppb.TryCleanupPreInitialized{}, ctx.Self(), 1*time.Second) // sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
+	actorutils.ScheduleOnce(ctx.Context(), ctx.Self(), &mcppb.TryCleanupPreInitialized{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
 	return utils.Stay(sessionData)
 }
 
@@ -192,12 +193,8 @@ func handleWrappedRequestUninitialized(ctx *actor.ReceiveContext, sessionData *S
 		// Return error for non-initialize requests in uninitialized state
 		ctx.Logger().Debug("mcp session actor got non-lifecycle message before being initialized", "session_id", sessionData.SessionID)
 		errorResp := utils.CreateErrorResponse(msg.Request, -32002, "Server not initialized", nil)
-		if ctx.Sender() != nil {
-			err := ctx.Sender().Tell(ctx.Context(), ctx.Sender(), errorResp)
-			if err != nil {
-				slog.ErrorContext(ctx.Context(), "error messaging failure", "session_id", sessionData.SessionID)
-			}
-		}
+		sendResponse(ctx, sessionData, msg, errorResp)
+
 		return utils.Stay(sessionData)
 	}
 }
@@ -250,10 +247,7 @@ func handleTryCleanupPreInitialized(ctx *actor.ReceiveContext, sessionData *Sess
 	}
 
 	// Schedule the session TTL check
-	err := ctx.ActorSystem().Schedule(ctx.Context(), &mcppb.CheckSessionTTL{}, ctx.Self(), 1*time.Minute)
-	if err != nil {
-		ctx.Err(fmt.Errorf("error in scheduling session TTL check message: %v", err))
-	}
+	actorutils.Schedule(ctx.Context(), ctx.Self(), &mcppb.CheckSessionTTL{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
 
 	return utils.Stay(sessionData)
 }
