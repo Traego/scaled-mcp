@@ -588,7 +588,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 				}
 			}`,
 		}
-		
+
 		wrappedRequest := &mcppb.WrappedRequest{
 			Request: initRequest,
 			IsAsk:   true,

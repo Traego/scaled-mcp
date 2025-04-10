@@ -17,7 +17,7 @@ Register Client Stream with Session Actor
 // This is a user establishing an SSE session with the server for server to client comms
 func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 	// I think this is easy...spin up the death watcher, spin up the connection watcher, wait for death to come
-	ctx := r.Context() // TODO Add logging details aropund these
+	ctx := r.Context() // TODO Add logging details around these
 
 	sessionId := r.Header.Get("Mcp-Session-Id")
 
