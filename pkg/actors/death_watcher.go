@@ -3,9 +3,10 @@ package actors
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"log/slog"
 )
 
 type DeathWatcher struct {
@@ -40,7 +41,8 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 	// Handle different message types
 	switch msg := message.(type) {
 	case *goaktpb.PostStart:
-		d.pid.Watch(ctx.Self())
+		// d.pid.Watch(ctx.Self())
+		return
 	case *goaktpb.Terminated:
 		if msg.GetActorId() == d.pid.ID() {
 			slog.Debug("DeathWatcher received termination notification",
@@ -65,10 +67,6 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 }
 
 func (d *DeathWatcher) PostStop(ctx context.Context) error {
-	// Close the notifications channel if it exists
-	if d.notifications != nil {
-		close(d.notifications)
-	}
 	return nil
 }
 

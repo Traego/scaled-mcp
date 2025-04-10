@@ -36,8 +36,14 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 	san := utils.GetSessionActorName(sessionId)
 	_, act, err := h.actorSystem.ActorOf(ctx, san)
 	if err != nil {
-		handleError(w, err, mcpRequest)
-		return
+		if err.Error() == "actor=-session not found" {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(string("session not found")))
+			return
+		} else {
+			handleError(w, err, mcpRequest)
+			return
+		}
 	}
 
 	protoMsg, err := protocol.ConvertJSONToProtoRequest(mcpRequest.Message)

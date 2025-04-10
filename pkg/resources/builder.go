@@ -48,18 +48,18 @@ func (b *ToolBuilder) WithInputs(inputs []ToolInput) *ToolBuilder {
 			Type:        input.Type,
 			Description: input.Description,
 		}
-		
+
 		if input.Default != nil {
 			property.Default = input.Default
 		}
-		
+
 		b.tool.InputSchema.Properties[input.Name] = property
-		
+
 		if input.Required {
 			b.tool.InputSchema.Required = append(b.tool.InputSchema.Required, input.Name)
 		}
 	}
-	
+
 	return b
 }
 

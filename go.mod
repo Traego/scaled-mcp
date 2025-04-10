@@ -8,6 +8,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
+	github.com/tmaxmax/go-sse v0.10.0
 	github.com/tochemey/goakt/v3 v3.2.0
 	google.golang.org/protobuf v1.36.5
 )

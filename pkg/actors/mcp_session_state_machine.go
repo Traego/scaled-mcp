@@ -3,6 +3,7 @@ package actors
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/traego/scaled-mcp/pkg/actorutils"
 	"log/slog"
@@ -218,14 +219,17 @@ func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *Ses
 		// Handle non-lifecycle messages
 		response, err := handleNonLifecycleRequest(ctx.Context(), sessionData, msg.Request.Id, msg.Request)
 		if err != nil {
-			hndlErr := protocol.NewInternalError("problem handling message", msg.Request.Id)
-			errorResp := utils.CreateErrorResponseFromJsonRpcError(msg.Request, hndlErr)
-			if ctx.Sender() != nil {
-				err := ctx.Sender().Tell(ctx.Context(), ctx.Sender(), errorResp)
-				if err != nil {
-					slog.ErrorContext(ctx.Context(), "error messaging failure", "session_id", sessionData.SessionID)
-				}
+			var retErr *mcppb.JsonRpcResponse
+
+			var jsonRpcError *protocol.JsonRpcError
+			if errors.As(err, &jsonRpcError) {
+				retErr = utils.CreateErrorResponseFromJsonRpcError(msg.Request, jsonRpcError)
+			} else {
+				hndlErr := protocol.NewInternalError("problem handling message", msg.Request.Id)
+				retErr = utils.CreateErrorResponseFromJsonRpcError(msg.Request, hndlErr)
 			}
+
+			sendResponse(ctx, sessionData, msg, retErr)
 			slog.ErrorContext(ctx.Context(), "problem handling non-lifecycle message", "session_id", sessionData.SessionID, "err", err)
 			return utils.Stay(sessionData)
 		}
@@ -392,7 +396,7 @@ func handleNonLifecycleRequest(ctx context.Context, sessionData *SessionData, me
 	if sessionData.ServerInfo.GetExecutors().CanHandleMethod(req.Method) {
 		resp, err := exc.HandleMethod(ctx, req.Method, req)
 		if err != nil {
-			return nil, actor.NewInternalError(err)
+			return nil, fmt.Errorf("problem handling non-lifecycle request: %w", err)
 		}
 		return resp, nil
 	} else {

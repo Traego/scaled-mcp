@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/r3labs/sse/v2"
+	"github.com/tmaxmax/go-sse"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
@@ -26,7 +26,7 @@ type httpClient struct {
 	initialized      bool
 	eventHandlers    []EventHandler
 	handlersMutex    sync.RWMutex
-	sseClient        *sse.Client
+	sseConnection    *sse.Connection
 	messageEndpoint  string
 	sseEndpoint      string
 	protocolVersion  ProtocolVersion
@@ -37,12 +37,16 @@ type httpClient struct {
 	responseMapMutex sync.RWMutex
 	endpointMutex    sync.RWMutex
 	protocolMutex    sync.RWMutex
+	cancelSSE        context.CancelFunc
 }
 
 // newHTTPClient creates a new HTTP-based MCP client.
 func newHTTPClient(serverURL string, options ClientOptions) (*httpClient, error) {
+	// Use the provided HTTP client or create a default one
 	if options.HTTPClient == nil {
-		options.HTTPClient = http.DefaultClient
+		options.HTTPClient = &http.Client{
+			Timeout: 30 * time.Second,
+		}
 	}
 
 	client := &httpClient{
@@ -60,36 +64,54 @@ func newHTTPClient(serverURL string, options ClientOptions) (*httpClient, error)
 
 // Connect establishes a connection with the server and performs protocol initialization.
 func (c *httpClient) Connect(ctx context.Context) error {
-	// If already initialized, return
-	if c.initialized {
-		return nil
-	}
-
 	// Determine which protocol version to use
 	protocolVersion := c.options.ProtocolVersion
 	if protocolVersion == ProtocolVersionAuto {
-		// Default to the latest version
-		protocolVersion = ProtocolVersion20250326
-	}
+		// Try to detect the server's protocol version
+		req, err := http.NewRequestWithContext(ctx, "GET", c.serverURL, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create HTTP request: %w", err)
+		}
 
-	// For 2024 spec, we need to establish an SSE connection first
-	if protocolVersion == ProtocolVersion20241105 {
-		if err := c.connect2024(ctx); err != nil {
-			// Try 2025 spec if 2024 fails and we're in auto mode
-			if c.options.ProtocolVersion == ProtocolVersionAuto {
-				slog.Info("Failed to connect using 2024 spec, trying 2025 spec")
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to connect to server: %w", err)
+		}
+		defer resp.Body.Close()
+
+		// Check if the server advertises MCP support
+		mcpHeader := resp.Header.Get("Mcp-Version")
+		if mcpHeader != "" {
+			// Server advertises MCP support, use the advertised version
+			if mcpHeader == "2025-03-26" {
 				protocolVersion = ProtocolVersion20250326
+			} else if mcpHeader == "2024-11-05" {
+				protocolVersion = ProtocolVersion20241105
 			} else {
-				return fmt.Errorf("failed to connect using 2024 spec: %w", err)
+				// Unknown version, use the latest
+				protocolVersion = ProtocolVersion20250326
 			}
+		} else {
+			// No MCP header, assume 2025 spec
+			protocolVersion = ProtocolVersion20250326
 		}
 	}
 
-	// For 2025 spec or if 2024 failed in auto mode
-	if protocolVersion == ProtocolVersion20250326 {
-		if err := c.connect2025(ctx); err != nil {
-			return fmt.Errorf("failed to connect using 2025 spec: %w", err)
-		}
+	// Set the protocol version
+	c.protocolMutex.Lock()
+	c.protocolVersion = protocolVersion
+	c.protocolMutex.Unlock()
+
+	// Connect using the appropriate protocol version
+	var err error
+	if protocolVersion == ProtocolVersion20241105 {
+		err = c.connect2024(ctx)
+	} else {
+		err = c.connect2025(ctx)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to connect using %s spec: %w", protocolVersion, err)
 	}
 
 	// Send initialize request
@@ -107,20 +129,19 @@ func (c *httpClient) Connect(ctx context.Context) error {
 		},
 	}
 
-	// Send initialize request
 	resp, err := c.SendRequest(ctx, "initialize", initParams)
 	if err != nil {
-		return fmt.Errorf("failed to send initialize request: %w", err)
+		return fmt.Errorf("failed to initialize: %w", err)
 	}
 
-	// Check for errors in the response
 	if resp.Error != nil {
-		return fmt.Errorf("initialize request failed: %v", resp.Error)
-	}
-
-	// Send initialized notification
-	if err := c.SendNotification(ctx, "notifications/initialized", nil); err != nil {
-		return fmt.Errorf("failed to send initialized notification: %w", err)
+		// Handle error response - Error is an interface{} so we need to extract the message
+		if errObj, ok := resp.Error.(map[string]interface{}); ok {
+			if msg, ok := errObj["message"].(string); ok {
+				return fmt.Errorf("initialize failed: %s", msg)
+			}
+		}
+		return fmt.Errorf("initialize failed: %v", resp.Error)
 	}
 
 	c.initialized = true
@@ -129,9 +150,6 @@ func (c *httpClient) Connect(ctx context.Context) error {
 
 // connect2024 establishes a connection using the 2024 MCP spec.
 func (c *httpClient) connect2024(ctx context.Context) error {
-	// Create SSE client for the 2024 spec
-	c.sseClient = sse.NewClient(c.serverURL + "/sse")
-
 	// Set default message endpoint
 	c.messageEndpoint = c.serverURL + "/messages"
 	c.sseEndpoint = c.serverURL + "/sse"
@@ -142,93 +160,112 @@ func (c *httpClient) connect2024(ctx context.Context) error {
 	c.connectionMethod = ConnectionMethodSSE
 	c.protocolMutex.Unlock()
 
-	// Set up event handler for SSE messages
-	connectionEstablished := make(chan struct{})
+	// Create a context with cancel for the SSE connection
+	sseCtx, cancel := context.WithCancel(ctx)
+	c.cancelSSE = cancel
 
-	c.sseClient.OnConnect(func(client *sse.Client) {
-		slog.Info("Connected to SSE endpoint", "url", client.URL)
-		// Signal that we've connected to the SSE endpoint
+	// Create a request for the SSE endpoint
+	req, err := http.NewRequestWithContext(sseCtx, http.MethodGet, c.sseEndpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create SSE request: %w", err)
+	}
+
+	// Create a new SSE connection
+	c.sseConnection = sse.NewConnection(req)
+
+	// Set up a channel to signal when connection is established
+	connectionEstablished := make(chan struct{})
+	connectionError := make(chan error, 1)
+
+	// Subscribe to all events
+	c.sseConnection.SubscribeToAll(func(event sse.Event) {
+		// Signal that we've received an event (connection established)
 		select {
 		case connectionEstablished <- struct{}{}:
 		default:
+			// Already signaled
 		}
+
+		// Check if this is the endpoint event
+		if event.Type == "endpoint" {
+			// The endpoint is a plain string, not JSON
+			endpointURL := event.Data
+
+			// Process the endpoint URL safely
+			c.endpointMutex.Lock()
+
+			// Check if the URL is absolute or relative
+			if endpointURL != "" {
+				// Check if it's an absolute URL (starts with http:// or https://)
+				if strings.HasPrefix(endpointURL, "http://") || strings.HasPrefix(endpointURL, "https://") {
+					c.messageEndpoint = endpointURL
+				} else {
+					// It's a relative URL, so join it with the server URL
+					baseURL, err := url.Parse(c.serverURL)
+					if err != nil {
+						slog.Error("Failed to parse server URL", "error", err)
+						c.endpointMutex.Unlock()
+						return
+					}
+
+					relURL, err := url.Parse(endpointURL)
+					if err != nil {
+						slog.Error("Failed to parse endpoint URL", "error", err)
+						c.endpointMutex.Unlock()
+						return
+					}
+
+					c.messageEndpoint = baseURL.ResolveReference(relURL).String()
+				}
+				slog.Info("Updated message endpoint", "endpoint", c.messageEndpoint)
+			}
+			c.endpointMutex.Unlock()
+			return
+		}
+
+		// For all other events, parse as JSON-RPC
+		var message protocol.JSONRPCMessage
+		if err := json.Unmarshal([]byte(event.Data), &message); err != nil {
+			slog.Error("Failed to parse SSE event", "error", err)
+			return
+		}
+
+		// Check if this is a response to a request
+		if message.ID != nil {
+			requestID := fmt.Sprintf("%v", message.ID)
+			c.responseMapMutex.RLock()
+			responseChan, ok := c.responseMap[requestID]
+			c.responseMapMutex.RUnlock()
+
+			if ok {
+				// Try to send the response, but don't block if the channel is full or closed
+				select {
+				case responseChan <- &message:
+					slog.Debug("Sent response to channel", "id", message.ID)
+				default:
+					slog.Error("Failed to send response to channel", "id", message.ID)
+				}
+				return
+			} else {
+				slog.Debug("No response channel found for request", "id", message.ID)
+			}
+		}
+
+		// Dispatch the event to all registered handlers
+		c.dispatchEvent(&message)
 	})
 
-	// Start a goroutine to handle SSE events
+	// Start a goroutine to handle the connection
 	go func() {
-		err := c.sseClient.SubscribeWithContext(ctx, "", func(msg *sse.Event) {
-			// Check if this is the endpoint event
-			if string(msg.Event) == "endpoint" {
-				// The endpoint is a plain string, not JSON
-				endpointURL := string(msg.Data)
-
-				// Process the endpoint URL safely
-				c.endpointMutex.Lock()
-
-				// Check if the URL is absolute or relative
-				if endpointURL != "" {
-					// Check if it's an absolute URL (starts with http:// or https://)
-					if strings.HasPrefix(endpointURL, "http://") || strings.HasPrefix(endpointURL, "https://") {
-						c.messageEndpoint = endpointURL
-					} else {
-						// It's a relative URL, so join it with the server URL
-						baseURL, err := url.Parse(c.serverURL)
-						if err != nil {
-							slog.Error("Failed to parse server URL", "error", err)
-							c.endpointMutex.Unlock()
-							return
-						}
-
-						relURL, err := url.Parse(endpointURL)
-						if err != nil {
-							slog.Error("Failed to parse endpoint URL", "error", err)
-							c.endpointMutex.Unlock()
-							return
-						}
-
-						c.messageEndpoint = baseURL.ResolveReference(relURL).String()
-					}
-					slog.Info("Updated message endpoint", "endpoint", c.messageEndpoint)
-				}
-				c.endpointMutex.Unlock()
-
-				return
-			}
-
-			// Parse the event data as a JSON-RPC message
-			var event protocol.JSONRPCMessage
-			if err := json.Unmarshal(msg.Data, &event); err != nil {
-				slog.Error("Failed to parse SSE event", "error", err)
-				return
-			}
-
-			// Check if this is a response to a request
-			if event.ID != nil {
-				requestID := fmt.Sprintf("%v", event.ID)
-				c.responseMapMutex.RLock()
-				responseChan, ok := c.responseMap[requestID]
-				c.responseMapMutex.RUnlock()
-
-				if ok {
-					// Try to send the response, but don't block if the channel is full or closed
-					select {
-					case responseChan <- &event:
-						slog.Debug("Sent response to channel", "id", event.ID)
-					default:
-						slog.Error("Failed to send response to channel", "id", event.ID)
-					}
-					return
-				} else {
-					slog.Debug("No response channel found for request", "id", event.ID)
-				}
-			}
-
-			// Dispatch the event to all registered handlers
-			c.dispatchEvent(&event)
-		})
-
+		err := c.sseConnection.Connect()
 		if err != nil {
-			slog.Error("Failed to subscribe to SSE events", "error", err)
+			slog.Error("SSE connection error", "error", err)
+			select {
+			case connectionError <- err:
+			case <-sseCtx.Done():
+			default:
+				// Channel already closed or full
+			}
 		}
 	}()
 
@@ -236,6 +273,8 @@ func (c *httpClient) connect2024(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
+	case err := <-connectionError:
+		return fmt.Errorf("failed to establish SSE connection: %w", err)
 	case <-connectionEstablished:
 		return nil
 	case <-time.After(5 * time.Second):
@@ -277,7 +316,7 @@ func (c *httpClient) connect2025(ctx context.Context) error {
 		} else if mcpHeader == "2024-11-05" {
 			// Server only supports 2024 spec, but we're trying to use 2025
 			if c.options.ProtocolVersion == ProtocolVersion20250326 {
-				return fmt.Errorf("server only supports 2024-11-05 spec, but client requires 2025-03-26")
+				return fmt.Errorf("server only supports 2024-11-05 protocol, but client requires 2025-03-26")
 			}
 			c.protocolMutex.Lock()
 			c.protocolVersion = ProtocolVersion20241105
@@ -285,8 +324,7 @@ func (c *httpClient) connect2025(ctx context.Context) error {
 			// We need to use the 2024 connection method
 			return c.connect2024(ctx)
 		} else {
-			// Unknown version
-			return fmt.Errorf("server advertises unknown MCP version: %s", mcpHeader)
+			return fmt.Errorf("server advertises unsupported MCP version: %s", mcpHeader)
 		}
 	} else {
 		// No MCP header, assume 2025 spec
@@ -303,16 +341,16 @@ func (c *httpClient) connect2025(ctx context.Context) error {
 	return nil
 }
 
-// Close closes the client connection.
+// Close closes the connection to the server.
 func (c *httpClient) Close(ctx context.Context) error {
-	// If not initialized, return
 	if !c.initialized {
 		return nil
 	}
 
-	// Close SSE client if it exists
-	if c.sseClient != nil {
-		c.sseClient.Unsubscribe(nil)
+	// Cancel the SSE context if it exists
+	if c.cancelSSE != nil {
+		c.cancelSSE()
+		c.cancelSSE = nil
 	}
 
 	// Clear response map
@@ -327,7 +365,7 @@ func (c *httpClient) Close(ctx context.Context) error {
 	return nil
 }
 
-// IsInitialized returns whether the client has been initialized.
+// IsInitialized returns whether the client is initialized.
 func (c *httpClient) IsInitialized() bool {
 	return c.initialized
 }
@@ -337,6 +375,36 @@ func (c *httpClient) GetSessionID() string {
 	return c.sessionID
 }
 
+// AddEventHandler adds an event handler to the client.
+func (c *httpClient) AddEventHandler(handler EventHandler) {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+	c.eventHandlers = append(c.eventHandlers, handler)
+}
+
+// RemoveEventHandler removes an event handler from the client.
+func (c *httpClient) RemoveEventHandler(handler EventHandler) {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+
+	for i, h := range c.eventHandlers {
+		if h == handler {
+			c.eventHandlers = append(c.eventHandlers[:i], c.eventHandlers[i+1:]...)
+			break
+		}
+	}
+}
+
+// dispatchEvent dispatches an event to all registered handlers.
+func (c *httpClient) dispatchEvent(event *protocol.JSONRPCMessage) {
+	c.handlersMutex.RLock()
+	defer c.handlersMutex.RUnlock()
+
+	for _, handler := range c.eventHandlers {
+		go handler.HandleEvent(event)
+	}
+}
+
 // GetProtocolVersion returns the negotiated protocol version.
 func (c *httpClient) GetProtocolVersion() ProtocolVersion {
 	c.protocolMutex.RLock()
@@ -344,7 +412,7 @@ func (c *httpClient) GetProtocolVersion() ProtocolVersion {
 	return c.protocolVersion
 }
 
-// GetConnectionMethod returns the connection method being used (SSE or HTTP).
+// GetConnectionMethod returns the connection method used.
 func (c *httpClient) GetConnectionMethod() ConnectionMethod {
 	c.protocolMutex.RLock()
 	defer c.protocolMutex.RUnlock()
@@ -444,6 +512,31 @@ func (c *httpClient) SendRequest(ctx context.Context, method string, params inte
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case response := <-responseChan:
+			// Check if the response contains an error
+			if response.Error != nil {
+				// Try to convert the error to a JsonRpcError
+				errData, err := json.Marshal(response.Error)
+				if err == nil {
+					var jsonRpcErr protocol.JsonRpcError
+					if err := json.Unmarshal(errData, &jsonRpcErr); err == nil {
+						// Successfully converted to JsonRpcError
+						jsonRpcErr.ID = response.ID
+						return response, &jsonRpcErr
+					}
+				}
+
+				// Fallback if conversion fails
+				if errObj, ok := response.Error.(map[string]interface{}); ok {
+					if msg, ok := errObj["message"].(string); ok {
+						code := -32000 // Default server error code
+						if c, ok := errObj["code"].(float64); ok {
+							code = int(c)
+						}
+						return response, protocol.NewError(code, msg, nil, response.ID)
+					}
+				}
+				return response, fmt.Errorf("JSON-RPC error: %v", response.Error)
+			}
 			return response, nil
 		case <-time.After(30 * time.Second):
 			return nil, fmt.Errorf("timeout waiting for response")
@@ -455,6 +548,33 @@ func (c *httpClient) SendRequest(ctx context.Context, method string, params inte
 			if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 				return nil, fmt.Errorf("failed to decode response: %w", err)
 			}
+
+			// Check if the response contains an error
+			if response.Error != nil {
+				// Try to convert the error to a JsonRpcError
+				errData, err := json.Marshal(response.Error)
+				if err == nil {
+					var jsonRpcErr protocol.JsonRpcError
+					if err := json.Unmarshal(errData, &jsonRpcErr); err == nil {
+						// Successfully converted to JsonRpcError
+						jsonRpcErr.ID = response.ID
+						return &response, &jsonRpcErr
+					}
+				}
+
+				// Fallback if conversion fails
+				if errObj, ok := response.Error.(map[string]interface{}); ok {
+					if msg, ok := errObj["message"].(string); ok {
+						code := -32000 // Default server error code
+						if c, ok := errObj["code"].(float64); ok {
+							code = int(c)
+						}
+						return &response, protocol.NewError(code, msg, nil, response.ID)
+					}
+				}
+				return &response, fmt.Errorf("JSON-RPC error: %v", response.Error)
+			}
+
 			return &response, nil
 		}
 
@@ -523,36 +643,4 @@ func (c *httpClient) SendNotification(ctx context.Context, method string, params
 	}
 
 	return nil
-}
-
-// AddEventHandler adds an event handler for server-sent events.
-func (c *httpClient) AddEventHandler(handler EventHandler) {
-	c.handlersMutex.Lock()
-	defer c.handlersMutex.Unlock()
-	c.eventHandlers = append(c.eventHandlers, handler)
-}
-
-// RemoveEventHandler removes an event handler.
-func (c *httpClient) RemoveEventHandler(handler EventHandler) {
-	c.handlersMutex.Lock()
-	defer c.handlersMutex.Unlock()
-
-	for i, h := range c.eventHandlers {
-		if h == handler {
-			c.eventHandlers = append(c.eventHandlers[:i], c.eventHandlers[i+1:]...)
-			break
-		}
-	}
-}
-
-// dispatchEvent dispatches an event to all registered handlers.
-func (c *httpClient) dispatchEvent(event *protocol.JSONRPCMessage) {
-	c.handlersMutex.RLock()
-	handlers := make([]EventHandler, len(c.eventHandlers))
-	copy(handlers, c.eventHandlers)
-	c.handlersMutex.RUnlock()
-
-	for _, handler := range handlers {
-		go handler.HandleEvent(event)
-	}
 }

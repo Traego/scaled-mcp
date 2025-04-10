@@ -35,7 +35,7 @@ func (r *DynamicToolRegistry) GetTool(ctx context.Context, name string) (Tool, b
 		slog.Debug("Tool provider is nil")
 		return Tool{}, false
 	}
-	
+
 	tool, found := r.provider.GetTool(ctx, name)
 	if !found {
 		slog.Debug("Tool not found", "name", name)
@@ -67,7 +67,7 @@ func (r *DynamicToolRegistry) CallTool(ctx context.Context, name string, params 
 		slog.Debug("Tool provider is nil")
 		return nil, ErrToolNotFound
 	}
-	
+
 	return r.provider.HandleToolInvocation(ctx, name, params)
 }
 

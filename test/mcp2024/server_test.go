@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tmaxmax/go-sse"
 	"github.com/traego/scaled-mcp/pkg/client"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -71,11 +74,13 @@ func TestMCPServer2024(t *testing.T) {
 	t.Run("Basic Initialization", func(t *testing.T) {
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
-		defer mcpClient.Close(context.Background())
 		require.NoError(t, err, "Failed to create MCP client")
 
+		// Use a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+
 		// Connect the client
-		err = mcpClient.Connect(ctx)
+		err = mcpClient.Connect(testCtx)
 		require.NoError(t, err, "Failed to connect MCP client")
 
 		// Verify that the client is initialized
@@ -90,20 +95,26 @@ func TestMCPServer2024(t *testing.T) {
 			"Connection method should be SSE for 2024 spec")
 
 		// Test sending a request
-		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
+		resp, err := mcpClient.SendRequest(testCtx, "tools/list", nil)
 		require.NoError(t, err, "Failed to send roots/list request")
 		assert.NotNil(t, resp, "Response should not be nil")
 		assert.Nil(t, resp.Error, "Response should not contain an error")
+
+		// Clean up
+		testCancel()
+		mcpClient.Close(context.Background())
 	})
 
 	t.Run("Method not found", func(t *testing.T) {
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
-		defer mcpClient.Close(context.Background())
 		require.NoError(t, err, "Failed to create MCP client")
 
+		// Use a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+
 		// Connect the client
-		err = mcpClient.Connect(ctx)
+		err = mcpClient.Connect(testCtx)
 		require.NoError(t, err, "Failed to connect MCP client")
 
 		// Verify that the client is initialized
@@ -118,21 +129,24 @@ func TestMCPServer2024(t *testing.T) {
 			"Connection method should be SSE for 2024 spec")
 
 		// Test sending a request
-		resp, err := mcpClient.SendRequest(ctx, "roots/list", nil)
-		require.Error(t, err, "Failed to send roots/list request")
-		require.Equal(t, resp.Error, "Response should not contain an error")
-		assert.NotNil(t, resp, "Response should not be nil")
-		assert.Nil(t, resp.Error, "Response should not contain an error")
+		_, err = mcpClient.SendRequest(testCtx, "roots/list", nil)
+		require.Error(t, err, "Expected error for roots/list request")
+
+		// Clean up
+		testCancel()
+		mcpClient.Close(context.Background())
 	})
 
 	t.Run("SSE Connection", func(t *testing.T) {
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
-		defer mcpClient.Close(context.Background())
 		require.NoError(t, err, "Failed to create MCP client")
 
+		// Use a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+
 		// Connect the client
-		err = mcpClient.Connect(ctx)
+		err = mcpClient.Connect(testCtx)
 		require.NoError(t, err, "Failed to connect MCP client")
 
 		// Verify that the client is initialized
@@ -147,25 +161,32 @@ func TestMCPServer2024(t *testing.T) {
 			"Connection method should be SSE for 2024 spec")
 
 		// Test sending a request
-		resp, err := mcpClient.SendRequest(ctx, "roots/list", nil)
-		require.NoError(t, err, "Failed to send roots/list request")
+		resp, err := mcpClient.SendRequest(testCtx, "tools/list", nil)
+		require.NoError(t, err, "Failed to send tools/list request")
 		assert.NotNil(t, resp, "Response should not be nil")
 		assert.Nil(t, resp.Error, "Response should not contain an error")
+
+		// Clean up
+		testCancel()
+		mcpClient.Close(context.Background())
 	})
 
 	t.Run("Multiple Clients", func(t *testing.T) {
+		// Create a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+		defer testCancel()
+
 		// Create multiple clients
 		numClients := 5
 		clients := make([]client.McpClient, numClients)
 
 		for i := 0; i < numClients; i++ {
 			c, err := client.NewMcpClient(serverAddr, options)
-			defer c.Close(context.Background())
 			require.NoError(t, err, "Failed to create MCP client")
 			clients[i] = c
 
 			// Connect each client
-			err = c.Connect(ctx)
+			err = c.Connect(testCtx)
 			require.NoError(t, err, "Failed to connect MCP client")
 
 			// Verify the protocol version
@@ -178,19 +199,82 @@ func TestMCPServer2024(t *testing.T) {
 		}
 
 		// Verify that all clients are initialized
-		for i, client := range clients {
-			assert.True(t, client.IsInitialized(), "McpClient %d should be initialized", i)
+		for i, c := range clients {
+			assert.True(t, c.IsInitialized(), "McpClient %d should be initialized", i)
 
 			// Test sending a request with each client
-			resp, err := client.SendRequest(ctx, "roots/list", nil)
-			require.NoError(t, err, "Failed to send roots/list request with client %d", i)
-			assert.NotNil(t, resp, "Response should not be nil for client %d", i)
-			assert.Nil(t, resp.Error, "Response should not contain an error for client %d", i)
+			resp, err := c.SendRequest(testCtx, "tools/list", nil)
+			require.NoError(t, err, "Failed to send tools/list request with client %d", i)
+			assert.NotNil(t, resp, "Response should not be nil")
+			assert.Nil(t, resp.Error, "Response should not contain an error")
+		}
+
+		// Clean up all clients
+		for _, c := range clients {
+			c.Close(context.Background())
 		}
 	})
 
 	t.Run("Invalid Protocol Version", func(t *testing.T) {
-		// Send initialize request with invalid protocol version directly
+		// Create a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+		defer testCancel()
+
+		// First establish an SSE connection to get a session ID
+		req, err := http.NewRequestWithContext(testCtx, http.MethodGet, serverAddr+"/sse", nil)
+		require.NoError(t, err, "Failed to create SSE request")
+
+		// Create a new SSE connection
+		sseConn := sse.NewConnection(req)
+
+		// Set up channels to receive events and session ID
+		connectionEstablished := make(chan struct{})
+		connectionError := make(chan error, 1)
+		endpoint := ""
+
+		// Subscribe to all events
+		sseConn.SubscribeToAll(func(event sse.Event) {
+			// Check if this is a session ID event
+			if event.Type == "endpoint" {
+				endpoint = event.Data
+			}
+
+			// Signal that we've received an event
+			select {
+			case connectionEstablished <- struct{}{}:
+			default:
+				// Already signaled
+			}
+		})
+
+		// Start the connection in a goroutine
+		go func() {
+			err := sseConn.Connect()
+			if err != nil {
+				select {
+				case connectionError <- err:
+				case <-testCtx.Done():
+					// Context canceled
+				}
+			}
+		}()
+
+		// Wait for the connection to be established with a timeout
+		select {
+		case <-testCtx.Done():
+			t.Fatal("Context canceled while waiting for SSE connection")
+		case err := <-connectionError:
+			t.Fatalf("Error establishing SSE connection: %v", err)
+		case <-connectionEstablished:
+			// Connection established, continue with the test
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for SSE connection")
+		}
+
+		// Ensure we have a session ID
+		require.NotEmpty(t, endpoint, "Failed to receive endpoint from SSE connection")
+
+		// Now send initialize request with invalid protocol version
 		invalidVersionRequest := protocol.JSONRPCMessage{
 			JSONRPC: "2.0",
 			ID:      "test-invalid-version",
@@ -212,7 +296,9 @@ func TestMCPServer2024(t *testing.T) {
 		reqBody, err := json.Marshal(invalidVersionRequest)
 		require.NoError(t, err, "Failed to marshal invalid version request")
 
-		invalidVersionResp, err := http.Post(serverAddr+"/messages", "application/json",
+		// Create a request with the session ID as a query parameter
+		invalidVersionURL := fmt.Sprintf("%s%s", serverAddr, endpoint)
+		invalidVersionResp, err := http.Post(invalidVersionURL, "application/json",
 			bytes.NewReader(reqBody))
 		require.NoError(t, err, "Failed to make invalid version request")
 		defer invalidVersionResp.Body.Close()
@@ -221,6 +307,36 @@ func TestMCPServer2024(t *testing.T) {
 		// and the error will be sent via the SSE channel
 		assert.Equal(t, http.StatusAccepted, invalidVersionResp.StatusCode,
 			"Invalid protocol version should return 202 Accepted")
+
+		// Clean up
+		testCancel()
+	})
+
+	t.Run("Properly fail on message before initialization", func(t *testing.T) {
+		// Create a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+		defer testCancel()
+
+		// Send a request without initializing first
+		uninitializedRequest := protocol.JSONRPCMessage{
+			JSONRPC: "2.0",
+			ID:      "test-uninitialized",
+			Method:  "roots/list", // Any method other than initialize
+			Params:  nil,
+		}
+
+		reqBody, err := json.Marshal(uninitializedRequest)
+		require.NoError(t, err, "Failed to marshal uninitialized request")
+
+		req, err := http.NewRequestWithContext(testCtx, http.MethodPost, serverAddr+"/messages", bytes.NewReader(reqBody))
+		require.NoError(t, err, "Failed to create uninitialized request")
+
+		uninitializedResp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err, "Failed to make uninitialized request")
+
+		// Should fail with 404 Not Found since there's no session
+		require.Equal(t, http.StatusNotFound, uninitializedResp.StatusCode)
+		defer uninitializedResp.Body.Close()
 	})
 }
 

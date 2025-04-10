@@ -215,6 +215,9 @@ github.com/tidwall/match v1.1.1/go.mod h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JT
 github.com/tidwall/redcon v1.6.2 h1:5qfvrrybgtO85jnhSravmkZyC0D+7WstbfCs3MmPhow=
 github.com/tidwall/redcon v1.6.2/go.mod h1:p5Wbsgeyi2VSTBWOcA5vRXrOb9arFTcU2+ZzFjqV75Y=
 github.com/tinylib/msgp v1.1.5/go.mod h1:eQsjooMTnV42mHu917E26IogZ2930nFyBQdofk10Udg=
+github.com/tmaxmax/go-sse v0.8.0/go.mod h1:HLoxqxdH+7oSUItjtnpxjzJedfr/+Rrm/dNWBcTxJFM=
+github.com/tmaxmax/go-sse v0.10.0 h1:j9F93WB4Hxt8wUf6oGffMm4dutALvUPoDDxfuDQOSqA=
+github.com/tmaxmax/go-sse v0.10.0/go.mod h1:u/2kZQR1tyngo1lKaNCj1mJmhXGZWS1Zs5yiSOD+Eg8=
 github.com/tochemey/goakt/v3 v3.2.0 h1:5PjKthYKRHIwTZSVVe+nvs6WXhn6dU23qavB7hKyhCg=
 github.com/tochemey/goakt/v3 v3.2.0/go.mod h1:HqmKGJbT5VrKpU7OVEbqD1qrZJGu9AiBdNSPL3m9yNs=
 github.com/tochemey/olric v0.2.2-0.20250304083721-27fce64d1fa5 h1:Jhe5Ux+SXAajw2Efm+m0zz4XgkP7bnlMKxTznPrmWew=

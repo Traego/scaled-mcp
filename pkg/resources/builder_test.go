@@ -8,25 +8,25 @@ import (
 func TestNewTool(t *testing.T) {
 	toolName := "test-tool"
 	builder := NewTool(toolName)
-	
+
 	if builder == nil {
 		t.Fatal("NewTool returned nil")
 	}
-	
+
 	tool := builder.Build()
-	
+
 	if tool.Name != toolName {
 		t.Errorf("Expected tool name to be %q, got %q", toolName, tool.Name)
 	}
-	
+
 	if tool.InputSchema.Type != "object" {
 		t.Errorf("Expected input schema type to be 'object', got %q", tool.InputSchema.Type)
 	}
-	
+
 	if len(tool.InputSchema.Properties) != 0 {
 		t.Errorf("Expected empty properties, got %d properties", len(tool.InputSchema.Properties))
 	}
-	
+
 	if len(tool.InputSchema.Required) != 0 {
 		t.Errorf("Expected empty required fields, got %d required fields", len(tool.InputSchema.Required))
 	}
@@ -37,7 +37,7 @@ func TestWithDescription(t *testing.T) {
 	tool := NewTool("test-tool").
 		WithDescription(description).
 		Build()
-	
+
 	if tool.Description != description {
 		t.Errorf("Expected description to be %q, got %q", description, tool.Description)
 	}
@@ -50,7 +50,7 @@ func TestWithInputs(t *testing.T) {
 		expected Tool
 	}{
 		{
-			name: "Empty inputs",
+			name:   "Empty inputs",
 			inputs: []ToolInput{},
 			expected: Tool{
 				Name: "test-tool",
@@ -134,25 +134,25 @@ func TestWithInputs(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Set the name to match the expected tool
 			tc.expected.Name = "test-tool"
-			
+
 			tool := NewTool("test-tool").
 				WithInputs(tc.inputs).
 				Build()
-			
+
 			// Check the properties
 			if !reflect.DeepEqual(tool.InputSchema.Properties, tc.expected.InputSchema.Properties) {
-				t.Errorf("Properties don't match\nExpected: %+v\nGot: %+v", 
+				t.Errorf("Properties don't match\nExpected: %+v\nGot: %+v",
 					tc.expected.InputSchema.Properties, tool.InputSchema.Properties)
 			}
-			
+
 			// Check the required fields
 			if !reflect.DeepEqual(tool.InputSchema.Required, tc.expected.InputSchema.Required) {
-				t.Errorf("Required fields don't match\nExpected: %+v\nGot: %+v", 
+				t.Errorf("Required fields don't match\nExpected: %+v\nGot: %+v",
 					tc.expected.InputSchema.Required, tool.InputSchema.Required)
 			}
 		})
@@ -162,23 +162,23 @@ func TestWithInputs(t *testing.T) {
 func TestWithString(t *testing.T) {
 	paramName := "string-param"
 	paramDesc := "String parameter description"
-	
+
 	tool := NewTool("test-tool").
 		WithString(paramName).
 		Description(paramDesc).
 		Add().
 		Build()
-	
+
 	// Check if the parameter was added correctly
 	prop, exists := tool.InputSchema.Properties[paramName]
 	if !exists {
 		t.Fatalf("Parameter %q was not added to the tool", paramName)
 	}
-	
+
 	if prop.Type != "string" {
 		t.Errorf("Expected parameter type to be 'string', got %q", prop.Type)
 	}
-	
+
 	if prop.Description != paramDesc {
 		t.Errorf("Expected parameter description to be %q, got %q", paramDesc, prop.Description)
 	}
@@ -187,23 +187,23 @@ func TestWithString(t *testing.T) {
 func TestWithInteger(t *testing.T) {
 	paramName := "int-param"
 	paramDesc := "Integer parameter description"
-	
+
 	tool := NewTool("test-tool").
 		WithInteger(paramName).
 		Description(paramDesc).
 		Add().
 		Build()
-	
+
 	// Check if the parameter was added correctly
 	prop, exists := tool.InputSchema.Properties[paramName]
 	if !exists {
 		t.Fatalf("Parameter %q was not added to the tool", paramName)
 	}
-	
+
 	if prop.Type != "integer" {
 		t.Errorf("Expected parameter type to be 'integer', got %q", prop.Type)
 	}
-	
+
 	if prop.Description != paramDesc {
 		t.Errorf("Expected parameter description to be %q, got %q", paramDesc, prop.Description)
 	}
@@ -212,23 +212,23 @@ func TestWithInteger(t *testing.T) {
 func TestWithBoolean(t *testing.T) {
 	paramName := "bool-param"
 	paramDesc := "Boolean parameter description"
-	
+
 	tool := NewTool("test-tool").
 		WithBoolean(paramName).
 		Description(paramDesc).
 		Add().
 		Build()
-	
+
 	// Check if the parameter was added correctly
 	prop, exists := tool.InputSchema.Properties[paramName]
 	if !exists {
 		t.Fatalf("Parameter %q was not added to the tool", paramName)
 	}
-	
+
 	if prop.Type != "boolean" {
 		t.Errorf("Expected parameter type to be 'boolean', got %q", prop.Type)
 	}
-	
+
 	if prop.Description != paramDesc {
 		t.Errorf("Expected parameter description to be %q, got %q", paramDesc, prop.Description)
 	}
@@ -236,13 +236,13 @@ func TestWithBoolean(t *testing.T) {
 
 func TestParameterBuilder_Required(t *testing.T) {
 	paramName := "required-param"
-	
+
 	tool := NewTool("test-tool").
 		WithString(paramName).
 		Required().
 		Add().
 		Build()
-	
+
 	// Check if the parameter is in the required list
 	found := false
 	for _, req := range tool.InputSchema.Required {
@@ -251,7 +251,7 @@ func TestParameterBuilder_Required(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !found {
 		t.Errorf("Parameter %q was not added to the required list", paramName)
 	}
@@ -260,19 +260,19 @@ func TestParameterBuilder_Required(t *testing.T) {
 func TestParameterBuilder_Default(t *testing.T) {
 	paramName := "default-param"
 	defaultValue := "default-value"
-	
+
 	tool := NewTool("test-tool").
 		WithString(paramName).
 		Default(defaultValue).
 		Add().
 		Build()
-	
+
 	// Check if the parameter has the default value
 	prop, exists := tool.InputSchema.Properties[paramName]
 	if !exists {
 		t.Fatalf("Parameter %q was not added to the tool", paramName)
 	}
-	
+
 	if prop.Default != defaultValue {
 		t.Errorf("Expected default value to be %q, got %v", defaultValue, prop.Default)
 	}
@@ -304,19 +304,19 @@ func TestComplexToolDefinition(t *testing.T) {
 		Description("Fourth input parameter").
 		Add().
 		Build()
-	
+
 	// Check the number of parameters
 	if len(tool.InputSchema.Properties) != 4 {
 		t.Errorf("Expected 4 parameters, got %d", len(tool.InputSchema.Properties))
 	}
-	
+
 	// Check required parameters
 	expectedRequired := []string{"input1", "input4"}
 	if len(tool.InputSchema.Required) != len(expectedRequired) {
-		t.Errorf("Expected %d required parameters, got %d", 
+		t.Errorf("Expected %d required parameters, got %d",
 			len(expectedRequired), len(tool.InputSchema.Required))
 	}
-	
+
 	// Check each parameter exists
 	params := []string{"input1", "input2", "input3", "input4"}
 	for _, param := range params {
@@ -324,7 +324,7 @@ func TestComplexToolDefinition(t *testing.T) {
 			t.Errorf("Parameter %q was not added to the tool", param)
 		}
 	}
-	
+
 	// Check types
 	expectedTypes := map[string]string{
 		"input1": "string",
@@ -332,17 +332,17 @@ func TestComplexToolDefinition(t *testing.T) {
 		"input3": "string",
 		"input4": "boolean",
 	}
-	
+
 	for param, expectedType := range expectedTypes {
 		if tool.InputSchema.Properties[param].Type != expectedType {
-			t.Errorf("Parameter %q: expected type %q, got %q", 
+			t.Errorf("Parameter %q: expected type %q, got %q",
 				param, expectedType, tool.InputSchema.Properties[param].Type)
 		}
 	}
-	
+
 	// Check default values
 	if tool.InputSchema.Properties["input2"].Default != 100 {
-		t.Errorf("Parameter input2: expected default value 100, got %v", 
+		t.Errorf("Parameter input2: expected default value 100, got %v",
 			tool.InputSchema.Properties["input2"].Default)
 	}
 }
