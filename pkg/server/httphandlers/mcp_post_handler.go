@@ -106,7 +106,7 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				return
 			}
 
-			sa := actors.NewMcpSessionActor(h.serverInfo, sessionId)
+			sa := actors.NewMcpSessionStateMachine(h.serverInfo, sessionId)
 			san := utils.GetSessionActorName(sessionId)
 			act, err := h.actorSystem.Spawn(ctx, san, sa)
 			if err != nil {

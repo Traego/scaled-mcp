@@ -19,7 +19,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sa := actors.NewMcpSessionActor(h.serverInfo, sessionId)
+	sa := actors.NewMcpSessionStateMachine(h.serverInfo, sessionId)
 	san := utils.GetSessionActorName(sessionId)
 	_, err = h.actorSystem.Spawn(ctx, san, sa)
 	if err != nil {

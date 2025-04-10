@@ -76,7 +76,7 @@ func (a *StateMachineActor) PreStart(ctx context.Context) error {
 	a.mu.RLock()
 	initialState := a.initialState
 	a.mu.RUnlock()
-	
+
 	slog.DebugContext(ctx, "Starting state machine actor", "initial_state", initialState)
 	return nil
 }
@@ -144,7 +144,7 @@ func (a *StateMachineActor) PostStop(ctx context.Context) error {
 	a.mu.RLock()
 	finalState := a.currentState
 	a.mu.RUnlock()
-	
+
 	slog.DebugContext(ctx, "Stopping state machine actor", "final_state", finalState)
 	return nil
 }
