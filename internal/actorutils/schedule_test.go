@@ -37,13 +37,11 @@ func (a *testActor) Receive(ctx *actor.ReceiveContext) {
 	switch ctx.Message().(type) {
 	case *goaktpb.PostStart:
 	default:
-		if protoMsg, ok := msg.(proto.Message); ok {
-			select {
-			case a.receivedMessages <- protoMsg:
-				// Message sent to channel
-			default:
-				// Channel is full, this shouldn't happen with our buffer size
-			}
+		select {
+		case a.receivedMessages <- msg:
+			// Message sent to channel
+		default:
+			// Channel is full, this shouldn't happen with our buffer size
 		}
 	}
 }
@@ -63,7 +61,7 @@ var testMutex sync.Mutex
 func TestSchedule_RecurringMessages(t *testing.T) {
 	testMutex.Lock()
 	defer testMutex.Unlock()
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -75,7 +73,7 @@ func TestSchedule_RecurringMessages(t *testing.T) {
 
 	err = actorSystem.Start(ctx)
 	require.NoError(t, err)
-	
+
 	// Create an actor
 	testActor := newTestActor()
 
@@ -106,17 +104,17 @@ func TestSchedule_RecurringMessages(t *testing.T) {
 	}
 
 	assert.GreaterOrEqual(t, receivedCount, 3, "Should have received at least 3 messages")
-	
+
 	// Add a small delay before stopping the actor system
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop the actor system
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer stopCancel()
-	
+
 	err = actorSystem.Stop(stopCtx)
 	require.NoError(t, err)
-	
+
 	// Add a small delay after stopping to avoid race conditions between tests
 	time.Sleep(200 * time.Millisecond)
 }
@@ -125,7 +123,7 @@ func TestSchedule_RecurringMessages(t *testing.T) {
 func TestSchedule_CancelContext(t *testing.T) {
 	testMutex.Lock()
 	defer testMutex.Unlock()
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -137,7 +135,7 @@ func TestSchedule_CancelContext(t *testing.T) {
 
 	err = actorSystem.Start(ctx)
 	require.NoError(t, err)
-	
+
 	// Create an actor
 	testActor := newTestActor()
 
@@ -191,17 +189,17 @@ drained:
 	}
 
 	assert.True(t, noMoreMessages, "Should not receive additional messages after context cancellation")
-	
+
 	// Add a small delay before stopping the actor system
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop the actor system
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer stopCancel()
-	
+
 	err = actorSystem.Stop(stopCtx)
 	require.NoError(t, err)
-	
+
 	// Add a small delay after stopping to avoid race conditions between tests
 	time.Sleep(200 * time.Millisecond)
 }
@@ -210,7 +208,7 @@ drained:
 func TestScheduleOnce_SingleMessage(t *testing.T) {
 	testMutex.Lock()
 	defer testMutex.Unlock()
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -222,7 +220,7 @@ func TestScheduleOnce_SingleMessage(t *testing.T) {
 
 	err = actorSystem.Start(ctx)
 	require.NoError(t, err)
-	
+
 	// Create an actor
 	testActor := newTestActor()
 
@@ -260,17 +258,17 @@ func TestScheduleOnce_SingleMessage(t *testing.T) {
 	}
 
 	assert.True(t, noMoreMessages, "Should not receive additional messages")
-	
+
 	// Add a small delay before stopping the actor system
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop the actor system
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer stopCancel()
-	
+
 	err = actorSystem.Stop(stopCtx)
 	require.NoError(t, err)
-	
+
 	// Add a small delay after stopping to avoid race conditions between tests
 	time.Sleep(200 * time.Millisecond)
 }
@@ -279,7 +277,7 @@ func TestScheduleOnce_SingleMessage(t *testing.T) {
 func TestScheduleOnce_CancelContext(t *testing.T) {
 	testMutex.Lock()
 	defer testMutex.Unlock()
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -291,7 +289,7 @@ func TestScheduleOnce_CancelContext(t *testing.T) {
 
 	err = actorSystem.Start(ctx)
 	require.NoError(t, err)
-	
+
 	// Create an actor
 	testActor := newTestActor()
 
@@ -324,17 +322,17 @@ func TestScheduleOnce_CancelContext(t *testing.T) {
 	}
 
 	assert.True(t, noMessages, "Should not receive any messages after context cancellation")
-	
+
 	// Add a small delay before stopping the actor system
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop the actor system
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer stopCancel()
-	
+
 	err = actorSystem.Stop(stopCtx)
 	require.NoError(t, err)
-	
+
 	// Add a small delay after stopping to avoid race conditions between tests
 	time.Sleep(200 * time.Millisecond)
 }
