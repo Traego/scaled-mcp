@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"strconv"
 	"testing"
@@ -16,11 +17,31 @@ import (
 	"github.com/traego/scaled-mcp/pkg/server"
 )
 
+// getAvailablePort gets a random available port
+func getAvailablePort() (int, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return 0, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return 0, err
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port, nil
+}
+
 // TestMCPServer2024 tests the MCP server with the 2024 spec.
 func TestMCPServer2024(t *testing.T) {
+	// Get a random available port
+	port, err := getAvailablePort()
+	require.NoError(t, err, "Failed to get available port")
+
 	// Create a server config with 2024 compatibility enabled
 	cfg := config.DefaultConfig()
 	cfg.BackwardCompatible20241105 = true
+	cfg.HTTP.Port = port
 
 	// Create a new MCP server
 	mcpServer, err := server.NewMcpServer(cfg)
@@ -57,8 +78,33 @@ func TestMCPServer2024(t *testing.T) {
 		err = mcpClient.Connect(ctx)
 		require.NoError(t, err, "Failed to connect MCP client")
 
-		// Ensure client is closed after the test
-		defer mcpClient.Close(ctx)
+		// Verify that the client is initialized
+		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
+
+		// Verify the protocol version
+		assert.Equal(t, client.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
+			"Protocol version should be 2024-11-05")
+
+		// Verify the connection method
+		assert.Equal(t, client.ConnectionMethodSSE, mcpClient.GetConnectionMethod(),
+			"Connection method should be SSE for 2024 spec")
+
+		// Test sending a request
+		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
+		require.NoError(t, err, "Failed to send roots/list request")
+		assert.NotNil(t, resp, "Response should not be nil")
+		assert.Nil(t, resp.Error, "Response should not contain an error")
+	})
+
+	t.Run("Method not found", func(t *testing.T) {
+		// Create a new MCP client
+		mcpClient, err := client.NewMcpClient(serverAddr, options)
+		defer mcpClient.Close(context.Background())
+		require.NoError(t, err, "Failed to create MCP client")
+
+		// Connect the client
+		err = mcpClient.Connect(ctx)
+		require.NoError(t, err, "Failed to connect MCP client")
 
 		// Verify that the client is initialized
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
@@ -73,30 +119,21 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Test sending a request
 		resp, err := mcpClient.SendRequest(ctx, "roots/list", nil)
-		require.NoError(t, err, "Failed to send roots/list request")
+		require.Error(t, err, "Failed to send roots/list request")
+		require.Equal(t, resp.Error, "Response should not contain an error")
 		assert.NotNil(t, resp, "Response should not be nil")
 		assert.Nil(t, resp.Error, "Response should not contain an error")
 	})
 
 	t.Run("SSE Connection", func(t *testing.T) {
-		// Create client options with 2024 protocol version
-		options := client.DefaultClientOptions()
-		options.ProtocolVersion = client.ProtocolVersion20241105
-		options.ClientInfo = client.ClientInfo{
-			Name:    "test-client",
-			Version: "1.0.0",
-		}
-
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
+		defer mcpClient.Close(context.Background())
 		require.NoError(t, err, "Failed to create MCP client")
 
 		// Connect the client
 		err = mcpClient.Connect(ctx)
 		require.NoError(t, err, "Failed to connect MCP client")
-
-		// Ensure client is closed after the test
-		defer mcpClient.Close(ctx)
 
 		// Verify that the client is initialized
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
@@ -123,15 +160,13 @@ func TestMCPServer2024(t *testing.T) {
 
 		for i := 0; i < numClients; i++ {
 			c, err := client.NewMcpClient(serverAddr, options)
+			defer c.Close(context.Background())
 			require.NoError(t, err, "Failed to create MCP client")
 			clients[i] = c
 
 			// Connect each client
 			err = c.Connect(ctx)
 			require.NoError(t, err, "Failed to connect MCP client")
-
-			// Ensure client is closed after the test
-			defer c.Close(ctx)
 
 			// Verify the protocol version
 			assert.Equal(t, client.ProtocolVersion20241105, c.GetProtocolVersion(),
@@ -191,9 +226,14 @@ func TestMCPServer2024(t *testing.T) {
 
 // TestMCPServer2025 tests the MCP server with the 2025 spec.
 func TestMCPServer2025(t *testing.T) {
+	// Get a random available port
+	port, err := getAvailablePort()
+	require.NoError(t, err, "Failed to get available port")
+
 	// Create a server config with 2025 compatibility (default)
 	cfg := config.DefaultConfig()
 	cfg.BackwardCompatible20241105 = false
+	cfg.HTTP.Port = port
 
 	// Create a new MCP server
 	mcpServer, err := server.NewMcpServer(cfg)
@@ -223,14 +263,12 @@ func TestMCPServer2025(t *testing.T) {
 	t.Run("Basic Initialization", func(t *testing.T) {
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
+		defer mcpClient.Close(context.Background())
 		require.NoError(t, err, "Failed to create MCP client")
 
 		// Connect the client
 		err = mcpClient.Connect(ctx)
 		require.NoError(t, err, "Failed to connect MCP client")
-
-		// Ensure client is closed after the test
-		defer mcpClient.Close(ctx)
 
 		// Verify that the client is initialized
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
