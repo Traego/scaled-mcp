@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/pkg/executors"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/traego/scaled-mcp/pkg/executors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -27,6 +29,7 @@ type McpServer struct {
 	// Configuration
 	config             *config.ServerConfig
 	actorSystem        actor.ActorSystem
+	actorMutex         sync.Mutex
 	sessionStore       store.SessionStore
 	serverCapabilities protocol.ServerCapabilities
 	enableSSE          bool
@@ -185,7 +188,10 @@ func (s *McpServer) Start(ctx context.Context) error {
 		Handler: s.createHTTPHandler(),
 	}
 
+	s.actorMutex.Lock()
 	err := s.actorSystem.Start(ctx)
+	s.actorMutex.Unlock()
+
 	if err != nil {
 		return fmt.Errorf("failed to start MCP actor system: %w", err)
 	}
@@ -217,9 +223,11 @@ func (s *McpServer) Stop(ctx context.Context) {
 	// since Shutdown is not directly available
 	slog.InfoContext(ctx, "Stopping actor system")
 	if s.actorSystem != nil {
+		s.actorMutex.Lock()
 		if err := s.actorSystem.Stop(ctx); err != nil {
 			slog.Error("Failed to shutdown actor system", "err", err)
 		}
+		s.actorMutex.Unlock()
 	}
 
 	slog.InfoContext(ctx, "Stopping MCP Server")
