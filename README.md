@@ -253,7 +253,7 @@ func main() {
 
 ## Dynamic Tool Registry Example
 
-This library supports both static and dynamic tool registries. Here's an example of using a dynamic tool registry:
+This library supports both static and dynamic tool registries. Here's an client_example of using a dynamic tool registry:
 
 ```go
 // Create a custom tool provider

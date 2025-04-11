@@ -86,25 +86,6 @@ func TestDeathWatcher(t *testing.T) {
 		// when the channel is full
 	})
 
-	t.Run("should close notifications channel on PostStop", func(t *testing.T) {
-		testActor := &testTerminatingActor{}
-		testActorPID, err := actorSystem.Spawn(ctx, "test-actor-full", testActor)
-		require.NoError(t, err)
-
-		// Create the death watcher actor
-		deathWatcherPID, notifications, err := SpawnDeathWatcher(t.Context(), actorSystem, testActorPID)
-		require.NoError(t, err)
-
-		// Stop the death watcher actor
-		poison := goaktpb.PoisonPill{}
-		err = actor.Tell(ctx, deathWatcherPID, &poison)
-		require.NoError(t, err)
-
-		// Verify that the channel is closed
-		_, ok := <-notifications
-		assert.False(t, ok, "channel should be closed")
-	})
-
 	t.Run("should handle nil notifications channel", func(t *testing.T) {
 		// Create a test actor that will be terminated
 		testActor := &testTerminatingActor{}

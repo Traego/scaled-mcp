@@ -3,17 +3,18 @@ package actors
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/traego/scaled-mcp/internal/actorutils"
+	"github.com/traego/scaled-mcp/pkg/actorutils"
 	"log/slog"
 	"time"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/utils"
 )
 
 // Session states
@@ -218,14 +219,17 @@ func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *Ses
 		// Handle non-lifecycle messages
 		response, err := handleNonLifecycleRequest(ctx.Context(), sessionData, msg.Request.Id, msg.Request)
 		if err != nil {
-			hndlErr := protocol.NewInternalError("problem handling message", msg.Request.Id)
-			errorResp := utils.CreateErrorResponseFromJsonRpcError(msg.Request, hndlErr)
-			if ctx.Sender() != nil {
-				err := ctx.Sender().Tell(ctx.Context(), ctx.Sender(), errorResp)
-				if err != nil {
-					slog.ErrorContext(ctx.Context(), "error messaging failure", "session_id", sessionData.SessionID)
-				}
+			var retErr *mcppb.JsonRpcResponse
+
+			var jsonRpcError *protocol.JsonRpcError
+			if errors.As(err, &jsonRpcError) {
+				retErr = utils.CreateErrorResponseFromJsonRpcError(msg.Request, jsonRpcError)
+			} else {
+				hndlErr := protocol.NewInternalError("problem handling message", msg.Request.Id)
+				retErr = utils.CreateErrorResponseFromJsonRpcError(msg.Request, hndlErr)
 			}
+
+			sendResponse(ctx, sessionData, msg, retErr)
 			slog.ErrorContext(ctx.Context(), "problem handling non-lifecycle message", "session_id", sessionData.SessionID, "err", err)
 			return utils.Stay(sessionData)
 		}
@@ -304,7 +308,7 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	}
 
 	// Check protocol version
-	supportedVersions := []string{"2024-11-05", "2025-03"}
+	supportedVersions := []string{"2024-11-05", "2025-03-26"}
 	versionSupported := false
 	for _, v := range supportedVersions {
 		if params.ProtocolVersion == v {
@@ -392,7 +396,7 @@ func handleNonLifecycleRequest(ctx context.Context, sessionData *SessionData, me
 	if sessionData.ServerInfo.GetExecutors().CanHandleMethod(req.Method) {
 		resp, err := exc.HandleMethod(ctx, req.Method, req)
 		if err != nil {
-			return nil, actor.NewInternalError(err)
+			return nil, fmt.Errorf("problem handling non-lifecycle request: %w", err)
 		}
 		return resp, nil
 	} else {

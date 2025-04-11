@@ -21,6 +21,11 @@ func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 
 	sessionId := r.Header.Get("Mcp-Session-Id")
 
+	if sessionId == "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
@@ -28,7 +33,7 @@ func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
-		respErr := fmt.Errorf("error spawning session: %w", err)
+		respErr := fmt.Errorf("error spawning mcp session: %w", err)
 		handleError(w, respErr, "")
 	}
 

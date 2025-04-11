@@ -4,7 +4,7 @@ import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"net/http"
 
-	"github.com/traego/scaled-mcp/internal/utils"
+	"github.com/traego/scaled-mcp/pkg/utils"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -36,8 +36,14 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 	san := utils.GetSessionActorName(sessionId)
 	_, act, err := h.actorSystem.ActorOf(ctx, san)
 	if err != nil {
-		handleError(w, err, mcpRequest)
-		return
+		if err.Error() == "actor=-session not found" {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(string("session not found")))
+			return
+		} else {
+			handleError(w, err, mcpRequest)
+			return
+		}
 	}
 
 	protoMsg, err := protocol.ConvertJSONToProtoRequest(mcpRequest.Message)

@@ -2,7 +2,6 @@ package httphandlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,9 +9,9 @@ import (
 	"github.com/traego/scaled-mcp/pkg/actors"
 
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/utils"
 )
 
 // HandleMCPPost handles an MCP request
@@ -50,7 +49,13 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			return
 		}
 
-		respMsg, err := actor.Ask(ctx, sa, protoMsg, h.config.RequestTimeout)
+		wrapped := mcppb.WrappedRequest{
+			IsAsk:                 true,
+			RespondToConnectionId: "",
+			Request:               protoMsg,
+		}
+
+		respMsg, err := actor.Ask(ctx, sa, &wrapped, h.config.RequestTimeout)
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
 			return
@@ -68,12 +73,11 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			return
 		}
 
-		responseJSON, err := json.Marshal(rm)
+		err = writeMessage(w, rm, nil)
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
+			return
 		}
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(responseJSON)
 		return
 	} else {
 		err := actor.NewInternalError(fmt.Errorf("batch messaging not implemented"))
@@ -113,17 +117,25 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				handleError(w, err, msg.ID)
 				return
 			}
+
 			protoInit, err := protocol.ConvertJSONToProtoRequest(msg)
 			if err != nil {
 				handleError(w, err, msg.ID)
 				return
 			}
 
-			initResp, err := actor.Ask(ctx, act, protoInit, h.config.RequestTimeout)
+			wrapped := mcppb.WrappedRequest{
+				IsAsk:                 true,
+				RespondToConnectionId: "",
+				Request:               protoInit,
+			}
+
+			initResp, err := actor.Ask(ctx, act, &wrapped, h.config.RequestTimeout)
 			if err != nil {
 				handleError(w, err, msg.ID)
 				return
 			}
+
 			jrr, ok := initResp.(*mcppb.JsonRpcResponse)
 			if !ok {
 				handleError(w, fmt.Errorf("unable to parse init response"), msg.ID)
@@ -136,7 +148,10 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				return
 			}
 
-			writeMessage(w, msg.ID, ir)
+			err = writeMessage(w, ir, &sessionId)
+			if err != nil {
+				handleError(w, err, msg.ID)
+			}
 			return
 		} else {
 			respErr := protocol.NewInvalidRequestError("missing Mcp-Session-Id, expecting initialize message", msg.ID)

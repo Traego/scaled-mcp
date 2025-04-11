@@ -2,9 +2,9 @@ package httphandlers
 
 import (
 	"fmt"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/actors"
 	"github.com/traego/scaled-mcp/pkg/channels"
+	"github.com/traego/scaled-mcp/pkg/utils"
 	"net/http"
 )
 
@@ -34,7 +34,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
-		respErr := fmt.Errorf("error spawning session: %w", err)
+		respErr := fmt.Errorf("error spawning sse session: %w", err)
 		handleError(w, respErr, "")
 	}
 

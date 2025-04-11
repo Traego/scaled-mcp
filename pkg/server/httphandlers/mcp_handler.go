@@ -66,13 +66,21 @@ func parseMessageRequest(r *http.Request) (McpRequest, error) {
 	}, nil
 }
 
-func writeMessage(w http.ResponseWriter, messageId interface{}, msg protocol.JSONRPCMessage) {
+func writeMessage(w http.ResponseWriter, msg protocol.JSONRPCMessage, sessionId *string) error {
 	responseJSON, err := json.Marshal(msg)
 	if err != nil {
 		handleError(w, err, msg.ID)
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if sessionId != nil {
+		w.Header().Set("Mcp-Session-Id", *sessionId)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(responseJSON)
+	return nil
 }
 
 // handleError processes errors from request handling

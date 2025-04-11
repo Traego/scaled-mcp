@@ -17,22 +17,22 @@ import (
 func TestSchedule_Basic(t *testing.T) {
 	// Create a simple test that doesn't trigger race conditions in goakt
 	slog.Info("Running race-safe Schedule test")
-	
+
 	// Use a wait group to synchronize the test
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Set up a channel to receive the result
 	resultCh := make(chan bool, 1)
-	
+
 	// Start a goroutine that will wait for the result
 	go func() {
 		defer wg.Done()
-		
+
 		select {
 		case <-ctx.Done():
 			t.Log("Test timed out")
@@ -42,10 +42,10 @@ func TestSchedule_Basic(t *testing.T) {
 			resultCh <- true
 		}
 	}()
-	
+
 	// Wait for the goroutine to complete
 	wg.Wait()
-	
+
 	// Check the result
 	select {
 	case result := <-resultCh:
@@ -59,22 +59,22 @@ func TestSchedule_Basic(t *testing.T) {
 func TestScheduleOnce_Basic(t *testing.T) {
 	// Create a simple test that doesn't trigger race conditions in goakt
 	slog.Info("Running race-safe ScheduleOnce test")
-	
+
 	// Use a wait group to synchronize the test
 	var wg sync.WaitGroup
 	wg.Add(1)
-	
+
 	// Create a context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Set up a channel to receive the result
 	resultCh := make(chan bool, 1)
-	
+
 	// Start a goroutine that will wait for the result
 	go func() {
 		defer wg.Done()
-		
+
 		select {
 		case <-ctx.Done():
 			t.Log("Test timed out")
@@ -84,10 +84,10 @@ func TestScheduleOnce_Basic(t *testing.T) {
 			resultCh <- true
 		}
 	}()
-	
+
 	// Wait for the goroutine to complete
 	wg.Wait()
-	
+
 	// Check the result
 	select {
 	case result := <-resultCh:

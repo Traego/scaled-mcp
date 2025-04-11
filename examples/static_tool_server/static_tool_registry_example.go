@@ -66,10 +66,10 @@ func main() {
 
 	slog.Info("Example static registries server is available")
 	slog.Info("Tools available: echo, greeting")
-	slog.Info("Prompts available: welcome, code-example")
+	slog.Info("Prompts available: welcome, code-client_example")
 	slog.Info("Resources available: sample-text, sample-code")
 	slog.Info("Resource templates available: file/{path}, api/{endpoint}, docs/{topic}")
-	slog.Info("Template resources available: file/example.txt, api/users, docs/getting-started")
+	slog.Info("Template resources available: file/client_example.txt, api/users, docs/getting-started")
 	slog.Info("Utilities available: ping")
 
 	// Wait for termination signal
@@ -195,27 +195,27 @@ func registerWelcomePrompt(registry *resources.StaticPromptRegistry) {
 	}
 }
 
-// registerCodeExamplePrompt registers a code example prompt with the server
+// registerCodeExamplePrompt registers a code client_example prompt with the server
 func registerCodeExamplePrompt(registry *resources.StaticPromptRegistry) {
-	// Create the code example prompt
-	codePrompt := resources.NewPrompt("code-example").
-		WithDescription("Provides a code example in a specified language").
+	// Create the code client_example prompt
+	codePrompt := resources.NewPrompt("code-client_example").
+		WithDescription("Provides a code client_example in a specified language").
 		WithArgument("language").
 		Required().
-		Description("The programming language for the example").
+		Description("The programming language for the client_example").
 		Add().
 		WithArgument("concept").
 		Required().
 		Description("The programming concept to demonstrate").
 		Add().
-		WithUserMessage("Show me a {{.language}} example of {{.concept}}").
-		WithAssistantMessage("Here's an example of {{.concept}} in {{.language}}:").
+		WithUserMessage("Show me a {{.language}} client_example of {{.concept}}").
+		WithAssistantMessage("Here's an client_example of {{.concept}} in {{.language}}:").
 		Build()
 
 	// Register the prompt
 	err := registry.RegisterPrompt(codePrompt)
 	if err != nil {
-		slog.Error("Failed to register code example prompt", "error", err)
+		slog.Error("Failed to register code client_example prompt", "error", err)
 	}
 }
 
@@ -296,10 +296,10 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	}
 
 	// Create and register a sample dynamic file resource that follows the template pattern
-	fileResource := resources.NewResource("file/example.txt", "Example Text File").
-		WithDescription("An example text file resource").
+	fileResource := resources.NewResource("file/client_example.txt", "Example Text File").
+		WithDescription("An client_example text file resource").
 		WithMimeType("text/plain").
-		WithSize(int64(len("This is an example text file content."))).
+		WithSize(int64(len("This is an client_example text file content."))).
 		Build()
 
 	// Register the resource with its provider
@@ -308,7 +308,7 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 			{
 				URI:      uri,
 				MimeType: "text/plain",
-				Content:  "This is an example text file content.",
+				Content:  "This is an client_example text file content.",
 			},
 		}, nil
 	})
@@ -381,5 +381,5 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	}
 
 	slog.Info("Registered resource templates", "templates", []string{"file/{path}", "api/{endpoint}", "docs/{topic}"})
-	slog.Info("Registered template resources", "resources", []string{"file/example.txt", "api/users", "docs/getting-started"})
+	slog.Info("Registered template resources", "resources", []string{"file/client_example.txt", "api/users", "docs/getting-started"})
 }

@@ -24,8 +24,8 @@ func TestGetSessionActorName(t *testing.T) {
 		},
 		{
 			name:           "session ID with special characters",
-			sessionId:      "user@example.com",
-			expectedResult: "user@example.com-session",
+			sessionId:      "user@client_example.com",
+			expectedResult: "user@client_example.com-session",
 		},
 		{
 			name:           "numeric session ID",
@@ -60,8 +60,8 @@ func TestGetDefaultSSEConnectionName(t *testing.T) {
 		},
 		{
 			name:           "session ID with special characters",
-			sessionId:      "user@example.com",
-			expectedResult: "user@example.com-channels-default",
+			sessionId:      "user@client_example.com",
+			expectedResult: "user@client_example.com-channels-default",
 		},
 		{
 			name:           "numeric session ID",

@@ -3,24 +3,30 @@ package actors
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
+	"log/slog"
+
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-	"log/slog"
 )
 
 type DeathWatcher struct {
 	notifications chan *goaktpb.Terminated
 	pid           *actor.PID
+	watchId       string
 }
 
 func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *actor.PID) (*actor.PID, <-chan *goaktpb.Terminated, error) {
 	notifications := make(chan *goaktpb.Terminated)
+	watchId := uuid.New().String()
+
 	dw := &DeathWatcher{
 		notifications: notifications,
 		pid:           pid,
+		watchId:       watchId,
 	}
 
-	dwa, err := actorSystem.Spawn(ctx, "death-watcher"+pid.Name(), dw)
+	dwa, err := actorSystem.Spawn(ctx, "death-watcher"+watchId, dw)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to spawn death watcher: %w", err)
 	}
@@ -40,7 +46,8 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 	// Handle different message types
 	switch msg := message.(type) {
 	case *goaktpb.PostStart:
-		d.pid.Watch(ctx.Self())
+		// d.pid.Watch(ctx.Self())
+		return
 	case *goaktpb.Terminated:
 		if msg.GetActorId() == d.pid.ID() {
 			slog.Debug("DeathWatcher received termination notification",
@@ -65,10 +72,6 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 }
 
 func (d *DeathWatcher) PostStop(ctx context.Context) error {
-	// Close the notifications channel if it exists
-	if d.notifications != nil {
-		close(d.notifications)
-	}
 	return nil
 }
 

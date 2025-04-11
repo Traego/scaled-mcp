@@ -61,13 +61,13 @@ type ExampleToolProvider struct {
 	tools map[string]resources.Tool
 }
 
-// NewExampleToolProvider creates a new example tool provider
+// NewExampleToolProvider creates a new client_example tool provider
 func NewExampleToolProvider() *ExampleToolProvider {
 	provider := &ExampleToolProvider{
 		tools: make(map[string]resources.Tool),
 	}
 
-	// Register some example tools
+	// Register some client_example tools
 	provider.tools["weather"] = resources.NewTool("weather").
 		WithDescription("Get weather information for a location").
 		WithInputs([]resources.ToolInput{
@@ -199,7 +199,7 @@ func handleWeatherTool(params map[string]interface{}) (interface{}, error) {
 	}
 
 	// In a real implementation, you would call a weather API here
-	// For this example, we'll just return mock data
+	// For this client_example, we'll just return mock data
 	return map[string]interface{}{
 		"location":    location,
 		"temperature": 22,

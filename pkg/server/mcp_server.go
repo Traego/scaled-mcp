@@ -210,12 +210,8 @@ func (s *McpServer) Start(ctx context.Context) error {
 // Stop stops the MCP server
 func (s *McpServer) Stop(ctx context.Context) {
 	// Stop HTTP server
-	slog.InfoContext(ctx, "Stopping MCP Server")
-	if s.httpServer != nil {
-		if err := s.httpServer.Shutdown(ctx); err != nil {
-			slog.Error("Failed to shutdown HTTP server", "err", err)
-		}
-	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	// Stop actor system - in goakt v3.2.0 we need to use a different approach
 	// since Shutdown is not directly available
@@ -223,6 +219,13 @@ func (s *McpServer) Stop(ctx context.Context) {
 	if s.actorSystem != nil {
 		if err := s.actorSystem.Stop(ctx); err != nil {
 			slog.Error("Failed to shutdown actor system", "err", err)
+		}
+	}
+
+	slog.InfoContext(ctx, "Stopping MCP Server")
+	if s.httpServer != nil {
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			slog.Error("Failed to shutdown HTTP server", "err", err)
 		}
 	}
 }

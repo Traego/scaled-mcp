@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/log"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/utils"
 )
 
 // TestExecutor is a real implementation of config.MethodHandler for testing
@@ -237,7 +237,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 
 		// Create initialize request
 		initializeParams := protocol.InitializeParams{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: "2025-03-26",
 			ClientInfo: protocol.ClientInfo{
 				Name:    "test-client",
 				Version: "1.0.0",
@@ -278,7 +278,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the result
-		assert.Equal(t, "2025-03", result.ProtocolVersion)
+		assert.Equal(t, "2025-03-26", result.ProtocolVersion)
 		assert.Equal(t, sessionID, result.SessionID)
 
 		// Verify state transition
