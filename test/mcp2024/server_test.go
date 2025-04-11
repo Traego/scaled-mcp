@@ -65,7 +65,7 @@ func TestMCPServer2024(t *testing.T) {
 
 	// Create client options with 2024 protocol version
 	options := client.DefaultClientOptions()
-	options.ProtocolVersion = client.ProtocolVersion20241105
+	options.ProtocolVersion = protocol.ProtocolVersion20241105
 	options.ClientInfo = client.ClientInfo{
 		Name:    "test-client",
 		Version: "1.0.0",
@@ -87,7 +87,7 @@ func TestMCPServer2024(t *testing.T) {
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
 
 		// Verify the protocol version
-		assert.Equal(t, client.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
+		assert.Equal(t, protocol.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
 			"Protocol version should be 2024-11-05")
 
 		// Verify the connection method
@@ -121,7 +121,7 @@ func TestMCPServer2024(t *testing.T) {
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
 
 		// Verify the protocol version
-		assert.Equal(t, client.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
+		assert.Equal(t, protocol.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
 			"Protocol version should be 2024-11-05")
 
 		// Verify the connection method
@@ -153,7 +153,7 @@ func TestMCPServer2024(t *testing.T) {
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
 
 		// Verify the protocol version
-		assert.Equal(t, client.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
+		assert.Equal(t, protocol.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
 			"Protocol version should be 2024-11-05")
 
 		// Verify the connection method
@@ -190,7 +190,7 @@ func TestMCPServer2024(t *testing.T) {
 			require.NoError(t, err, "Failed to connect MCP client")
 
 			// Verify the protocol version
-			assert.Equal(t, client.ProtocolVersion20241105, c.GetProtocolVersion(),
+			assert.Equal(t, protocol.ProtocolVersion20241105, c.GetProtocolVersion(),
 				"Protocol version should be 2024-11-05")
 
 			// Verify the connection method
@@ -370,7 +370,7 @@ func TestMCPServer2025(t *testing.T) {
 
 	// Create client options with 2025 protocol version
 	options := client.DefaultClientOptions()
-	options.ProtocolVersion = client.ProtocolVersion20250326
+	options.ProtocolVersion = protocol.ProtocolVersion20250326
 	options.ClientInfo = client.ClientInfo{
 		Name:    "test-client",
 		Version: "1.0.0",
@@ -392,7 +392,7 @@ func TestMCPServer2025(t *testing.T) {
 		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
 
 		// Verify the protocol version
-		assert.Equal(t, client.ProtocolVersion20250326, mcpClient.GetProtocolVersion(),
+		assert.Equal(t, protocol.ProtocolVersion20250326, mcpClient.GetProtocolVersion(),
 			"Protocol version should be 2025-03-26")
 
 		// Verify the connection method
@@ -400,8 +400,8 @@ func TestMCPServer2025(t *testing.T) {
 			"Connection method should be HTTP for 2025 spec")
 
 		// Test sending a request
-		resp, err := mcpClient.SendRequest(ctx, "roots/list", nil)
-		require.NoError(t, err, "Failed to send roots/list request")
+		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
+		require.NoError(t, err, "Failed to send tools/list request")
 		assert.NotNil(t, resp, "Response should not be nil")
 		assert.Nil(t, resp.Error, "Response should not contain an error")
 	})

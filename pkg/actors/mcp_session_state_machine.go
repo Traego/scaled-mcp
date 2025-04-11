@@ -308,7 +308,7 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	}
 
 	// Check protocol version
-	supportedVersions := []string{"2024-11-05", "2025-03"}
+	supportedVersions := []string{"2024-11-05", "2025-03-26"}
 	versionSupported := false
 	for _, v := range supportedVersions {
 		if params.ProtocolVersion == v {

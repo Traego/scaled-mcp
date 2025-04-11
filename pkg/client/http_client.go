@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -22,6 +23,7 @@ type httpClient struct {
 	serverURL        string
 	options          ClientOptions
 	httpClient       *http.Client
+	sessionIdMutex   sync.Mutex
 	sessionID        string
 	initialized      bool
 	eventHandlers    []EventHandler
@@ -30,7 +32,7 @@ type httpClient struct {
 	mcpEndpoint      string
 	messageEndpoint  string
 	sseEndpoint      string
-	protocolVersion  ProtocolVersion
+	protocolVersion  protocol.ProtocolVersion
 	connectionMethod ConnectionMethod
 	requestIDCounter int
 	requestIDMutex   sync.Mutex
@@ -67,7 +69,7 @@ func newHTTPClient(serverURL string, options ClientOptions) (*httpClient, error)
 func (c *httpClient) Connect(ctx context.Context) error {
 	// Determine which protocol version to use
 	protocolVersion := c.options.ProtocolVersion
-	if protocolVersion == ProtocolVersionAuto {
+	if protocolVersion == protocol.ProtocolVersionAuto {
 		// Try to detect the server's protocol version
 		req, err := http.NewRequestWithContext(ctx, "GET", c.serverURL, nil)
 		if err != nil {
@@ -83,14 +85,14 @@ func (c *httpClient) Connect(ctx context.Context) error {
 		// Check if the server advertises MCP support
 		mcpHeader := resp.Header.Get("Mcp-Version")
 		switch mcpHeader {
-		case "2025-03-26":
-			protocolVersion = ProtocolVersion20250326
-		case "2024-11-05":
-			protocolVersion = ProtocolVersion20241105
+		case string(protocol.ProtocolVersion20250326):
+			protocolVersion = protocol.ProtocolVersion20250326
+		case string(protocol.ProtocolVersion20241105):
+			protocolVersion = protocol.ProtocolVersion20241105
 		case "":
-			protocolVersion = ProtocolVersion20250326
+			protocolVersion = protocol.ProtocolVersion20250326
 		default:
-			protocolVersion = ProtocolVersion20250326
+			protocolVersion = protocol.ProtocolVersion20250326
 		}
 	}
 
@@ -101,7 +103,7 @@ func (c *httpClient) Connect(ctx context.Context) error {
 
 	// Connect using the appropriate protocol version
 	var err error
-	if protocolVersion == ProtocolVersion20241105 {
+	if protocolVersion == protocol.ProtocolVersion20241105 {
 		err = c.connect2024(ctx)
 	} else {
 		err = c.connect2025(ctx)
@@ -153,7 +155,7 @@ func (c *httpClient) connect2024(ctx context.Context) error {
 
 	// Set the protocol version and connection method
 	c.protocolMutex.Lock()
-	c.protocolVersion = ProtocolVersion20241105
+	c.protocolVersion = protocol.ProtocolVersion20241105
 	c.connectionMethod = ConnectionMethodSSE
 	c.protocolMutex.Unlock()
 
@@ -287,51 +289,90 @@ func (c *httpClient) connect2025(ctx context.Context) error {
 	c.sseEndpoint = c.serverURL + "/mcp"
 	c.messageEndpoint = c.serverURL + "/mcp"
 
-	// Make a GET request to the server to check if it's available
-	req, err := http.NewRequestWithContext(ctx, "GET", c.serverUR+L, nil)
+	// Try to make a 2025-style initialize call first
+	initializeReq := &protocol.JSONRPCMessage{
+		JSONRPC: "2.0",
+		ID:      1,
+		Method:  "initialize",
+		Params: map[string]interface{}{
+			"protocolVersion": protocol.ProtocolVersion20250326,
+			"clientInfo": map[string]string{
+				"name":    c.options.ClientInfo.Name,
+				"version": c.options.ClientInfo.Version,
+			},
+			"capabilities": map[string]interface{}{
+				"roots": map[string]interface{}{
+					"listChanged": c.options.Capabilities.Roots.ListChanged,
+				},
+			},
+		},
+	}
+
+	// Convert the request to JSON
+	reqBody, err := json.Marshal(initializeReq)
+	if err != nil {
+		return fmt.Errorf("failed to marshal initialize request: %w", err)
+	}
+
+	// Create the HTTP request
+	req, err := http.NewRequestWithContext(ctx, "POST", c.mcpEndpoint, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
+	// Set the content type
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to connect to server: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check if the server supports the 2025 spec
+	// If we get a 404, the server might be a 2024 server
+	if resp.StatusCode == http.StatusNotFound {
+		// Fall back to 2024 protocol
+		c.protocolMutex.Lock()
+		c.protocolVersion = protocol.ProtocolVersion20241105
+		c.protocolMutex.Unlock()
+		return c.connect2024(ctx)
+	}
+
+	// For any other error status, return an error
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("server returned unexpected status: %d", resp.StatusCode)
 	}
 
-	// Check if the server advertises MCP support
-	mcpHeader := resp.Header.Get("Mcp-Version")
-	switch mcpHeader {
-	case "2025-03-26":
-		c.protocolMutex.Lock()
-		c.protocolVersion = ProtocolVersion20250326
-		c.protocolMutex.Unlock()
-	case "2024-11-05":
-		// Server only supports 2024 spec, but we're trying to use 2025
-		if c.options.ProtocolVersion == ProtocolVersion20250326 {
-			return fmt.Errorf("server only supports 2024-11-05 protocol, but client requires 2025-03-26")
-		}
-		c.protocolMutex.Lock()
-		c.protocolVersion = ProtocolVersion20241105
-		c.protocolMutex.Unlock()
-		// We need to use the 2024 connection method
-		return c.connect2024(ctx)
-	case "":
-		return fmt.Errorf("server advertises unsupported MCP version: %s", mcpHeader)
-	default:
-		// No MCP header, assume 2025 spec
-		c.protocolMutex.Lock()
-		c.protocolVersion = ProtocolVersion20250326
-		c.protocolMutex.Unlock()
+	sessionID := resp.Header.Get("Mcp-Session-Id")
+	if sessionID == "" {
+		return fmt.Errorf("mcp session ID header not returned from server")
 	}
 
-	// Set the connection method
+	c.sessionIdMutex.Lock()
+	c.sessionID = sessionID
+	c.sessionIdMutex.Unlock()
+
+	// Read the response
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse the response
+	var initResp protocol.JSONRPCMessage
+	if err := json.Unmarshal(respBody, &initResp); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	// Check for errors
+	if initResp.Error != nil {
+		return fmt.Errorf("server returned error: %v", initResp.Error)
+	}
+
+	// Successfully connected using 2025 protocol
 	c.protocolMutex.Lock()
+	c.protocolVersion = protocol.ProtocolVersion20250326
 	c.connectionMethod = ConnectionMethodHTTP
 	c.protocolMutex.Unlock()
 
@@ -403,7 +444,7 @@ func (c *httpClient) dispatchEvent(event *protocol.JSONRPCMessage) {
 }
 
 // GetProtocolVersion returns the negotiated protocol version.
-func (c *httpClient) GetProtocolVersion() ProtocolVersion {
+func (c *httpClient) GetProtocolVersion() protocol.ProtocolVersion {
 	c.protocolMutex.RLock()
 	defer c.protocolMutex.RUnlock()
 	return c.protocolVersion
@@ -623,9 +664,11 @@ func (c *httpClient) SendNotification(ctx context.Context, method string, params
 	req.Header.Set("Accept", "application/json")
 
 	// Add session ID if we have one
+	c.sessionIdMutex.Lock()
 	if c.sessionID != "" {
 		req.Header.Set("Mcp-Session-Id", c.sessionID)
 	}
+	c.sessionIdMutex.Unlock()
 
 	// Send the notification
 	resp, err := c.httpClient.Do(req)

@@ -9,20 +9,6 @@ import (
 	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
-// ProtocolVersion represents the MCP protocol version to use.
-type ProtocolVersion string
-
-const (
-	// ProtocolVersion20241105 represents the 2024-11-05 MCP specification.
-	ProtocolVersion20241105 ProtocolVersion = "2024-11-05"
-
-	// ProtocolVersion20250326 represents the 2025-03-26 MCP specification.
-	ProtocolVersion20250326 ProtocolVersion = "2025-03-26"
-
-	// ProtocolVersionAuto will automatically detect and use the highest supported version.
-	ProtocolVersionAuto ProtocolVersion = "auto"
-)
-
 // ConnectionMethod represents the transport method used for the MCP connection.
 type ConnectionMethod string
 
@@ -38,7 +24,7 @@ const (
 type ClientOptions struct {
 	// ProtocolVersion specifies which MCP protocol version to use.
 	// If set to ProtocolVersionAuto, the client will negotiate the highest supported version.
-	ProtocolVersion ProtocolVersion
+	ProtocolVersion protocol.ProtocolVersion
 
 	// HTTPClient allows providing a custom HTTP client for the transport layer.
 	HTTPClient *http.Client
@@ -98,7 +84,7 @@ type McpClient interface {
 	GetSessionID() string
 
 	// GetProtocolVersion returns the negotiated protocol version.
-	GetProtocolVersion() ProtocolVersion
+	GetProtocolVersion() protocol.ProtocolVersion
 
 	// GetConnectionMethod returns the connection method being used (SSE or HTTP).
 	GetConnectionMethod() ConnectionMethod
@@ -133,7 +119,7 @@ func (f EventHandlerFunc) HandleEvent(event *protocol.JSONRPCMessage) {
 // DefaultClientOptions returns the default client options.
 func DefaultClientOptions() ClientOptions {
 	return ClientOptions{
-		ProtocolVersion: ProtocolVersionAuto,
+		ProtocolVersion: protocol.ProtocolVersionAuto,
 		HTTPClient:      http.DefaultClient,
 		ClientInfo: ClientInfo{
 			Name:    "scaled-mcp-client",
