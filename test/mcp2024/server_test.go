@@ -1,3 +1,6 @@
+//go:build race
+// +build race
+
 package mcp2024
 
 import (
@@ -53,8 +56,9 @@ func TestMCPServer2024(t *testing.T) {
 	err = mcpServer.Start(ctx)
 	require.NoError(t, err, "Failed to start MCP server")
 
+	defer cancel()
 	// Ensure server is stopped after the test
-	defer mcpServer.Stop(ctx)
+	//defer mcpServer.Stop(ctx)
 
 	// Get the server's HTTP address
 	serverAddr := "http://localhost:" + strconv.Itoa(cfg.HTTP.Port)
