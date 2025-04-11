@@ -10,6 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Define a custom type for context keys to avoid collisions
+type contextKey string
+
+// Define the subscriber ID key as a constant
+const subscriberIDKey contextKey = "subscriber_id"
+
 func TestStaticResourceRegistry(t *testing.T) {
 	registry := NewStaticResourceRegistry()
 
@@ -141,7 +147,7 @@ func TestStaticResourceRegistry(t *testing.T) {
 	t.Run("SubscribeResource", func(t *testing.T) {
 		// Create a context with subscriber ID
 		subscriberID := "test-subscriber"
-		ctx := context.WithValue(context.Background(), "subscriber_id", subscriberID)
+		ctx := context.WithValue(context.Background(), subscriberIDKey, subscriberID)
 
 		// Subscribe to a resource
 		err := registry.SubscribeResource(ctx, resourceURI)
@@ -173,7 +179,7 @@ func TestStaticResourceRegistry(t *testing.T) {
 	t.Run("UnsubscribeResource", func(t *testing.T) {
 		// Create a context with subscriber ID
 		subscriberID := "test-subscriber"
-		ctx := context.WithValue(context.Background(), "subscriber_id", subscriberID)
+		ctx := context.WithValue(context.Background(), subscriberIDKey, subscriberID)
 
 		// Unsubscribe from a resource
 		err := registry.UnsubscribeResource(ctx, resourceURI)
@@ -301,7 +307,7 @@ func TestStaticResourceRegistry_MultipleSubscribers(t *testing.T) {
 	// Subscribe multiple subscribers
 	subscribers := []string{"subscriber1", "subscriber2", "subscriber3"}
 	for _, id := range subscribers {
-		ctx := context.WithValue(context.Background(), "subscriber_id", id)
+		ctx := context.WithValue(context.Background(), subscriberIDKey, id)
 		err := registry.SubscribeResource(ctx, resourceURI)
 		require.NoError(t, err)
 	}
@@ -327,7 +333,7 @@ func TestStaticResourceRegistry_MultipleSubscribers(t *testing.T) {
 	// Unsubscribe one subscriber
 	t.Run("UnsubscribeOne", func(t *testing.T) {
 		unsubscribeID := "subscriber2"
-		ctx := context.WithValue(context.Background(), "subscriber_id", unsubscribeID)
+		ctx := context.WithValue(context.Background(), subscriberIDKey, unsubscribeID)
 		err := registry.UnsubscribeResource(ctx, resourceURI)
 		require.NoError(t, err)
 
