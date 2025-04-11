@@ -325,6 +325,15 @@ When using an external HTTP server with the MCP transport, you need to configure
 
 For production deployments, it's recommended to use Redis for session management to support horizontal scaling. The in-memory session store should only be used for development or testing.
 
+## To Do
+- [ ] Authorization Examples + Context Flow Through
+- [ ] K8S Clustering Hooked Up + Tested
+- [ ] Full testing of all features (resources, prompts, etc.)
+- [ ] Test Coverage to 80%
+- [ ] Cleanup New Server API just a bit to make it easier to standup
+- [ ] Better defaults
+- [ ] Get to vNext of goakt and replace custom messaging schedule (was a bug workaround)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

@@ -156,6 +156,10 @@ func TestMcpSessionStateMachine(t *testing.T) {
 
 	err = actorSystem.Start(ctx)
 	require.NoError(t, err)
+
+	_, err = actorSystem.Spawn(ctx, "root", &RootActor{})
+	require.NoError(t, err)
+
 	defer func() {
 		err := actorSystem.Stop(ctx)
 		require.NoError(t, err)
