@@ -91,7 +91,7 @@ func TestSlogWrapper(t *testing.T) {
 		buf.Reset()
 		fieldLogger := logger.WithField("key", "value")
 		fieldLogger.Info("with field")
-		
+
 		output := buf.String()
 		assert.Contains(t, output, "key")
 		assert.Contains(t, output, "value")
@@ -105,7 +105,7 @@ func TestSlogWrapper(t *testing.T) {
 			"key2": "value2",
 		})
 		fieldsLogger.Info("with fields")
-		
+
 		output := buf.String()
 		assert.Contains(t, output, "key1")
 		assert.Contains(t, output, "value1")

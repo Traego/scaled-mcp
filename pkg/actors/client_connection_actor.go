@@ -70,8 +70,9 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 	switch msg := message.(type) {
 	case *goaktpb.PostStart:
 		{
+			san := utils.GetSessionActorName(c.sessionId)
 			// Register with the session. If any issues, kill myself before doing anything else
-			_, sa, err := ctx.ActorSystem().ActorOf(ctx.Context(), utils.GetSessionActorName(c.sessionId))
+			_, sa, err := ctx.ActorSystem().ActorOf(ctx.Context(), san)
 			if err != nil {
 				ctx.Logger().Error("error registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
 				// Send an empty endpoint to signal failure
@@ -84,7 +85,7 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 			sa.Watch(ctx.Self())
 
 			reg := mcppb.RegisterConnection{ConnectionId: c.connectionId}
-			registerResp := ctx.Ask(sa, &reg, c.cfg.RequestTimeout)
+			registerResp := ctx.SendSync(san, &reg, c.cfg.RequestTimeout)
 			if err != nil {
 				ctx.Logger().Error("error registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
 				c.channel.Close()

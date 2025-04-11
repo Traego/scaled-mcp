@@ -43,11 +43,13 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			return
 		}
 
-		_, sa, err := h.actorSystem.ActorOf(ctx, utils.GetSessionActorName(sessionId))
-		if err != nil {
-			handleError(w, err, mr.Message.ID)
-			return
-		}
+		san := utils.GetSessionActorName(sessionId)
+
+		//_, sa, err := h.actorSystem.ActorOf(ctx, utils.GetSessionActorName(sessionId))
+		//if err != nil {
+		//	handleError(w, err, mr.Message.ID)
+		//	return
+		//}
 
 		wrapped := mcppb.WrappedRequest{
 			IsAsk:                 true,
@@ -55,7 +57,11 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			Request:               protoMsg,
 		}
 
-		respMsg, err := actor.Ask(ctx, sa, &wrapped, h.config.RequestTimeout)
+		_, rid, err := h.actorSystem.ActorOf(ctx, "root")
+		if err != nil {
+			handleError(w, err, mr.Message.ID)
+		}
+		respMsg, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
 			return
@@ -112,7 +118,7 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 
 			sa := actors.NewMcpSessionStateMachine(h.serverInfo, sessionId)
 			san := utils.GetSessionActorName(sessionId)
-			act, err := h.actorSystem.Spawn(ctx, san, sa)
+			_, err = h.actorSystem.Spawn(ctx, san, sa)
 			if err != nil {
 				handleError(w, err, msg.ID)
 				return
@@ -130,7 +136,13 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				Request:               protoInit,
 			}
 
-			initResp, err := actor.Ask(ctx, act, &wrapped, h.config.RequestTimeout)
+			_, rid, err := h.actorSystem.ActorOf(ctx, san)
+			if err != nil {
+				handleError(w, err, msg.ID)
+				return
+			}
+
+			initResp, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
 			if err != nil {
 				handleError(w, err, msg.ID)
 				return

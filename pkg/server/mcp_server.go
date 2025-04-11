@@ -232,10 +232,14 @@ func (s *McpServer) Start(ctx context.Context) error {
 
 	s.actorMutex.Lock()
 	err := s.actorSystem.Start(ctx)
-	s.actorMutex.Unlock()
-
 	if err != nil {
 		return fmt.Errorf("failed to start MCP actor system: %w", err)
+	}
+	s.actorMutex.Unlock()
+
+	_, err = s.actorSystem.Spawn(ctx, "root", actors.NewRootActor(), actor.WithLongLived())
+	if err != nil {
+		return fmt.Errorf("failed to start root actor: %w", err)
 	}
 
 	// Start HTTP server
@@ -336,8 +340,9 @@ func (s *McpServer) loggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 
 		// Log the request
+		ctx := r.Context()
 		latency := time.Since(start)
-		slog.Info("HTTP request",
+		slog.InfoContext(ctx, "HTTP request",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", ww.Status(),

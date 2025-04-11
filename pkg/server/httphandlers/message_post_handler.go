@@ -3,10 +3,10 @@ package httphandlers
 import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"net/http"
+	"strings"
 
 	"github.com/traego/scaled-mcp/pkg/utils"
 
-	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
@@ -34,17 +34,6 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	san := utils.GetSessionActorName(sessionId)
-	_, act, err := h.actorSystem.ActorOf(ctx, san)
-	if err != nil {
-		if err.Error() == "actor=-session not found" {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte(string("session not found")))
-			return
-		} else {
-			handleError(w, err, mcpRequest)
-			return
-		}
-	}
 
 	protoMsg, err := protocol.ConvertJSONToProtoRequest(mcpRequest.Message)
 	if err != nil {
@@ -58,10 +47,22 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		Request:               protoMsg,
 	}
 
-	err = actor.Tell(ctx, act, &wrapped)
+	_, rid, err := h.actorSystem.ActorOf(ctx, "root")
 	if err != nil {
-		handleError(w, err, mcpRequest.Message.ID)
+		handleError(w, err, mcpRequest)
 		return
+	}
+
+	err = rid.SendAsync(ctx, san, &wrapped)
+	if err != nil {
+		if strings.HasSuffix(err.Error(), " not found") {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(string("session not found")))
+			return
+		} else {
+			handleError(w, err, mcpRequest)
+			return
+		}
 	}
 
 	// Return 202 Accepted with no content as per the 2024 spec

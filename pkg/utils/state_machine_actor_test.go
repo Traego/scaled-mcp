@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
@@ -54,7 +55,7 @@ func TestStateMachineActor(t *testing.T) {
 		initialData := &TestActorData{Counter: 0}
 
 		// Create a state machine actor
-		fsm := NewStateMachineActor(StateUninitialized, initialData)
+		fsm := NewStateMachineActor("test"+uuid.New().String(), StateUninitialized, initialData)
 
 		// Configure state handlers
 		fsm.When(StateUninitialized, func(ctx *actor.ReceiveContext, data Data) (MessageHandlingResult, error) {
@@ -183,7 +184,7 @@ func TestStateMachineActor(t *testing.T) {
 		}
 
 		// Create a state machine actor with a state that has no handler
-		fsm := NewStateMachineActor("no-handler-state", initialData)
+		fsm := NewStateMachineActor("test-"+uuid.New().String(), "no-handler-state", initialData)
 
 		// Only configure the unhandled handler
 		fsm.WhenUnhandled(func(ctx *actor.ReceiveContext, data Data, message interface{}) Data {
@@ -246,7 +247,7 @@ func TestStateMachineActor(t *testing.T) {
 
 		// Create a state machine actor with only unhandled message handler
 		// Do NOT register any state handlers
-		fsm := NewStateMachineActor(StateUninitialized, initialData)
+		fsm := NewStateMachineActor("test-"+uuid.New().String(), StateUninitialized, initialData)
 
 		// Configure only unhandled handler
 		fsm.WhenUnhandled(func(ctx *actor.ReceiveContext, data Data, message interface{}) Data {
@@ -297,7 +298,7 @@ func ExampleStateMachineActor() {
 	}
 
 	// Create a state machine actor
-	deviceActor := NewStateMachineActor(StateOff, &DeviceData{ProcessedItems: 0})
+	deviceActor := NewStateMachineActor(uuid.New().String(), StateOff, &DeviceData{ProcessedItems: 0})
 
 	// Configure state handlers
 	deviceActor.When(StateOff, func(ctx *actor.ReceiveContext, data Data) (MessageHandlingResult, error) {
