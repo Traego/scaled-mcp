@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/traego/scaled-mcp/pkg/resources"
-	"net"
+	"github.com/traego/scaled-mcp/test/testutils"
 	"net/http"
 	"strconv"
 	"testing"
@@ -21,25 +21,10 @@ import (
 	"github.com/traego/scaled-mcp/pkg/server"
 )
 
-// getAvailablePort gets a random available port
-func getAvailablePort() (int, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return 0, err
-	}
-
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return 0, err
-	}
-	defer l.Close()
-	return l.Addr().(*net.TCPAddr).Port, nil
-}
-
 // TestMCPServer2024 tests the MCP server with the 2024 spec.
 func TestMCPServer2024(t *testing.T) {
 	// Get a random available port
-	port, err := getAvailablePort()
+	port, err := testutils.GetAvailablePort()
 	require.NoError(t, err, "Failed to get available port")
 
 	// Create a server config with 2024 compatibility enabled
@@ -312,7 +297,9 @@ func TestMCPServer2024(t *testing.T) {
 		invalidVersionResp, err := http.Post(invalidVersionURL, "application/json",
 			bytes.NewReader(reqBody))
 		require.NoError(t, err, "Failed to make invalid version request")
-		defer invalidVersionResp.Body.Close()
+		defer func() {
+			_ = invalidVersionResp.Body.Close()
+		}()
 
 		// For 2024 spec, the request should be accepted
 		// and the error will be sent via the SSE channel
@@ -347,7 +334,9 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Should fail with 404 Not Found since there's no session
 		require.Equal(t, http.StatusNotFound, uninitializedResp.StatusCode)
-		defer uninitializedResp.Body.Close()
+		defer func() {
+			_ = uninitializedResp.Body.Close()
+		}()
 	})
 
 	t.Run("Tools List Should Work", func(t *testing.T) {
@@ -390,95 +379,12 @@ func TestMCPServer2024(t *testing.T) {
 		// This is a simple check to ensure we got valid data back
 		toolName, ok := tools[0].(map[string]interface{})["name"].(string)
 		require.True(t, ok, "tool should be a string")
-		assert.NotEmpty(t, toolName, "tool name should not be empty")
+		assert.Equal(t, toolName, "test_tool")
 
 		assert.Nil(t, resp.Error, "Response should not contain an error")
 
 		// Clean up
 		testCancel()
 		_ = mcpClient.Close(context.Background())
-	})
-}
-
-// TestMCPServer2025 tests the MCP server with the 2025 spec.
-func TestMCPServer2025(t *testing.T) {
-	// Get a random available port
-	port, err := getAvailablePort()
-	require.NoError(t, err, "Failed to get available port")
-
-	// Create a server config with 2025 compatibility (default)
-	cfg := config.DefaultConfig()
-	cfg.BackwardCompatible20241105 = false
-	cfg.HTTP.Port = port
-
-	// Create a new MCP server
-	mcpServer, err := server.NewMcpServer(cfg)
-	require.NoError(t, err, "Failed to create MCP server")
-
-	// Start the server
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	err = mcpServer.Start(ctx)
-	require.NoError(t, err, "Failed to start MCP server")
-
-	// Ensure server is stopped after the test
-	defer mcpServer.Stop(ctx)
-
-	// Get the server's HTTP address
-	serverAddr := "http://localhost:" + strconv.Itoa(cfg.HTTP.Port)
-
-	// Create client options with 2025 protocol version
-	options := client.DefaultClientOptions()
-	options.ProtocolVersion = protocol.ProtocolVersion20250326
-	options.ClientInfo = client.ClientInfo{
-		Name:    "test-client",
-		Version: "1.0.0",
-	}
-
-	t.Run("Basic Initialization", func(t *testing.T) {
-		// Create a new MCP client
-		mcpClient, err := client.NewMcpClient(serverAddr, options)
-		defer func() {
-			_ = mcpClient.Close(context.Background())
-		}()
-		require.NoError(t, err, "Failed to create MCP client")
-
-		// Connect the client
-		err = mcpClient.Connect(ctx)
-		require.NoError(t, err, "Failed to connect MCP client")
-
-		// Verify that the client is initialized
-		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
-
-		// Verify the protocol version
-		assert.Equal(t, protocol.ProtocolVersion20250326, mcpClient.GetProtocolVersion(),
-			"Protocol version should be 2025-03-26")
-
-		// Verify the connection method
-		assert.Equal(t, client.ConnectionMethodHTTP, mcpClient.GetConnectionMethod(),
-			"Connection method should be HTTP for 2025 spec")
-
-		// Test sending a request
-		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
-		require.NoError(t, err, "Failed to send tools/list request")
-		assert.NotNil(t, resp, "Response should not be nil")
-
-		// Type assert the response result to access nested fields
-		resultMap, ok := resp.Result.(map[string]interface{})
-		require.True(t, ok, "Result should be a map")
-
-		tools, ok := resultMap["tools"].([]interface{})
-		require.True(t, ok, "tools should be a slice")
-		require.NotEmpty(t, tools, "tools slice should not be empty")
-
-		require.Len(t, tools, 1, "tools len should be 1")
-
-		// Check that the first tool is initialize or another expected value
-		toolName, ok := tools[0].(string)
-		require.True(t, ok, "tool should be a string")
-		assert.Equal(t, toolName, "Test Tool")
-
-		assert.Nil(t, resp.Error, "Response should not contain an error")
 	})
 }

@@ -237,7 +237,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 
 		// Create initialize request
 		initializeParams := protocol.InitializeParams{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: "2025-03-26",
 			ClientInfo: protocol.ClientInfo{
 				Name:    "test-client",
 				Version: "1.0.0",
@@ -278,7 +278,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the result
-		assert.Equal(t, "2025-03", result.ProtocolVersion)
+		assert.Equal(t, "2025-03-26", result.ProtocolVersion)
 		assert.Equal(t, sessionID, result.SessionID)
 
 		// Verify state transition

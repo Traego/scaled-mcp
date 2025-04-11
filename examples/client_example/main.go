@@ -1,4 +1,4 @@
-// Package main provides an example of using the MCP client.
+// Package main provides an client_example of using the MCP client.
 package main
 
 import (
@@ -39,11 +39,11 @@ func main() {
 	options := client.DefaultClientOptions()
 
 	// Use auto protocol version detection to support both 2024 and 2025 specs
-	options.ProtocolVersion = client.ProtocolVersionAuto
+	options.ProtocolVersion = protocol.ProtocolVersionAuto
 
 	// Set client info
 	options.ClientInfo = client.ClientInfo{
-		Name:    "example-client",
+		Name:    "client_example-client",
 		Version: "1.0.0",
 	}
 
@@ -65,7 +65,10 @@ func main() {
 		slog.Error("Failed to connect to MCP server", "error", err)
 		os.Exit(1)
 	}
-	defer mcpClient.Close(ctx)
+
+	defer func() {
+		_ = mcpClient.Close(ctx)
+	}()
 
 	slog.Info("MCP client connected successfully", "sessionID", mcpClient.GetSessionID())
 

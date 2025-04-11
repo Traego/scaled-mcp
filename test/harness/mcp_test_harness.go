@@ -186,7 +186,9 @@ func (c *MCPTestClient) SendBatch(ctx context.Context, messages []string) ([]pro
 	if err != nil {
 		return nil, fmt.Errorf("failed to send batch request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Parse the response
 	var batchResult []protocol.JSONRPCMessage
@@ -240,7 +242,9 @@ func (c *MCPTestClient) sendRequest(ctx context.Context, request protocol.JSONRP
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Parse the response
 	var result protocol.JSONRPCMessage
@@ -303,7 +307,9 @@ func (c *MCPTestClient) startSSE(ctx context.Context) error {
 			slog.Error("Failed to connect to SSE", "error", err)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		if resp.StatusCode != http.StatusOK {
 			slog.Error("SSE connection failed", "status", resp.StatusCode)

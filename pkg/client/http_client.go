@@ -188,7 +188,10 @@ func (c *httpClient) determineProtocolVersion(ctx context.Context) protocol.Prot
 		slog.Error("Failed to connect to server for protocol detection", "error", err)
 		return protocol.ProtocolVersion20250326 // Default to latest if detection fails
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Check if the server advertises MCP support
 	mcpHeader := resp.Header.Get("Mcp-Version")
@@ -493,7 +496,10 @@ func (c *httpClient) SendRequest(ctx context.Context, method string, params inte
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Extract session ID from response if this is an initialize request
 	if method == "initialize" && resp.Header.Get("Mcp-Session-Id") != "" {
@@ -646,7 +652,9 @@ func (c *httpClient) SendNotification(ctx context.Context, method string, params
 	if err != nil {
 		return fmt.Errorf("failed to send notification: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Check response status
 	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {

@@ -124,7 +124,7 @@ package main
 //
 //	// Get the session ID from the response headers
 //	// In a real client, you would extract this from the response headers
-//	// For this example, we'll parse it from the result
+//	// For this client_example, we'll parse it from the result
 //	var result map[string]interface{}
 //	if err := json.Unmarshal(response.Result, &result); err != nil {
 //		return "", fmt.Errorf("failed to parse initialize result: %w", err)
