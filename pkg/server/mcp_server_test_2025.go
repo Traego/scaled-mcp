@@ -1,7 +1,7 @@
 //go:build race
 // +build race
 
-package mcp2025
+package server
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
-	"github.com/traego/scaled-mcp/pkg/server"
 	"github.com/traego/scaled-mcp/test/testutils"
 	"strconv"
 	"testing"
@@ -39,7 +38,7 @@ func TestMCPServer2025(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new MCP server
-	mcpServer, err := server.NewMcpServer(cfg, server.WithToolRegistry(registry))
+	mcpServer, err := NewMcpServer(cfg, WithToolRegistry(registry))
 	require.NoError(t, err, "Failed to create MCP server")
 
 	// Start the server

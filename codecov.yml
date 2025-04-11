@@ -1,3 +1,4 @@
 ignore:
   - "examples"  # ignore folders and all its contents
   - "pkg/proto"
+  - "test"

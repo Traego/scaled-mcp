@@ -1,7 +1,7 @@
 //go:build race
 // +build race
 
-package mcp2024
+package server
 
 import (
 	"bytes"
@@ -21,7 +21,6 @@ import (
 	"github.com/traego/scaled-mcp/pkg/client"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
-	"github.com/traego/scaled-mcp/pkg/server"
 )
 
 // TestMCPServer2024 tests the MCP server with the 2024 spec.
@@ -46,7 +45,7 @@ func TestMCPServer2024(t *testing.T) {
 	require.NoError(t, err, "Failed to register tool")
 
 	// Create a new MCP server
-	mcpServer, err := server.NewMcpServer(cfg, server.WithToolRegistry(registry))
+	mcpServer, err := NewMcpServer(cfg, WithToolRegistry(registry))
 	require.NoError(t, err, "Failed to create MCP server")
 
 	// Start the server
