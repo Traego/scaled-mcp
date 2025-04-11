@@ -1,3 +1,6 @@
+//go:build race
+// +build race
+
 package mcp2025
 
 import (

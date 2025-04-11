@@ -33,7 +33,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", protoReq.Jsonrpc)
 		assert.Equal(t, "initialize", protoReq.Method)
-		
+
 		// Verify ID is properly converted
 		stringID, ok := protoReq.Id.(*mcppb.JsonRpcRequest_StringId)
 		require.True(t, ok, "ID should be a string ID")
@@ -44,7 +44,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		err = json.Unmarshal([]byte(protoReq.ParamsJson), &params)
 		require.NoError(t, err)
 		assert.Equal(t, "2025-03", params["protocolVersion"])
-		
+
 		clientInfo, ok := params["clientInfo"].(map[string]interface{})
 		require.True(t, ok)
 		assert.Equal(t, "test-client", clientInfo["name"])
@@ -70,7 +70,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", protoReq.Jsonrpc)
 		assert.Equal(t, "getResource", protoReq.Method)
-		
+
 		// Verify ID is properly converted
 		intID, ok := protoReq.Id.(*mcppb.JsonRpcRequest_IntId)
 		require.True(t, ok, "ID should be an int ID")
@@ -101,7 +101,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", protoReq.Jsonrpc)
 		assert.Equal(t, "resourceChanged", protoReq.Method)
-		
+
 		// Verify ID is properly converted to null
 		_, ok := protoReq.Id.(*mcppb.JsonRpcRequest_NullId)
 		require.True(t, ok, "ID should be a null ID for notifications")
@@ -129,7 +129,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", protoReq.Jsonrpc)
 		assert.Equal(t, "ping", protoReq.Method)
-		
+
 		// Verify ID is properly converted
 		stringID, ok := protoReq.Id.(*mcppb.JsonRpcRequest_StringId)
 		require.True(t, ok, "ID should be a string ID")
@@ -161,13 +161,13 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", jsonResp.JSONRPC)
 		assert.Equal(t, "request-1", jsonResp.ID)
-		
+
 		// Verify result is properly converted
 		resultMap, ok := jsonResp.Result.(map[string]interface{})
 		require.True(t, ok, "Result should be a map")
 		assert.Equal(t, "success", resultMap["status"])
 		assert.Equal(t, "Operation completed", resultMap["message"])
-		
+
 		// Verify error is nil
 		assert.Nil(t, jsonResp.Error)
 	})
@@ -192,7 +192,7 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", jsonResp.JSONRPC)
 		assert.Equal(t, int64(42), jsonResp.ID)
-		
+
 		// Verify result is properly converted
 		resultMap, ok := jsonResp.Result.(map[string]interface{})
 		require.True(t, ok, "Result should be a map")
@@ -202,7 +202,7 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		resource, ok := resources[0].(map[string]interface{})
 		require.True(t, ok)
 		assert.Equal(t, "resource:test", resource["uri"])
-		
+
 		// Verify error is nil
 		assert.Nil(t, jsonResp.Error)
 	})
@@ -226,12 +226,12 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", jsonResp.JSONRPC)
 		assert.Equal(t, "empty-result", jsonResp.ID)
-		
+
 		// Verify result is an empty object
 		resultMap, ok := jsonResp.Result.(map[string]interface{})
 		require.True(t, ok, "Result should be a map")
 		assert.Empty(t, resultMap)
-		
+
 		// Verify error is nil
 		assert.Nil(t, jsonResp.Error)
 	})
@@ -259,19 +259,19 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", jsonResp.JSONRPC)
 		assert.Equal(t, "error-request", jsonResp.ID)
-		
+
 		// Verify result is nil
 		assert.Nil(t, jsonResp.Result)
-		
+
 		// Verify error is properly converted
 		errorMap, ok := jsonResp.Error.(map[string]interface{})
 		require.True(t, ok, "Error should be a map")
-		
+
 		// Use a type-agnostic comparison for numeric values
 		code := errorMap["code"].(int32)
 		assert.Equal(t, -32601, int(code), "Error code should be -32601")
 		assert.Equal(t, "Method not found", errorMap["message"])
-		
+
 		// Verify error data
 		data, ok := errorMap["data"].(map[string]interface{})
 		require.True(t, ok, "Error data should be a map")
@@ -300,19 +300,19 @@ func TestConvertProtoToJSONResponse(t *testing.T) {
 		// Verify the conversion
 		assert.Equal(t, "2.0", jsonResp.JSONRPC)
 		assert.Nil(t, jsonResp.ID)
-		
+
 		// Verify result is nil
 		assert.Nil(t, jsonResp.Result)
-		
+
 		// Verify error is properly converted
 		errorMap, ok := jsonResp.Error.(map[string]interface{})
 		require.True(t, ok, "Error should be a map")
-		
+
 		// Use a type-agnostic comparison for numeric values
 		code := errorMap["code"].(int32)
 		assert.Equal(t, -32700, int(code), "Error code should be -32700")
 		assert.Equal(t, "Parse error", errorMap["message"])
-		
+
 		// Verify error data is not present
 		_, exists := errorMap["data"]
 		assert.False(t, exists, "Error data should not be present")

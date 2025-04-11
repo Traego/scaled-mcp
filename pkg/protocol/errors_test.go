@@ -41,7 +41,7 @@ func TestJsonRpcError(t *testing.T) {
 		// Verify error object
 		errorObj, ok := resp.Error.(map[string]interface{})
 		require.True(t, ok)
-		
+
 		// Use a type-agnostic comparison for numeric values
 		code, ok := errorObj["code"].(int)
 		assert.True(t, ok)
@@ -135,10 +135,10 @@ func TestCreateErrorResponse(t *testing.T) {
 
 		assert.Equal(t, "2.0", resp.JSONRPC)
 		assert.Equal(t, "original-id", resp.ID)
-		
+
 		errorObj, ok := resp.Error.(map[string]interface{})
 		require.True(t, ok)
-		
+
 		// Use a type-agnostic comparison for numeric values
 		code, ok := errorObj["code"].(int)
 		assert.True(t, ok)
@@ -151,10 +151,10 @@ func TestCreateErrorResponse(t *testing.T) {
 
 		assert.Equal(t, "2.0", resp.JSONRPC)
 		assert.Equal(t, "new-id", resp.ID)
-		
+
 		errorObj, ok := resp.Error.(map[string]interface{})
 		require.True(t, ok)
-		
+
 		// Use a type-agnostic comparison for numeric values
 		code, ok := errorObj["code"].(int)
 		assert.True(t, ok)
@@ -166,7 +166,7 @@ func TestIsJsonRpcError(t *testing.T) {
 	t.Run("with JSON-RPC error", func(t *testing.T) {
 		err := NewError(-32601, "Method not found", nil, "request-1")
 		rpcErr, ok := IsJsonRpcError(err)
-		
+
 		assert.True(t, ok)
 		assert.Equal(t, -32601, rpcErr.Code)
 		assert.Equal(t, "Method not found", rpcErr.Message)
@@ -175,14 +175,14 @@ func TestIsJsonRpcError(t *testing.T) {
 	t.Run("with non-JSON-RPC error", func(t *testing.T) {
 		err := errors.New("standard error")
 		rpcErr, ok := IsJsonRpcError(err)
-		
+
 		assert.False(t, ok)
 		assert.Nil(t, rpcErr)
 	})
 
 	t.Run("with nil error", func(t *testing.T) {
 		rpcErr, ok := IsJsonRpcError(nil)
-		
+
 		assert.False(t, ok)
 		assert.Nil(t, rpcErr)
 	})
