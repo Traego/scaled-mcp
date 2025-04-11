@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/resources"
 	"net"
 	"net/http"
 	"strconv"
@@ -46,8 +47,18 @@ func TestMCPServer2024(t *testing.T) {
 	cfg.BackwardCompatible20241105 = true
 	cfg.HTTP.Port = port
 
+	registry := resources.NewStaticToolRegistry()
+	err = registry.RegisterTool(resources.Tool{
+		Name:        "test_tool",
+		Description: "Does Stuff",
+		InputSchema: resources.InputSchema{},
+	}, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+		return nil, nil
+	})
+	require.NoError(t, err, "Failed to register tool")
+
 	// Create a new MCP server
-	mcpServer, err := server.NewMcpServer(cfg)
+	mcpServer, err := server.NewMcpServer(cfg, server.WithToolRegistry(registry))
 	require.NoError(t, err, "Failed to create MCP server")
 
 	// Start the server
@@ -338,6 +349,55 @@ func TestMCPServer2024(t *testing.T) {
 		require.Equal(t, http.StatusNotFound, uninitializedResp.StatusCode)
 		defer uninitializedResp.Body.Close()
 	})
+
+	t.Run("Tools List Should Work", func(t *testing.T) {
+		// Create a new MCP client
+		mcpClient, err := client.NewMcpClient(serverAddr, options)
+		require.NoError(t, err, "Failed to create MCP client")
+
+		// Use a separate context for this test that we can cancel
+		testCtx, testCancel := context.WithCancel(context.Background())
+
+		// Connect the client
+		err = mcpClient.Connect(testCtx)
+		require.NoError(t, err, "Failed to connect MCP client")
+
+		// Verify that the client is initialized
+		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
+
+		// Verify the protocol version
+		assert.Equal(t, protocol.ProtocolVersion20241105, mcpClient.GetProtocolVersion(),
+			"Protocol version should be 2024-11-05")
+
+		// Verify the connection method
+		assert.Equal(t, client.ConnectionMethodSSE, mcpClient.GetConnectionMethod(),
+			"Connection method should be SSE for 2024 spec")
+
+		// Test sending a request
+		resp, err := mcpClient.SendRequest(testCtx, "tools/list", nil)
+		require.NoError(t, err, "Failed to send tools/list request")
+		assert.NotNil(t, resp, "Response should not be nil")
+
+		// Type assert the response result to access nested fields
+		resultMap, ok := resp.Result.(map[string]interface{})
+		require.True(t, ok, "Result should be a map")
+
+		tools, ok := resultMap["tools"].([]interface{})
+		require.True(t, ok, "tools should be a slice")
+		require.NotEmpty(t, tools, "tools slice should not be empty")
+
+		// Check that the first tool is initialize or another expected value
+		// This is a simple check to ensure we got valid data back
+		toolName, ok := tools[0].(map[string]interface{})["name"].(string)
+		require.True(t, ok, "tool should be a string")
+		assert.NotEmpty(t, toolName, "tool name should not be empty")
+
+		assert.Nil(t, resp.Error, "Response should not contain an error")
+
+		// Clean up
+		testCancel()
+		_ = mcpClient.Close(context.Background())
+	})
 }
 
 // TestMCPServer2025 tests the MCP server with the 2025 spec.
@@ -403,6 +463,22 @@ func TestMCPServer2025(t *testing.T) {
 		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
 		require.NoError(t, err, "Failed to send tools/list request")
 		assert.NotNil(t, resp, "Response should not be nil")
+
+		// Type assert the response result to access nested fields
+		resultMap, ok := resp.Result.(map[string]interface{})
+		require.True(t, ok, "Result should be a map")
+
+		tools, ok := resultMap["tools"].([]interface{})
+		require.True(t, ok, "tools should be a slice")
+		require.NotEmpty(t, tools, "tools slice should not be empty")
+
+		require.Len(t, tools, 1, "tools len should be 1")
+
+		// Check that the first tool is initialize or another expected value
+		toolName, ok := tools[0].(string)
+		require.True(t, ok, "tool should be a string")
+		assert.Equal(t, toolName, "Test Tool")
+
 		assert.Nil(t, resp.Error, "Response should not contain an error")
 	})
 }

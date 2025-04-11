@@ -3,6 +3,7 @@ package actors
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"log/slog"
 
 	"github.com/tochemey/goakt/v3/actor"
@@ -12,16 +13,20 @@ import (
 type DeathWatcher struct {
 	notifications chan *goaktpb.Terminated
 	pid           *actor.PID
+	watchId       string
 }
 
 func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *actor.PID) (*actor.PID, <-chan *goaktpb.Terminated, error) {
 	notifications := make(chan *goaktpb.Terminated)
+	watchId := uuid.New().String()
+
 	dw := &DeathWatcher{
 		notifications: notifications,
 		pid:           pid,
+		watchId:       watchId,
 	}
 
-	dwa, err := actorSystem.Spawn(ctx, "death-watcher"+pid.Name(), dw)
+	dwa, err := actorSystem.Spawn(ctx, "death-watcher"+watchId, dw)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to spawn death watcher: %w", err)
 	}

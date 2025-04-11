@@ -34,7 +34,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
-		respErr := fmt.Errorf("error spawning session: %w", err)
+		respErr := fmt.Errorf("error spawning sse session: %w", err)
 		handleError(w, respErr, "")
 	}
 

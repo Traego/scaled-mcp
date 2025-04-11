@@ -34,6 +34,12 @@ type ClientOptions struct {
 
 	// Capabilities defines the client's capabilities to negotiate with the server.
 	Capabilities Capabilities
+
+	// UseSSEForEvents controls whether the client should establish an SSE connection
+	// for events even when using the 2025 protocol (which supports both HTTP and SSE).
+	// Setting this to true provides a fallback for event delivery.
+	// Default is true.
+	UseSSEForEvents bool
 }
 
 // ClientInfo contains information about the client to send during initialization.
@@ -134,6 +140,7 @@ func DefaultClientOptions() ClientOptions {
 				Enabled: true,
 			},
 		},
+		UseSSEForEvents: true,
 	}
 }
 

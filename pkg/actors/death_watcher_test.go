@@ -85,7 +85,7 @@ func TestDeathWatcher(t *testing.T) {
 		// No assertion needed here, we're just testing that the actor doesn't crash
 		// when the channel is full
 	})
-	
+
 	t.Run("should handle nil notifications channel", func(t *testing.T) {
 		// Create a test actor that will be terminated
 		testActor := &testTerminatingActor{}
