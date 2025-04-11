@@ -525,7 +525,7 @@ func TestClientConnectionActor(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 
 		// Send an unknown message type
-		// Use PoisonPill here as an unexpected message - in clientConnectionActor's Receive method
+		// Use PoisonPill here as an unexpected message - in ClientConnectionActor's Receive method
 		// PoisonPill isn't handled explicitly, so it will hit the default case
 		err = actor.Tell(ctx, ccaPID, &goaktpb.PoisonPill{})
 		require.NoError(t, err)

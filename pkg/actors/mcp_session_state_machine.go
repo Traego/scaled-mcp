@@ -59,7 +59,7 @@ func NewMcpSessionStateMachine(serverInfo config.McpServerInfo, sessionID string
 	}
 
 	// Create state machine starting in uninitialized state
-	fsm := utils.NewStateMachineActor(StateUninitialized, data)
+	fsm := utils.NewStateMachineActor(sessionID, StateUninitialized, data)
 
 	// Configure state handlers
 	fsm.When(StateUninitialized, handleUninitializedState).

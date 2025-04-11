@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/tochemey/goakt/v3/discovery/static"
+	"github.com/tochemey/goakt/v3/remote"
+	"github.com/traego/scaled-mcp/pkg/actors"
+	"github.com/traego/scaled-mcp/pkg/utils"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -119,8 +123,46 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		cfg = config.DefaultConfig()
 	}
 
+	opts := make([]actor.Option, 0)
+	switch cfg.Clustering.Type {
+	case config.ClusteringTypeK8S:
+	case config.ClusteringTypeStatic:
+		if len(cfg.Clustering.StaticHosts) == 0 {
+			return nil, fmt.Errorf("there must be at least one static host")
+		}
+
+		// define the discovery options
+		discoConfig := static.Config{
+			Hosts: cfg.Clustering.StaticHosts,
+		}
+		// instantiate the dnssd discovery provider
+		disco := static.NewDiscovery(&discoConfig)
+		clusterConfig := actor.
+			NewClusterConfig().
+			WithDiscovery(disco).
+			WithPartitionCount(19).
+			WithKinds(
+				&actors.DeathWatcher{},
+				&utils.StateMachineActor{},
+				&actors.ClientConnectionActor{},
+			).
+			WithDiscoveryPort(cfg.Clustering.GossipPort).
+			WithPeersPort(cfg.Clustering.PeersPort).
+			WithWAL("/Users/patrickwhite/goakt/data/")
+
+		//WithDiscoveryPort(config.GossipPort).
+		//WithPeersPort(config.PeersPort).
+		//WithKinds(new(actors.AccountEntity))
+
+		opts = append(opts, actor.WithCluster(clusterConfig))
+		opts = append(opts, actor.WithRemote(remote.NewConfig(cfg.Clustering.NodeHost, cfg.Clustering.RemotingPort)))
+	}
+
+	//opts = append(opts, actor.WithLogger(slog))
+	opts = append(opts, actor.WithPassivationDisabled())
+
 	// Create the actor system
-	actorSystem, err := actor.NewActorSystem(cfg.Actor.SystemName)
+	actorSystem, err := actor.NewActorSystem(cfg.Actor.SystemName, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create actor system: %w", err)
 	}

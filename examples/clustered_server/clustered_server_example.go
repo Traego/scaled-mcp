@@ -108,6 +108,7 @@ func main() {
 	cfg1 := config.DefaultConfig()
 	cfg1.HTTP.Port = 8080
 	cfg1.ServerInfo.Name = "Server1"
+	cfg1.BackwardCompatible20241105 = true
 	err := os.Setenv("SERVER_NAME", "Server1")
 	if err != nil {
 		panic(err)
@@ -118,13 +119,21 @@ func main() {
 	cfg1.Actor.RemoteConfig.Host = "localhost"
 	cfg1.Actor.RemoteConfig.Port = 9090
 
-	// Use Redis for session management to share sessions between servers
-	cfg1.Redis = &config.RedisConfig{
-		Addresses: []string{"localhost:6379"},
-		Password:  "",
-		DB:        0,
-	}
-	cfg1.Session.UseInMemory = false
+	cfg1.Clustering.NodeHost = "localhost"
+	cfg1.Clustering.RemotingPort = 7010
+	cfg1.Clustering.GossipPort = 8010
+	cfg1.Clustering.PeersPort = 9090
+
+	cfg1.Clustering.StaticHosts = []string{"localhost:8010", "localhost:8011"}
+	cfg1.Clustering.Type = config.ClusteringTypeStatic
+
+	//// Use Redis for session management to share sessions between servers
+	//cfg1.Redis = &config.RedisConfig{
+	//	Addresses: []string{"localhost:6379"},
+	//	Password:  "",
+	//	DB:        0,
+	//}
+	//cfg1.Session.UseInMemory = false
 
 	// Start the first server
 	server1, err := startServer(ctx, cfg1)
@@ -137,6 +146,7 @@ func main() {
 	cfg2 := config.DefaultConfig()
 	cfg2.HTTP.Port = 8081
 	cfg2.ServerInfo.Name = "Server2"
+	cfg2.BackwardCompatible20241105 = true
 	err = os.Setenv("SERVER_NAME", "Server2")
 	if err != nil {
 		panic(err)
@@ -147,13 +157,20 @@ func main() {
 	cfg2.Actor.RemoteConfig.Host = "localhost"
 	cfg2.Actor.RemoteConfig.Port = 9091
 
+	cfg2.Clustering.NodeHost = "localhost"
+	cfg2.Clustering.RemotingPort = 7011
+	cfg2.Clustering.GossipPort = 8011
+	cfg2.Clustering.PeersPort = 9091
+	cfg2.Clustering.StaticHosts = []string{"localhost:8010", "localhost:8011"}
+	cfg2.Clustering.Type = config.ClusteringTypeStatic
+
 	// Use Redis for session management to share sessions between servers
-	cfg2.Redis = &config.RedisConfig{
-		Addresses: []string{"localhost:6379"},
-		Password:  "",
-		DB:        0,
-	}
-	cfg2.Session.UseInMemory = false
+	//cfg2.Redis = &config.RedisConfig{
+	//	Addresses: []string{"localhost:6379"},
+	//	Password:  "",
+	//	DB:        0,
+	//}
+	//cfg2.Session.UseInMemory = false
 
 	// Start the second server
 	server2, err := startServer(ctx, cfg2)

@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"github.com/tochemey/goakt/v3/goaktpb"
 	"log/slog"
 	"reflect"
 	"sync"
@@ -29,6 +30,9 @@ type StateHandlerMap map[StateID]StateHandler
 
 // StateMachineActor implements an actor that behaves as a finite state machine
 type StateMachineActor struct {
+	// ID to identify the actor within the overall system
+	id string
+
 	// Mutex to protect concurrent access to state and data
 	mu sync.RWMutex
 
@@ -49,8 +53,9 @@ type StateMachineActor struct {
 }
 
 // NewStateMachineActor creates a new state machine actor
-func NewStateMachineActor(initialState StateID, data Data) *StateMachineActor {
+func NewStateMachineActor(id string, initialState StateID, data Data) *StateMachineActor {
 	return &StateMachineActor{
+		id:               id,
 		currentState:     initialState,
 		initialState:     initialState,
 		stateHandlers:    make(StateHandlerMap),
@@ -85,6 +90,11 @@ func (a *StateMachineActor) PreStart(ctx context.Context) error {
 func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 	message := ctx.Message()
 
+	switch message.(type) {
+	case *goaktpb.PostStart:
+		ctx.Logger().Debug("starting up state machine actor: "+a.id, "state_id", a.id)
+	}
+
 	// Get current state and data safely
 	a.mu.RLock()
 	currentState := a.currentState
@@ -96,6 +106,7 @@ func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 	// Log state transition information for debugging
 	msgType := reflect.TypeOf(message).String()
 	ctx.Logger().Debug("StateMachineActor processing message",
+		"state_id", a.id,
 		"current_state", currentState,
 		"message_type", msgType)
 
@@ -134,6 +145,7 @@ func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 		// Mark message as unhandled
 		ctx.Unhandled()
 		ctx.Logger().Warn("Unhandled message in state machine actor",
+			"state_id", a.id,
 			"current_state", currentState,
 			"message_type", msgType)
 	}
@@ -145,7 +157,7 @@ func (a *StateMachineActor) PostStop(ctx context.Context) error {
 	finalState := a.currentState
 	a.mu.RUnlock()
 
-	slog.DebugContext(ctx, "Stopping state machine actor", "final_state", finalState)
+	slog.DebugContext(ctx, "stopping state machine actor: "+a.id, "final_state", finalState, "state_id", a.id)
 	return nil
 }
 

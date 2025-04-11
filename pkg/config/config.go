@@ -16,6 +16,8 @@ type ServerConfig struct {
 	// Session configuration
 	Session SessionConfig `json:"session"`
 
+	Clustering ClusteringConfig `json:"clustering"`
+
 	// Actor configuration
 	Actor ActorConfig `json:"actor"`
 
@@ -110,6 +112,22 @@ type CORSConfig struct {
 
 	// Max age
 	MaxAge time.Duration `json:"max_age"`
+}
+
+type ClusteringType = string
+
+const (
+	ClusteringTypeK8S    ClusteringType = "k8s"
+	ClusteringTypeStatic ClusteringType = "static"
+)
+
+type ClusteringConfig struct {
+	GossipPort   int            `json:"gossip_port"`
+	PeersPort    int            `json:"peers_port"`
+	RemotingPort int            `json:"remoting_port"`
+	Type         ClusteringType `json:"type"`
+	StaticHosts  []string       `json:"static_hosts"`
+	NodeHost     string         `json:"node_host"`
 }
 
 // SessionConfig holds the session configuration
