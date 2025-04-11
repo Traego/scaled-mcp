@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/log"
-	"github.com/traego/scaled-mcp/internal/utils"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/utils"
 )
 
 // TestExecutor is a real implementation of config.MethodHandler for testing

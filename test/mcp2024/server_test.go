@@ -102,7 +102,7 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Clean up
 		testCancel()
-		mcpClient.Close(context.Background())
+		_ = mcpClient.Close(context.Background())
 	})
 
 	t.Run("Method not found", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Clean up
 		testCancel()
-		mcpClient.Close(context.Background())
+		_ = mcpClient.Close(context.Background())
 	})
 
 	t.Run("SSE Connection", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Clean up
 		testCancel()
-		mcpClient.Close(context.Background())
+		_ = mcpClient.Close(context.Background())
 	})
 
 	t.Run("Multiple Clients", func(t *testing.T) {
@@ -211,7 +211,7 @@ func TestMCPServer2024(t *testing.T) {
 
 		// Clean up all clients
 		for _, c := range clients {
-			c.Close(context.Background())
+			_ = c.Close(context.Background())
 		}
 	})
 
@@ -379,7 +379,9 @@ func TestMCPServer2025(t *testing.T) {
 	t.Run("Basic Initialization", func(t *testing.T) {
 		// Create a new MCP client
 		mcpClient, err := client.NewMcpClient(serverAddr, options)
-		defer mcpClient.Close(context.Background())
+		defer func() {
+			_ = mcpClient.Close(context.Background())
+		}()
 		require.NoError(t, err, "Failed to create MCP client")
 
 		// Connect the client

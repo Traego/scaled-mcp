@@ -81,18 +81,14 @@ func (c *httpClient) Connect(ctx context.Context) error {
 
 		// Check if the server advertises MCP support
 		mcpHeader := resp.Header.Get("Mcp-Version")
-		if mcpHeader != "" {
-			// Server advertises MCP support, use the advertised version
-			if mcpHeader == "2025-03-26" {
-				protocolVersion = ProtocolVersion20250326
-			} else if mcpHeader == "2024-11-05" {
-				protocolVersion = ProtocolVersion20241105
-			} else {
-				// Unknown version, use the latest
-				protocolVersion = ProtocolVersion20250326
-			}
-		} else {
-			// No MCP header, assume 2025 spec
+		switch mcpHeader {
+		case "2025-03-26":
+			protocolVersion = ProtocolVersion20250326
+		case "2024-11-05":
+			protocolVersion = ProtocolVersion20241105
+		case "":
+			protocolVersion = ProtocolVersion20250326
+		default:
 			protocolVersion = ProtocolVersion20250326
 		}
 	}
@@ -307,26 +303,24 @@ func (c *httpClient) connect2025(ctx context.Context) error {
 
 	// Check if the server advertises MCP support
 	mcpHeader := resp.Header.Get("Mcp-Version")
-	if mcpHeader != "" {
-		// Server advertises MCP support, check the version
-		if mcpHeader == "2025-03-26" {
-			c.protocolMutex.Lock()
-			c.protocolVersion = ProtocolVersion20250326
-			c.protocolMutex.Unlock()
-		} else if mcpHeader == "2024-11-05" {
-			// Server only supports 2024 spec, but we're trying to use 2025
-			if c.options.ProtocolVersion == ProtocolVersion20250326 {
-				return fmt.Errorf("server only supports 2024-11-05 protocol, but client requires 2025-03-26")
-			}
-			c.protocolMutex.Lock()
-			c.protocolVersion = ProtocolVersion20241105
-			c.protocolMutex.Unlock()
-			// We need to use the 2024 connection method
-			return c.connect2024(ctx)
-		} else {
-			return fmt.Errorf("server advertises unsupported MCP version: %s", mcpHeader)
+	switch mcpHeader {
+	case "2025-03-26":
+		c.protocolMutex.Lock()
+		c.protocolVersion = ProtocolVersion20250326
+		c.protocolMutex.Unlock()
+	case "2024-11-05":
+		// Server only supports 2024 spec, but we're trying to use 2025
+		if c.options.ProtocolVersion == ProtocolVersion20250326 {
+			return fmt.Errorf("server only supports 2024-11-05 protocol, but client requires 2025-03-26")
 		}
-	} else {
+		c.protocolMutex.Lock()
+		c.protocolVersion = ProtocolVersion20241105
+		c.protocolMutex.Unlock()
+		// We need to use the 2024 connection method
+		return c.connect2024(ctx)
+	case "":
+		return fmt.Errorf("server advertises unsupported MCP version: %s", mcpHeader)
+	default:
 		// No MCP header, assume 2025 spec
 		c.protocolMutex.Lock()
 		c.protocolVersion = ProtocolVersion20250326
