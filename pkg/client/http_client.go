@@ -27,6 +27,7 @@ type httpClient struct {
 	eventHandlers    []EventHandler
 	handlersMutex    sync.RWMutex
 	sseConnection    *sse.Connection
+	mcpEndpoint      string
 	messageEndpoint  string
 	sseEndpoint      string
 	protocolVersion  ProtocolVersion
@@ -282,10 +283,12 @@ func (c *httpClient) connect2024(ctx context.Context) error {
 func (c *httpClient) connect2025(ctx context.Context) error {
 	// For 2025 spec, we use direct HTTP requests
 	// Set the message endpoint
-	c.messageEndpoint = c.serverURL + "/messages"
+	c.mcpEndpoint = c.serverURL + "/mcp"
+	c.sseEndpoint = c.serverURL + "/mcp"
+	c.messageEndpoint = c.serverURL + "/mcp"
 
 	// Make a GET request to the server to check if it's available
-	req, err := http.NewRequestWithContext(ctx, "GET", c.serverURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.serverUR+L, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
