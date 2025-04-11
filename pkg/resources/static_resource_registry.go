@@ -8,6 +8,12 @@ import (
 	"sync"
 )
 
+// Define a custom type for context keys to avoid collisions
+type SubscriberIdKeyContext string
+
+// Define the subscriber ID key as a constant
+const SubscriberIDKey SubscriberIdKeyContext = "subscriber_id"
+
 // ResourceProvider defines a function that provides the contents of a resource
 type ResourceProvider func(ctx context.Context, uri string) ([]ResourceContents, error)
 
@@ -134,7 +140,7 @@ func (r *StaticResourceRegistry) ReadResource(ctx context.Context, uri string) (
 // SubscribeResource subscribes to updates for a resource
 func (r *StaticResourceRegistry) SubscribeResource(ctx context.Context, uri string) error {
 	// Extract subscriber ID from context
-	subscriberID, ok := ctx.Value("subscriber_id").(string)
+	subscriberID, ok := ctx.Value(SubscriberIDKey).(string)
 	if !ok || subscriberID == "" {
 		subscriberID = "default" // Use a default ID if none provided
 	}
@@ -161,7 +167,7 @@ func (r *StaticResourceRegistry) SubscribeResource(ctx context.Context, uri stri
 // UnsubscribeResource unsubscribes from updates for a resource
 func (r *StaticResourceRegistry) UnsubscribeResource(ctx context.Context, uri string) error {
 	// Extract subscriber ID from context
-	subscriberID, ok := ctx.Value("subscriber_id").(string)
+	subscriberID, ok := ctx.Value(SubscriberIDKey).(string)
 	if !ok || subscriberID == "" {
 		subscriberID = "default" // Use a default ID if none provided
 	}
