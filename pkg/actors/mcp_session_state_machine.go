@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/traego/scaled-mcp/pkg/actorutils"
 	"log/slog"
 	"time"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
+
+	"github.com/traego/scaled-mcp/pkg/actorutils"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -205,7 +206,7 @@ func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *Ses
 	// Handle the request based on the method
 	switch msg.Request.Method {
 	case "shutdown":
-		response := handleShutdown(ctx.Context(), sessionData, msg.Request)
+		response := handleShutdown(msg.Request)
 		sendResponse(ctx, sessionData, msg, response)
 
 		// Transition to shutdown state
@@ -354,7 +355,7 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 }
 
 // handleShutdown processes a shutdown request
-func handleShutdown(ctx context.Context, sessionData *SessionData, req *mcppb.JsonRpcRequest) *mcppb.JsonRpcResponse {
+func handleShutdown(req *mcppb.JsonRpcRequest) *mcppb.JsonRpcResponse {
 	// Create base response
 	response := &mcppb.JsonRpcResponse{
 		Jsonrpc: "2.0",

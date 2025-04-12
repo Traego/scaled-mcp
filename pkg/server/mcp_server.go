@@ -4,26 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/tochemey/goakt/v3/discovery/static"
-	"github.com/tochemey/goakt/v3/remote"
-	"github.com/traego/scaled-mcp/pkg/actors"
-	"github.com/traego/scaled-mcp/pkg/utils"
 	"log/slog"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/traego/scaled-mcp/pkg/executors"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/tochemey/goakt/v3/actor"
+	"github.com/tochemey/goakt/v3/discovery/static"
+	"github.com/tochemey/goakt/v3/remote"
+
+	"github.com/traego/scaled-mcp/internal/logger"
+	"github.com/traego/scaled-mcp/pkg/actors"
 	"github.com/traego/scaled-mcp/pkg/config"
+	"github.com/traego/scaled-mcp/pkg/executors"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/utils"
+
 	"github.com/traego/scaled-mcp/pkg/server/httphandlers"
 )
 
@@ -149,7 +152,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		opts = append(opts, actor.WithRemote(remote.NewConfig(cfg.Clustering.NodeHost, cfg.Clustering.RemotingPort)))
 	}
 
-	//opts = append(opts, actor.WithLogger(slog))
+	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})).Handler().WithGroup("mcp"))))
 	opts = append(opts, actor.WithPassivationDisabled())
 
 	// Create the actor system

@@ -3,15 +3,17 @@ package actors
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	"github.com/google/uuid"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
+
 	"github.com/traego/scaled-mcp/pkg/channels"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/utils"
-	"log/slog"
 )
 
 /*
@@ -40,6 +42,7 @@ type ClientConnectionActor struct {
 func NewClientConnectionActor(cfg *config.ServerConfig, sessionId string, params *protocol.InitializeParams, channel channels.OneWayChannel, sendEndpoint bool, defaultSseConnection bool) actor.Actor {
 	// I think here we actually need to do the negotiation, so that we can either start with one way or two way comms
 
+	// TODO(arsene): this is a bit of a hack, we need to pass a logger in the constructor
 	slog.Info("starting client connection actor")
 	return &ClientConnectionActor{
 		cfg:                  cfg,
@@ -69,66 +72,62 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 	// Handle different message types
 	switch msg := message.(type) {
 	case *goaktpb.PostStart:
-		{
-			san := utils.GetSessionActorName(c.sessionId)
-			// Register with the session. If any issues, kill myself before doing anything else
-			_, sa, err := ctx.ActorSystem().ActorOf(ctx.Context(), san)
+		san := utils.GetSessionActorName(c.sessionId)
+		// Register with the session. If any issues, kill myself before doing anything else
+		_, sa, err := ctx.ActorSystem().ActorOf(ctx.Context(), san)
+		if err != nil {
+			ctx.Logger().Error("error registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
+			// Send an empty endpoint to signal failure
+			c.channel.Close()
+			ctx.Shutdown()
+			return
+		}
+
+		// Let's watch the session, and if the session dies, we're killing ourselves
+		sa.Watch(ctx.Self())
+
+		reg := mcppb.RegisterConnection{ConnectionId: c.connectionId}
+		registerResp := ctx.SendSync(san, &reg, c.cfg.RequestTimeout)
+		rr, ok := registerResp.(*mcppb.RegisterConnectionResponse)
+		if !ok {
+			ctx.Logger().Error("unexpected response to registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
+			c.channel.Close()
+			ctx.Shutdown()
+			return
+		}
+
+		if !rr.GetSuccess() {
+			ctx.Logger().Error("unexpected failure registering connection with session, shutting down", "sessionId", c.sessionId, "err", rr.GetError())
+			c.channel.Close()
+			ctx.Shutdown()
+			return
+		}
+
+		if c.sendEndpoint {
+			// Create the message endpoint URL with the sessionId
+			messageEndpoint := fmt.Sprintf("%s?sessionId=%s", c.cfg.HTTP.MessagePath, c.sessionId)
+
+			// Send the endpoint event
+			err := c.channel.SendEndpoint(messageEndpoint)
 			if err != nil {
-				ctx.Logger().Error("error registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
-				// Send an empty endpoint to signal failure
-				c.channel.Close()
-				ctx.Shutdown()
-				return
-			}
-
-			// Let's watch the session, and if the session dies, we're killing ourselves
-			sa.Watch(ctx.Self())
-
-			reg := mcppb.RegisterConnection{ConnectionId: c.connectionId}
-			registerResp := ctx.SendSync(san, &reg, c.cfg.RequestTimeout)
-			if err != nil {
-				ctx.Logger().Error("error registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
-				c.channel.Close()
-				ctx.Shutdown()
-				return
-			}
-
-			rr, ok := registerResp.(*mcppb.RegisterConnectionResponse)
-			if !ok {
-				ctx.Logger().Error("unexpected response to registering connection with session, shutting down", "sessionId", c.sessionId, "err", err)
-				c.channel.Close()
-				ctx.Shutdown()
-				return
-			}
-
-			if !rr.GetSuccess() {
-				ctx.Logger().Error("unexpected failure registering connection with session, shutting down", "sessionId", c.sessionId, "err", rr.GetError())
-				c.channel.Close()
-				ctx.Shutdown()
-				return
-			}
-
-			if c.sendEndpoint {
-				// Create the message endpoint URL with the sessionId
-				messageEndpoint := fmt.Sprintf("%s?sessionId=%s", c.cfg.HTTP.MessagePath, c.sessionId)
-
-				// Send the endpoint event
-				err := c.channel.SendEndpoint(messageEndpoint)
-				if err != nil {
-					ctx.Logger().Error(fmt.Errorf("error sending message endpoint: %w", err))
-				}
+				ctx.Logger().Error(fmt.Errorf("error sending message endpoint: %w", err))
 			}
 		}
+
 	case *mcppb.JsonRpcResponse:
+		// TODO(arsene): revisit this logging
 		slog.DebugContext(ctx.Context(), fmt.Sprintf("Received message for client delivery sessionId = %s messageId = %s", c.sessionId, msg.Id))
 		jm, err := protocol.ConvertProtoToJSONResponse(msg)
 		if err != nil {
-			slog.Error("problem converting proto to json response", "err", err)
+			ctx.Logger().Error("problem converting proto to json response", "err", err)
+			ctx.Err(err)
+			return
 		}
 
-		err = c.channel.Send("message", jm)
-		if err != nil {
-			slog.Error("problem pushing json rpc request down channels channel", "err", err)
+		if err = c.channel.Send("message", jm); err != nil {
+			ctx.Logger().Error("problem pushing json rpc response down channels channel", "err", err)
+			ctx.Err(err)
+			return
 		}
 	case *goaktpb.Terminated:
 		// If the session actor terminated, we should terminate as well

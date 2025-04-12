@@ -4,3 +4,4 @@ go.work.sum
 
 coverage.out
 coverage.txt
+vendor

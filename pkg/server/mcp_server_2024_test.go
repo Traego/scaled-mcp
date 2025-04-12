@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/traego/scaled-mcp/pkg/resources"
-	"github.com/traego/scaled-mcp/test/testutils"
 	"net/http"
 	"strconv"
 	"testing"
@@ -15,9 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tmaxmax/go-sse"
+
 	"github.com/traego/scaled-mcp/pkg/client"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/test/testutils"
 )
 
 // TestMCPServer2024 tests the MCP server with the 2024 spec.
@@ -54,7 +55,7 @@ func TestMCPServer2024(t *testing.T) {
 
 	defer cancel()
 	// Ensure server is stopped after the test
-	//defer mcpServer.Stop(ctx)
+	defer mcpServer.Stop(ctx)
 
 	// Get the server's HTTP address
 	serverAddr := "http://localhost:" + strconv.Itoa(cfg.HTTP.Port)

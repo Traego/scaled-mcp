@@ -2,15 +2,17 @@ package server
 
 import (
 	"context"
+	"strconv"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/traego/scaled-mcp/pkg/client"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
 	"github.com/traego/scaled-mcp/test/testutils"
-	"strconv"
-	"testing"
 )
 
 // TestMCPServer2025 tests the MCP server with the 2025 spec.
@@ -47,7 +49,7 @@ func TestMCPServer2025(t *testing.T) {
 
 	defer cancel()
 	// Ensure server is stopped after the test
-	//defer mcpServer.Stop(ctx)
+	defer mcpServer.Stop(ctx)
 
 	// Get the server's HTTP address
 	serverAddr := "http://localhost:" + strconv.Itoa(cfg.HTTP.Port)
