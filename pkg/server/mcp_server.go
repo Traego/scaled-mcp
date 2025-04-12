@@ -152,7 +152,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		opts = append(opts, actor.WithRemote(remote.NewConfig(cfg.Clustering.NodeHost, cfg.Clustering.RemotingPort)))
 	}
 
-	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{})).Handler().WithGroup("mcp"))))
+	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}).WithGroup("mcp"))))
 	opts = append(opts, actor.WithPassivationDisabled())
 
 	// Create the actor system
