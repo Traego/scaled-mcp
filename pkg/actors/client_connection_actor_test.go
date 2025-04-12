@@ -374,11 +374,7 @@ func TestClientConnectionActor(t *testing.T) {
 		)
 
 		// Spawn the actor
-		ccaPID, err := actorSystem.Spawn(ctx, "test-client-conn-fail", cca)
-		require.NoError(t, err)
-
-		// Send PostStart message to trigger session registration
-		err = actor.Tell(ctx, ccaPID, &goaktpb.PostStart{})
+		_, err = actorSystem.Spawn(ctx, "test-client-conn-fail", cca)
 		require.NoError(t, err)
 
 		// Give some time for the message to be processed
