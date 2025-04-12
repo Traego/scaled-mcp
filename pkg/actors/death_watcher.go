@@ -30,7 +30,7 @@ func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *
 		return nil, nil, fmt.Errorf("failed to spawn death watcher: %w", err)
 	}
 
-	pid.Watch(dwa)
+	dwa.Watch(pid)
 
 	return dwa, notifications, nil
 }
@@ -44,9 +44,6 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 
 	// Handle different message types
 	switch msg := message.(type) {
-	case *goaktpb.PostStart:
-		// d.pid.Watch(ctx.Self())
-		return
 	case *goaktpb.Terminated:
 		if msg.GetActorId() == d.pid.ID() {
 			ctx.Logger().Debug("DeathWatcher received termination notification",

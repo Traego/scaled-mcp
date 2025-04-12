@@ -326,10 +326,6 @@ func TestClientConnectionActor(t *testing.T) {
 		ccaPID, err := actorSystem.Spawn(ctx, "test-client-conn-success", cca)
 		require.NoError(t, err)
 
-		// Send PostStart message to trigger session registration
-		err = actor.Tell(ctx, ccaPID, &goaktpb.PostStart{})
-		require.NoError(t, err)
-
 		// Give some time for the message to be processed
 		time.Sleep(500 * time.Millisecond)
 
@@ -337,10 +333,10 @@ func TestClientConnectionActor(t *testing.T) {
 		assert.GreaterOrEqual(t, len(channel.GetEndpoints()), 1)
 
 		// Clean up
-		poison := &goaktpb.PoisonPill{}
-		err = actor.Tell(ctx, sessionPID, poison)
+		err = sessionPID.Shutdown(ctx)
 		require.NoError(t, err)
-		_ = actor.Tell(ctx, ccaPID, poison)
+		err = ccaPID.Shutdown(ctx)
+		require.NoError(t, err)
 
 		time.Sleep(100 * time.Millisecond)
 	})

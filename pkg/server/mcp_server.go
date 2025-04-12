@@ -141,8 +141,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 				&actors.ClientConnectionActor{},
 			).
 			WithDiscoveryPort(cfg.Clustering.GossipPort).
-			WithPeersPort(cfg.Clustering.PeersPort).
-			WithWAL("/Users/patrickwhite/goakt/data/")
+			WithPeersPort(cfg.Clustering.PeersPort)
 
 		//WithDiscoveryPort(config.GossipPort).
 		//WithPeersPort(config.PeersPort).
@@ -218,7 +217,8 @@ func (s *McpServer) Start(ctx context.Context) error {
 	}
 	s.actorMutex.Unlock()
 
-	_, err = s.actorSystem.Spawn(ctx, "root", actors.NewRootActor(), actor.WithLongLived())
+	supervisor := actor.NewSupervisor(actor.WithAnyErrorDirective(actor.RestartDirective))
+	_, err = s.actorSystem.Spawn(ctx, "root", actors.NewRootActor(), actor.WithLongLived(), actor.WithSupervisor(supervisor))
 	if err != nil {
 		return fmt.Errorf("failed to start root actor: %w", err)
 	}
