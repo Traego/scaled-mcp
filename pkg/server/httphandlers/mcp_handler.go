@@ -11,24 +11,21 @@ import (
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/protocol"
-	"github.com/traego/scaled-mcp/pkg/session/store"
 )
 
 // MCPHandler handles MCP protocol requests
 type MCPHandler struct {
-	config       *config.ServerConfig
-	actorSystem  actor.ActorSystem
-	sessionStore store.SessionStore
-	serverInfo   config.McpServerInfo
+	config      *config.ServerConfig
+	actorSystem actor.ActorSystem
+	serverInfo  config.McpServerInfo
 }
 
 // NewMCPHandler creates a new MCP handler
-func NewMCPHandler(config *config.ServerConfig, actorSystem actor.ActorSystem, sessionStore store.SessionStore, serverInfo config.McpServerInfo) *MCPHandler {
+func NewMCPHandler(config *config.ServerConfig, actorSystem actor.ActorSystem, serverInfo config.McpServerInfo) *MCPHandler {
 	return &MCPHandler{
-		config:       config,
-		actorSystem:  actorSystem,
-		sessionStore: sessionStore,
-		serverInfo:   serverInfo,
+		config:      config,
+		actorSystem: actorSystem,
+		serverInfo:  serverInfo,
 	}
 }
 

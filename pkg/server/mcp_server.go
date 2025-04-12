@@ -25,7 +25,6 @@ import (
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
 	"github.com/traego/scaled-mcp/pkg/server/httphandlers"
-	"github.com/traego/scaled-mcp/pkg/session/store"
 )
 
 // McpServer represents an MCP server
@@ -34,7 +33,6 @@ type McpServer struct {
 	config             *config.ServerConfig
 	actorSystem        actor.ActorSystem
 	actorMutex         sync.Mutex
-	sessionStore       store.SessionStore
 	serverCapabilities protocol.ServerCapabilities
 	enableSSE          bool
 	httpServer         *http.Server
@@ -80,13 +78,6 @@ func WithServerInfo(name, version string) McpServerOption {
 func WithEnableSSE(enableSSE bool) McpServerOption {
 	return func(s *McpServer) {
 		s.enableSSE = enableSSE
-	}
-}
-
-// WithSessionStore sets the session store
-func WithSessionStore(sessionStore store.SessionStore) McpServerOption {
-	return func(s *McpServer) {
-		s.sessionStore = sessionStore
 	}
 }
 
@@ -184,19 +175,6 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		server.executors = executors.DefaultExecutors(server, nil)
 	}
 
-	// Create session store if not provided
-	if server.sessionStore == nil {
-		if cfg.Session.UseInMemory {
-			server.sessionStore = store.NewMemorySessionStore()
-		} else if cfg.Redis != nil {
-			// TODO: Implement Redis session store
-			return nil, fmt.Errorf("redis session store not implemented")
-		} else {
-			// Default to in-memory for now
-			server.sessionStore = store.NewMemorySessionStore()
-		}
-	}
-
 	// Create a default static tool registry if none provided
 	if server.featureRegistry.ToolRegistry == nil {
 		server.featureRegistry.ToolRegistry = resources.NewStaticToolRegistry()
@@ -216,7 +194,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 	}
 
 	// Create the MCP handler with an adapter for the session store
-	server.mcpHandler = httphandlers.NewMCPHandler(cfg, actorSystem, server.sessionStore, server)
+	server.mcpHandler = httphandlers.NewMCPHandler(cfg, actorSystem, server)
 
 	return server, nil
 }
