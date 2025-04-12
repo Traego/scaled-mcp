@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
-	"github.com/tochemey/goakt/v3/log"
+
+	"github.com/traego/scaled-mcp/internal/logger"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -151,7 +152,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
-		actor.WithLogger(log.DefaultLogger))
+		actor.WithLogger(logger.DefaultSlogLogger))
 	require.NoError(t, err)
 
 	err = actorSystem.Start(ctx)
@@ -160,10 +161,11 @@ func TestMcpSessionStateMachine(t *testing.T) {
 	_, err = actorSystem.Spawn(ctx, "root", &RootActor{})
 	require.NoError(t, err)
 
-	defer func() {
+	// Ensure we clean up after the test
+	t.Cleanup(func() {
 		err := actorSystem.Stop(ctx)
 		require.NoError(t, err)
-	}()
+	})
 
 	t.Run("should handle PostStart message", func(t *testing.T) {
 		// Create server info with test executor

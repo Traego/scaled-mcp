@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
+
+	"github.com/traego/scaled-mcp/internal/logger"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/utils"
@@ -182,6 +184,7 @@ func TestClientConnectionActor(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
+		actor.WithLogger(logger.DefaultSlogLogger),
 	)
 	require.NoError(t, err)
 
@@ -190,10 +193,10 @@ func TestClientConnectionActor(t *testing.T) {
 	require.NoError(t, err)
 
 	// Ensure we clean up after the test
-	defer func() {
+	t.Cleanup(func() {
 		err := actorSystem.Stop(ctx)
 		require.NoError(t, err)
-	}()
+	})
 
 	t.Run("should initialize with default SSE connection", func(t *testing.T) {
 		// Create a channel

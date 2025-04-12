@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
+
+	"github.com/traego/scaled-mcp/internal/logger"
 )
 
 func TestDeathWatcher(t *testing.T) {
@@ -16,6 +18,7 @@ func TestDeathWatcher(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
+		actor.WithLogger(logger.DefaultSlogLogger),
 	)
 	require.NoError(t, err)
 
@@ -24,10 +27,10 @@ func TestDeathWatcher(t *testing.T) {
 	require.NoError(t, err)
 
 	// Ensure we clean up after the test
-	defer func() {
+	t.Cleanup(func() {
 		err := actorSystem.Stop(ctx)
 		require.NoError(t, err)
-	}()
+	})
 
 	t.Run("should receive termination notification", func(t *testing.T) {
 		// Create a test actor that will be terminated
