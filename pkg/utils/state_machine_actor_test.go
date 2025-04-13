@@ -2,14 +2,16 @@ package utils
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/log"
+
+	"github.com/traego/scaled-mcp/internal/logger"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 )
 
@@ -40,7 +42,7 @@ func TestStateMachineActor(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
-		actor.WithLogger(log.DefaultLogger))
+		actor.WithLogger(logger.DiscardSlogLogger))
 	require.NoError(t, err)
 
 	err = actorSystem.Start(ctx)

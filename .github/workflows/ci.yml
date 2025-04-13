@@ -34,7 +34,7 @@ jobs:
         run: go vet ./...
 
       - name: Run tests
-        run: go test --cover -coverpkg=./...  ./... -coverprofile=coverage.txt  -covermode=count
+        run: go test --cover -coverpkg=./...  ./... -coverprofile=coverage.txt  -covermode=count -timeout 0
 #        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 

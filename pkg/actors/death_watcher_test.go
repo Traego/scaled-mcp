@@ -18,7 +18,7 @@ func TestDeathWatcher(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
-		actor.WithLogger(logger.DefaultSlogLogger),
+		actor.WithLogger(logger.DiscardSlogLogger),
 	)
 	require.NoError(t, err)
 

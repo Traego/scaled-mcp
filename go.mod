@@ -9,7 +9,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
 	github.com/tmaxmax/go-sse v0.10.0
-	github.com/tochemey/goakt/v3 v3.2.1
+	github.com/tochemey/goakt/v3 v3.2.2
 	google.golang.org/protobuf v1.36.6
 )
 
