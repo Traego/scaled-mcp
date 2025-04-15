@@ -3,6 +3,7 @@ package actors
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,7 +44,10 @@ func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *
 		watchId:       watchId,
 	}
 
-	dwa, err := actorSystem.Spawn(ctx, "death-watcher"+watchId, dw)
+	deathWatchName := "death-watcher" + watchId
+	slog.DebugContext(ctx, "spawning death watcher "+deathWatchName)
+
+	dwa, err := actorSystem.Spawn(ctx, deathWatchName, dw)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to spawn death watcher: %w", err)
 	}
@@ -52,8 +56,10 @@ func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *
 
 	_, lookup, _ := actorSystem.ActorOf(ctx, pid.Name())
 	if lookup != nil && lookup.IsRunning() {
+		slog.InfoContext(ctx, "found actor, starting death watch", "watchId", watchId, "actorId", pid.ID())
 		dwa.Watch(pid)
 	} else {
+		slog.InfoContext(ctx, "did not find actor, sending term message and shutting down", "watchId", watchId)
 		go func() {
 			notifications <- &ActorNotStarted{watchId}
 		}()
