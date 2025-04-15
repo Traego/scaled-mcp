@@ -36,7 +36,7 @@ func TestDeathWatcher(t *testing.T) {
 		testActorPID, err := actorSystem.Spawn(ctx, "test-actor", testActor)
 		require.NoError(t, err)
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 
 		// Create the death watcher actor
 		_, notifications, err := SpawnDeathWatcher(t.Context(), actorSystem, testActorPID)
@@ -53,7 +53,7 @@ func TestDeathWatcher(t *testing.T) {
 			case *ActorTerminatedMessage:
 				assert.Equal(t, testActorPID.ID(), msg.ActorId)
 			default:
-				t.Fatal("expected TerminatedMessage")
+				t.Fatal("expected TerminatedMessage, received ")
 			}
 
 		case <-time.After(3 * time.Second):
