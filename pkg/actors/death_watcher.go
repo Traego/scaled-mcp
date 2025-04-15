@@ -50,7 +50,7 @@ func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *
 
 	time.Sleep(100 * time.Millisecond)
 
-	_, lookup, err := actorSystem.ActorOf(ctx, pid.Name())
+	_, lookup, _ := actorSystem.ActorOf(ctx, pid.Name())
 	if lookup != nil && lookup.IsRunning() {
 		dwa.Watch(pid)
 	} else {
