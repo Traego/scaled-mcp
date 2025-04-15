@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
-
-	"github.com/traego/scaled-mcp/internal/logger"
 )
 
 func TestDeathWatcher(t *testing.T) {
@@ -18,7 +16,7 @@ func TestDeathWatcher(t *testing.T) {
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
 		actor.WithPassivationDisabled(),
-		actor.WithLogger(logger.DiscardSlogLogger),
+		//actor.WithLogger(logger.DiscardSlogLogger),
 	)
 	require.NoError(t, err)
 
@@ -38,19 +36,55 @@ func TestDeathWatcher(t *testing.T) {
 		testActorPID, err := actorSystem.Spawn(ctx, "test-actor", testActor)
 		require.NoError(t, err)
 
+		time.Sleep(1000 * time.Millisecond)
+
 		// Create the death watcher actor
 		_, notifications, err := SpawnDeathWatcher(t.Context(), actorSystem, testActorPID)
 		require.NoError(t, err)
 
-		poison := goaktpb.PoisonPill{}
-		err = actor.Tell(ctx, testActorPID, &poison)
+		err = testActorPID.Shutdown(ctx)
 		require.NoError(t, err)
 
 		// Wait for the termination notification
 		select {
 		case terminated := <-notifications:
 			assert.NotNil(t, terminated)
-			assert.Equal(t, testActorPID.ID(), terminated.GetActorId())
+			switch msg := terminated.(type) {
+			case *ActorTerminatedMessage:
+				assert.Equal(t, testActorPID.ID(), msg.ActorId)
+			default:
+				t.Fatal("expected TerminatedMessage")
+			}
+
+		case <-time.After(3 * time.Second):
+			t.Fatal("timeout waiting for termination notification")
+		}
+	})
+
+	t.Run("should receive immediate termination if actor is dead", func(t *testing.T) {
+		// Create a test actor that will be terminated
+		testActor := &testTerminatingActor{}
+		testActorPID, err := actorSystem.Spawn(ctx, "test-actor", testActor)
+		require.NoError(t, err)
+
+		err = testActorPID.Shutdown(ctx)
+		require.NoError(t, err)
+
+		time.Sleep(100 * time.Millisecond)
+
+		// Create the death watcher actor
+		_, notifications, err := SpawnDeathWatcher(t.Context(), actorSystem, testActorPID)
+		require.NoError(t, err)
+
+		// Wait for the termination notification
+		select {
+		case terminated := <-notifications:
+			assert.NotNil(t, terminated)
+			switch terminated.(type) {
+			case *ActorNotStarted:
+			default:
+				t.Fatal("expected TerminatedMessage")
+			}
 		case <-time.After(3 * time.Second):
 			t.Fatal("timeout waiting for termination notification")
 		}
@@ -60,7 +94,7 @@ func TestDeathWatcher(t *testing.T) {
 		// Create a death watcher with a channel that will be full
 		// We use a channel with buffer size 0 to simulate a full channel
 		dw := &DeathWatcher{
-			notifications: make(chan *goaktpb.Terminated),
+			notifications: make(chan DeathWatchMessage),
 		}
 		deathWatcherPID, err := actorSystem.Spawn(ctx, "death-watcher-full", dw)
 		require.NoError(t, err)

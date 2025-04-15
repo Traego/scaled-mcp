@@ -86,12 +86,6 @@ func WithServerInfo(name, version string) McpServerOption {
 	}
 }
 
-func WithHttpServer(server *http.Server) McpServerOption {
-	return func(s *McpServer) {
-		s.httpServer = server
-	}
-}
-
 // WithRouter allows the user to provide a chi router for handler registration
 // When a router is provided, the MCP server will mount its routes on the provided router
 // This is useful when integrating the MCP server into an existing application
