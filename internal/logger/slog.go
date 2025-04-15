@@ -179,7 +179,7 @@ func (l *Slog) Trace(v ...any) {
 
 // LogLevel returns the log level that is used
 func (l *Slog) LogLevel() log.Level {
-	var traceLevel log.Level = log.DebugLevel + 2
+	var traceLevel = log.DebugLevel + 2
 	switch l.level {
 	case shandler.LevelFatal:
 		return log.FatalLevel

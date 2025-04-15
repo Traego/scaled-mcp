@@ -226,11 +226,12 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 	// Register MCP endpoints
 	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
+		switch r.Method {
+		case http.MethodPost:
 			s.mcpHandler.HandleMCPPost(w, r)
-		} else if r.Method == http.MethodGet {
+		case http.MethodGet:
 			s.mcpHandler.HandleMCPGet(w, r)
-		} else {
+		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
@@ -472,27 +473,5 @@ func (s *McpServer) jsonRpcErrorMiddleware(next http.Handler) http.Handler {
 
 		// Call the next handler
 		next.ServeHTTP(ww, r)
-	})
-}
-
-// registerRoutesOnChiRouter registers MCP routes on a chi router
-func (s *McpServer) registerRoutesOnChiRouter(r chi.Router) {
-	// Main MCP endpoint - handles both POST (for new sessions) and GET (for resuming sessions)
-	r.Route(s.config.HTTP.MCPPath, func(r chi.Router) {
-		r.Post("/", s.mcpHandler.HandleMCPPost)
-		r.Get("/", s.mcpHandler.HandleMCPGet)
-	})
-
-	// Optional /messages endpoint for 2024 version client negotiation
-	if s.config.BackwardCompatible20241105 {
-		r.Get(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
-		r.Post(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
-	}
-
-	// Health check endpoint
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 }
