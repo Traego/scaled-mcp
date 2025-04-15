@@ -155,9 +155,6 @@ type RedisConfig struct {
 
 // ActorConfig holds the actor system configuration
 type ActorConfig struct {
-	// Actor system name
-	SystemName string `json:"system_name"`
-
 	// Number of workers for handling actor messages
 	NumWorkers int `json:"num_workers"`
 
@@ -206,7 +203,6 @@ func DefaultConfig() *ServerConfig {
 			KeyPrefix:         "mcp:session:",
 		},
 		Actor: ActorConfig{
-			SystemName:      "mcp-actor-system",
 			NumWorkers:      10,
 			UseRemoteActors: false,
 			RemoteConfig: RemoteActorConfig{

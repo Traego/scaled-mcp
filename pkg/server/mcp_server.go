@@ -48,6 +48,9 @@ type McpServer struct {
 
 	// Track if we created the server internally
 	createdServer bool
+
+	// Store the handler for reuse
+	internalHandler http.Handler
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
@@ -169,7 +172,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 	opts = append(opts, actor.WithPassivationDisabled())
 
 	// Create the actor system
-	actorSystem, err := actor.NewActorSystem(cfg.Actor.SystemName, opts...)
+	actorSystem, err := actor.NewActorSystem("mcp-actors-system", opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create actor system: %w", err)
 	}
@@ -209,10 +212,41 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		slog.Info("Using default static resource registry")
 	}
 
-	// Create the MCP handler with an adapter for the session store
+	// Create the MCP handler
 	server.mcpHandler = httphandlers.NewMCPHandler(cfg, actorSystem, server)
 
+	// Create the internal handler
+	server.internalHandler = server.createHTTPHandler()
+
 	return server, nil
+}
+
+// RegisterHandlers registers MCP handlers on the provided ServeMux
+// This should be called before applying any middleware to the mux
+func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
+	// Register MCP endpoints
+	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			s.mcpHandler.HandleMCPPost(w, r)
+		} else if r.Method == http.MethodGet {
+			s.mcpHandler.HandleMCPGet(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// Register SSE endpoint if backward compatibility is enabled
+	if s.config.BackwardCompatible20241105 {
+		mux.HandleFunc(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
+		mux.HandleFunc(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+	}
+
+	// Health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
 }
 
 // Start starts the MCP server
@@ -220,20 +254,24 @@ func (s *McpServer) Start(ctx context.Context) error {
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", s.config.HTTP.Host, s.config.HTTP.Port)
 
-	// Create the HTTP handler with routes
-	handler := s.createHTTPHandler()
-
 	// Handle server creation/configuration
 	if s.httpServer != nil {
-		// User provided a server, just set the handler
-		s.httpServer.Handler = handler
+		// User provided a server
+		// Check if we can auto-register handlers on the mux
+		if s.httpServer.Handler != nil {
+			if mux, ok := s.httpServer.Handler.(*http.ServeMux); ok {
+				// Auto-register handlers on the mux
+				s.RegisterHandlers(mux)
+				slog.InfoContext(ctx, "Automatically registered MCP handlers on provided ServeMux")
+			}
+		}
 		s.createdServer = false
 		slog.InfoContext(ctx, "Using user-provided HTTP server")
 	} else {
-		// Create our own server
+		// Create our own server with our handler
 		s.httpServer = &http.Server{
 			Addr:    addr,
-			Handler: handler,
+			Handler: s.internalHandler,
 		}
 		s.createdServer = true
 		slog.InfoContext(ctx, "Created internal HTTP server", "addr", addr)
@@ -302,6 +340,13 @@ func (s *McpServer) Stop(ctx context.Context) {
 			slog.Error("Failed to shutdown HTTP server", "err", err)
 		}
 	}
+}
+
+// ServeHTTP implements http.Handler, allowing the MCP server to be used directly as a handler
+// This gives users complete control over middleware and server configuration
+func (s *McpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Use our pre-created internal handler to serve the request
+	s.internalHandler.ServeHTTP(w, r)
 }
 
 // createHTTPHandler creates the HTTP handler for the MCP server
@@ -427,5 +472,27 @@ func (s *McpServer) jsonRpcErrorMiddleware(next http.Handler) http.Handler {
 
 		// Call the next handler
 		next.ServeHTTP(ww, r)
+	})
+}
+
+// registerRoutesOnChiRouter registers MCP routes on a chi router
+func (s *McpServer) registerRoutesOnChiRouter(r chi.Router) {
+	// Main MCP endpoint - handles both POST (for new sessions) and GET (for resuming sessions)
+	r.Route(s.config.HTTP.MCPPath, func(r chi.Router) {
+		r.Post("/", s.mcpHandler.HandleMCPPost)
+		r.Get("/", s.mcpHandler.HandleMCPGet)
+	})
+
+	// Optional /messages endpoint for 2024 version client negotiation
+	if s.config.BackwardCompatible20241105 {
+		r.Get(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
+		r.Post(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+	}
+
+	// Health check endpoint
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 }
