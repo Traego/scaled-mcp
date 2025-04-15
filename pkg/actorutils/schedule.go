@@ -61,7 +61,7 @@ func ScheduleOnce(ctx context.Context, actorSystem actor.ActorSystem, targetActo
 				slog.ErrorContext(ctx, fmt.Sprintf("failed to get the root actor: %v", err))
 				return
 			}
-			
+
 			// Time to send the message
 			err = rid.SendAsync(ctx, targetActor, message)
 			if err != nil {

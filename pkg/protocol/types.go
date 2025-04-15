@@ -5,12 +5,13 @@ const SESSION_ID_CONTEXT_KEY = "sessionId"
 
 // JSONRPCMessage represents a JSON-RPC message
 type JSONRPCMessage struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      interface{} `json:"id,omitempty"`
-	Method  string      `json:"method,omitempty"`
-	Params  interface{} `json:"params,omitempty"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   interface{} `json:"error,omitempty"`
+	JSONRPC string              `json:"jsonrpc"`
+	ID      interface{}         `json:"id,omitempty"`
+	Method  string              `json:"method,omitempty"`
+	Params  interface{}         `json:"params,omitempty"`
+	Result  interface{}         `json:"result,omitempty"`
+	Error   interface{}         `json:"error,omitempty"`
+	Headers map[string][]string `json:"headers,omitempty"`
 }
 
 // ClientInfo represents information about the client

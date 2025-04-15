@@ -146,5 +146,5 @@ func DefaultClientOptions() ClientOptions {
 
 // NewMcpClient creates a new MCP client with the given server URL and options.
 func NewMcpClient(serverURL string, options ClientOptions) (McpClient, error) {
-	return newHTTPClient(serverURL, options)
+	return NewHTTPClient(serverURL, options)
 }

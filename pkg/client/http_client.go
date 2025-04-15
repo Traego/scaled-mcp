@@ -42,8 +42,8 @@ type httpClient struct {
 	cancelSSE        context.CancelFunc
 }
 
-// newHTTPClient creates a new HTTP-based MCP client.
-func newHTTPClient(serverURL string, options ClientOptions) (*httpClient, error) {
+// NewHTTPClient creates a new HTTP-based MCP client.
+func NewHTTPClient(serverURL string, options ClientOptions) (*httpClient, error) {
 	// Use the provided HTTP client or create a default one
 	if options.HTTPClient == nil {
 		options.HTTPClient = &http.Client{
@@ -610,6 +610,8 @@ func (c *httpClient) processHTTPResponse(resp *http.Response, requestID string) 
 			return &response, c.extractJSONRPCError("JSON-RPC error", response.Error)
 		}
 
+		response.Headers = resp.Header
+
 		return &response, nil
 	}
 
@@ -619,6 +621,7 @@ func (c *httpClient) processHTTPResponse(resp *http.Response, requestID string) 
 			JSONRPC: "2.0",
 			ID:      requestID,
 			Result:  true,
+			Headers: resp.Header,
 		}, nil
 	}
 
