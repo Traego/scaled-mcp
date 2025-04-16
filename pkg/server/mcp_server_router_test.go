@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
@@ -46,6 +47,30 @@ func TestMcpServerWithRouter(t *testing.T) {
 	// Start the MCP server - this will register routes and start the HTTP server
 	err = mcpServer.Start(ctx)
 	require.NoError(t, err, "Failed to start MCP server")
+
+	// Create an HTTP server with the Chi router
+	httpServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: router,
+	}
+
+	// Start the HTTP server in a goroutine
+	httpErrCh := make(chan error, 1)
+	go func() {
+		slog.InfoContext(ctx, "Starting HTTP server", "port", port)
+		httpErrCh <- httpServer.ListenAndServe()
+	}()
+
+	// Give the servers a moment to start up
+	time.Sleep(100 * time.Millisecond)
+
+	// Check if there was an immediate error starting the HTTP server
+	select {
+	case err := <-httpErrCh:
+		require.NoError(t, err, "Failed to start HTTP server")
+	default:
+		// No error, continue with the test
+	}
 
 	// Give the server a moment to start
 	time.Sleep(100 * time.Millisecond)
