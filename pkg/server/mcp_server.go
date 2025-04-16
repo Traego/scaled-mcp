@@ -262,7 +262,7 @@ func (s *McpServer) Start(ctx context.Context) error {
 		}
 		s.createdServer = false
 		slog.InfoContext(ctx, "Using user-provided HTTP server")
-	} else {
+	} else if s.userRouter == nil {
 		// Create our own server with our handler
 		s.httpServer = &http.Server{
 			Addr:    addr,

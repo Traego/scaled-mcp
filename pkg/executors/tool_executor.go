@@ -105,8 +105,9 @@ func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]in
 		Cursor: cursor,
 	}
 
+	results := t.serverInfo.GetFeatureRegistry().ToolRegistry.ListTools(ctx, opts)
 	// Call the registry
-	return t.serverInfo.GetFeatureRegistry().ToolRegistry.ListTools(ctx, opts), nil
+	return results, nil
 }
 
 // handleGetTool handles a request to get a specific tool

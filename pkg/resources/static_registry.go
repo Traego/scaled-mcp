@@ -83,7 +83,9 @@ func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions
 	}
 
 	// Extract the resources for this page
-	var result ToolListResult
+	result := ToolListResult{
+		Tools: make([]Tool, 0),
+	}
 
 	// No resources or cursor beyond the end
 	if startPos >= len(names) {
