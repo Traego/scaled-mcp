@@ -710,3 +710,92 @@ func (c *httpClient) extractJSONRPCError(prefix string, jsonRpcErr interface{}) 
 
 	return fmt.Errorf("%s: %v", prefix, jsonRpcErr)
 }
+
+// ListTools retrieves the list of available tools from the server
+func (c *httpClient) ListTools(ctx context.Context) (*ToolsList, error) {
+	resp, err := c.SendRequest(ctx, "tools/list", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tools: %w", err)
+	}
+
+	if resp.Error != nil {
+		return nil, c.extractJSONRPCError("tools/list failed", resp.Error)
+	}
+
+	// Convert the response to a ToolsList
+	var toolsList ToolsList
+
+	// First, try to directly unmarshal the result
+	resultBytes, err := json.Marshal(resp.Result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	if err := json.Unmarshal(resultBytes, &toolsList); err != nil {
+		// If direct unmarshaling fails, try to extract the tools field
+		if resultMap, ok := resp.Result.(map[string]interface{}); ok {
+			if toolsInterface, ok := resultMap["tools"]; ok {
+				toolsBytes, err := json.Marshal(toolsInterface)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal tools: %w", err)
+				}
+
+				var tools []Tool
+				if err := json.Unmarshal(toolsBytes, &tools); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal tools: %w", err)
+				}
+
+				toolsList.Tools = tools
+			}
+		}
+	}
+
+	return &toolsList, nil
+}
+
+// FindTool searches for a tool by name in the tools list
+func (c *httpClient) FindTool(ctx context.Context, toolName string) (*Tool, error) {
+	toolsList, err := c.ListTools(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tool := range toolsList.Tools {
+		if tool.Name == toolName {
+			return &tool, nil
+		}
+	}
+
+	return nil, fmt.Errorf("tool not found: %s", toolName)
+}
+
+// CallTool calls a specific tool with the given parameters
+func (c *httpClient) CallTool(ctx context.Context, toolName string, params interface{}) (*protocol.JSONRPCMessage, error) {
+	// First, check if the tool exists
+	_, err := c.FindTool(ctx, toolName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prepare the call parameters according to the MCP protocol
+	// The format should be { "name": "toolName", "parameters": { ... } }
+	// not { "name": "toolName", "params": { ... } }
+	callParams := map[string]interface{}{
+		"name":       toolName,
+		"parameters": params, // Use "parameters" instead of "params"
+	}
+
+	slog.Debug("Calling tool", "name", toolName, "parameters", params)
+
+	// Send the request
+	resp, err := c.SendRequest(ctx, "tools/call", callParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call tool %s: %w", toolName, err)
+	}
+
+	if resp.Error != nil {
+		return nil, c.extractJSONRPCError(fmt.Sprintf("tool call %s failed", toolName), resp.Error)
+	}
+
+	return resp, nil
+}

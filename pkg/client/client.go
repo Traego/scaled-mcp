@@ -75,6 +75,18 @@ type SamplingCapabilities struct {
 	Enabled bool
 }
 
+// Tool represents an MCP tool with its metadata
+type Tool struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Schema      map[string]interface{} `json:"schema"`
+}
+
+// ToolsList represents the response from tools/list
+type ToolsList struct {
+	Tools []Tool `json:"tools"`
+}
+
 // McpClient is the interface for an MCP client.
 type McpClient interface {
 	// Connect establishes a connection with the server and performs protocol initialization.
@@ -106,6 +118,15 @@ type McpClient interface {
 
 	// RemoveEventHandler removes an event handler.
 	RemoveEventHandler(handler EventHandler)
+
+	// ListTools retrieves the list of available tools from the server.
+	ListTools(ctx context.Context) (*ToolsList, error)
+
+	// FindTool searches for a tool by name in the tools list.
+	FindTool(ctx context.Context, toolName string) (*Tool, error)
+
+	// CallTool calls a specific tool with the given parameters.
+	CallTool(ctx context.Context, toolName string, params interface{}) (*protocol.JSONRPCMessage, error)
 }
 
 // EventHandler is the interface for handling server-sent events.
