@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"testing"
@@ -132,9 +133,8 @@ func TestDynamicToolRegistry(t *testing.T) {
 		}
 
 		// Get a non-existent tool
-		tool, err := registry.GetTool(ctx, "non-existent-tool")
-		require.NoError(t, err)
-		require.Equal(t, tool.Name, weatherTool.Name)
+		_, err = registry.GetTool(ctx, "non-existent-tool")
+		assert.ErrorIs(t, err, ErrToolNotFound)
 	})
 
 	// Test ListTools
@@ -238,9 +238,7 @@ func TestDynamicToolRegistry_WithNilProvider(t *testing.T) {
 
 	// GetTool should return not found
 	_, err := registry.GetTool(ctx, "any-tool")
-	if err != nil {
-		t.Error("GetTool should return not found with nil provider")
-	}
+	assert.Error(t, err, ErrToolNotFound)
 
 	// ListTools should return empty list
 	result, err := registry.ListTools(ctx, protocol.ToolListOptions{})
