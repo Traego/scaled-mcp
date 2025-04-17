@@ -173,10 +173,7 @@ func TestToolsClient(t *testing.T) {
 		}
 
 		slog.Info("Calling test/echo tool", "params", echoParams)
-		echoResp, err := mcpClient.SendRequest(ctx, "tools/call", map[string]interface{}{
-			"name":      "test/echo",
-			"arguments": echoParams,
-		})
+		echoResp, err := mcpClient.CallTool(ctx, "test/echo", echoParams)
 		if err != nil {
 			t.Logf("Error calling test/echo tool: %v", err)
 			t.FailNow()

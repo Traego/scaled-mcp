@@ -781,8 +781,8 @@ func (c *httpClient) CallTool(ctx context.Context, toolName string, params inter
 	// The format should be { "name": "toolName", "parameters": { ... } }
 	// not { "name": "toolName", "params": { ... } }
 	callParams := map[string]interface{}{
-		"name":       toolName,
-		"parameters": params, // Use "parameters" instead of "params"
+		"name":      toolName,
+		"arguments": params, // Use "parameters" instead of "params"
 	}
 
 	slog.Debug("Calling tool", "name", toolName, "parameters", params)
