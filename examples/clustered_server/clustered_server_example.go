@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,12 +18,12 @@ import (
 
 // Simple tool provider for testing
 type SimpleToolProvider struct {
-	tools map[string]resources.Tool
+	tools map[string]protocol.Tool
 }
 
 func NewSimpleToolProvider() *SimpleToolProvider {
 	provider := &SimpleToolProvider{
-		tools: make(map[string]resources.Tool),
+		tools: make(map[string]protocol.Tool),
 	}
 
 	// Register a simple echo tool
@@ -37,17 +38,21 @@ func NewSimpleToolProvider() *SimpleToolProvider {
 	return provider
 }
 
-func (p *SimpleToolProvider) GetTool(ctx context.Context, name string) (resources.Tool, bool) {
-	tool, found := p.tools[name]
-	return tool, found
+func (p *SimpleToolProvider) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
+	tool, ok := p.tools[name]
+	if !ok {
+		return protocol.Tool{}, resources.ErrToolNotFound
+	}
+
+	return tool, nil
 }
 
-func (p *SimpleToolProvider) ListTools(ctx context.Context, cursor string) ([]resources.Tool, string) {
-	tools := make([]resources.Tool, 0, len(p.tools))
+func (p *SimpleToolProvider) ListTools(ctx context.Context, cursor string) (protocol.ToolListResult, error) {
+	tools := make([]protocol.Tool, 0, len(p.tools))
 	for _, tool := range p.tools {
 		tools = append(tools, tool)
 	}
-	return tools, ""
+	return protocol.ToolListResult{Tools: tools}, nil
 }
 
 func (p *SimpleToolProvider) HandleToolInvocation(ctx context.Context, name string, params map[string]interface{}) (interface{}, error) {

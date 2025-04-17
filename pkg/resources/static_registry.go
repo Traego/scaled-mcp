@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"log/slog"
 	"sort"
 	"sync"
@@ -11,20 +12,20 @@ import (
 // StaticToolRegistry is a resources that holds a fixed set of resources
 type StaticToolRegistry struct {
 	mu       sync.RWMutex
-	tools    map[string]Tool
+	tools    map[string]protocol.Tool
 	handlers map[string]ToolHandler
 }
 
 // NewStaticToolRegistry creates a new static tool resources
 func NewStaticToolRegistry() *StaticToolRegistry {
 	return &StaticToolRegistry{
-		tools:    make(map[string]Tool),
+		tools:    make(map[string]protocol.Tool),
 		handlers: make(map[string]ToolHandler),
 	}
 }
 
 // RegisterTool registers a tool with the resources
-func (r *StaticToolRegistry) RegisterTool(tool Tool, handler ToolHandler) error {
+func (r *StaticToolRegistry) RegisterTool(tool protocol.Tool, handler ToolHandler) error {
 	if tool.Name == "" {
 		return fmt.Errorf("tool name cannot be empty")
 	}
@@ -45,16 +46,19 @@ func (r *StaticToolRegistry) RegisterTool(tool Tool, handler ToolHandler) error 
 }
 
 // GetTool returns a tool by name
-func (r *StaticToolRegistry) GetTool(ctx context.Context, name string) (Tool, bool) {
+func (r *StaticToolRegistry) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	tool, ok := r.tools[name]
-	return tool, ok
+	if !ok {
+		return protocol.Tool{}, ErrToolNotFound
+	}
+	return tool, nil
 }
 
 // ListTools returns a paginated list of resources
-func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions) ToolListResult {
+func (r *StaticToolRegistry) ListTools(ctx context.Context, opts protocol.ToolListOptions) (protocol.ToolListResult, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -83,17 +87,17 @@ func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions
 	}
 
 	// Extract the resources for this page
-	result := ToolListResult{
-		Tools: make([]Tool, 0),
+	result := protocol.ToolListResult{
+		Tools: make([]protocol.Tool, 0),
 	}
 
 	// No resources or cursor beyond the end
 	if startPos >= len(names) {
-		return result
+		return result, nil
 	}
 
 	// Get the resources for this page
-	result.Tools = make([]Tool, 0, endPos-startPos)
+	result.Tools = make([]protocol.Tool, 0, endPos-startPos)
 	for i := startPos; i < endPos; i++ {
 		result.Tools = append(result.Tools, r.tools[names[i]])
 	}
@@ -103,7 +107,7 @@ func (r *StaticToolRegistry) ListTools(ctx context.Context, opts ToolListOptions
 		result.NextCursor = names[endPos-1]
 	}
 
-	return result
+	return result, nil
 }
 
 // InvokeTool invokes a tool with the given parameters

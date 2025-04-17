@@ -33,10 +33,10 @@ func TestMCPServer2024(t *testing.T) {
 	cfg.HTTP.Port = port
 
 	registry := resources.NewStaticToolRegistry()
-	err = registry.RegisterTool(resources.Tool{
+	err = registry.RegisterTool(protocol.Tool{
 		Name:        "test_tool",
 		Description: "Does Stuff",
-		InputSchema: resources.InputSchema{},
+		InputSchema: protocol.InputSchema{},
 	}, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 		return nil, nil
 	})

@@ -15,31 +15,34 @@ import (
 
 // TestToolRegistry is an in-memory implementation of resources.ToolRegistry for testing
 type TestToolRegistry struct {
-	Tools map[string]resources.Tool
+	Tools map[string]protocol.Tool
 	Calls map[string]interface{}
 }
 
 func NewTestToolRegistry() *TestToolRegistry {
 	return &TestToolRegistry{
-		Tools: make(map[string]resources.Tool),
+		Tools: make(map[string]protocol.Tool),
 		Calls: make(map[string]interface{}),
 	}
 }
 
-func (r *TestToolRegistry) GetTool(ctx context.Context, name string) (resources.Tool, bool) {
+func (r *TestToolRegistry) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
 	tool, ok := r.Tools[name]
-	return tool, ok
+	if !ok {
+		return protocol.Tool{}, resources.ErrToolNotFound
+	}
+	return tool, nil
 }
 
-func (r *TestToolRegistry) ListTools(ctx context.Context, opts resources.ToolListOptions) resources.ToolListResult {
-	var tools []resources.Tool
+func (r *TestToolRegistry) ListTools(ctx context.Context, opts protocol.ToolListOptions) (protocol.ToolListResult, error) {
+	var tools []protocol.Tool
 	for _, tool := range r.Tools {
 		tools = append(tools, tool)
 	}
-	return resources.ToolListResult{
+	return protocol.ToolListResult{
 		Tools:      tools,
 		NextCursor: "",
-	}
+	}, nil
 }
 
 func (r *TestToolRegistry) CallTool(ctx context.Context, name string, params map[string]interface{}) (interface{}, error) {
@@ -125,12 +128,12 @@ func TestToolExecutor_HandleMethod_List(t *testing.T) {
 	require.True(t, ok)
 
 	// Add some test tools
-	toolRegistry.Tools["test-tool"] = resources.Tool{
+	toolRegistry.Tools["test-tool"] = protocol.Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
-		InputSchema: resources.InputSchema{
+		InputSchema: protocol.InputSchema{
 			Type: "object",
-			Properties: map[string]resources.SchemaProperty{
+			Properties: map[string]protocol.SchemaProperty{
 				"param1": {
 					Type:        "string",
 					Description: "A test parameter",
@@ -183,12 +186,12 @@ func TestToolExecutor_HandleMethod_Get(t *testing.T) {
 	require.True(t, ok)
 
 	// Add a test tool
-	toolRegistry.Tools["test-tool"] = resources.Tool{
+	toolRegistry.Tools["test-tool"] = protocol.Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
-		InputSchema: resources.InputSchema{
+		InputSchema: protocol.InputSchema{
 			Type: "object",
-			Properties: map[string]resources.SchemaProperty{
+			Properties: map[string]protocol.SchemaProperty{
 				"param1": {
 					Type:        "string",
 					Description: "A test parameter",
@@ -288,12 +291,12 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 	require.True(t, ok)
 
 	// Add a test tool
-	toolRegistry.Tools["test-tool"] = resources.Tool{
+	toolRegistry.Tools["test-tool"] = protocol.Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
-		InputSchema: resources.InputSchema{
+		InputSchema: protocol.InputSchema{
 			Type: "object",
-			Properties: map[string]resources.SchemaProperty{
+			Properties: map[string]protocol.SchemaProperty{
 				"param1": {
 					Type:        "string",
 					Description: "A test parameter",

@@ -1,6 +1,7 @@
+package client
+
 // Package client provides a robust MCP client implementation that supports both
 // the 2024-11-05 and 2025-03-26 MCP specifications.
-package client
 
 import (
 	"context"
@@ -75,18 +76,6 @@ type SamplingCapabilities struct {
 	Enabled bool
 }
 
-// Tool represents an MCP tool with its metadata
-type Tool struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema"`
-}
-
-// ToolsList represents the response from tools/list
-type ToolsList struct {
-	Tools []Tool `json:"tools"`
-}
-
 // McpClient is the interface for an MCP client.
 type McpClient interface {
 	// Connect establishes a connection with the server and performs protocol initialization.
@@ -120,10 +109,10 @@ type McpClient interface {
 	RemoveEventHandler(handler EventHandler)
 
 	// ListTools retrieves the list of available tools from the server.
-	ListTools(ctx context.Context) (*ToolsList, error)
+	ListTools(ctx context.Context) (*protocol.ToolListResult, error)
 
 	// FindTool searches for a tool by name in the tools list.
-	FindTool(ctx context.Context, toolName string) (*Tool, error)
+	FindTool(ctx context.Context, toolName string) (*protocol.Tool, error)
 
 	// CallTool calls a specific tool with the given parameters.
 	CallTool(ctx context.Context, toolName string, params interface{}) (*protocol.JSONRPCMessage, error)

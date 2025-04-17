@@ -3,32 +3,41 @@ package resources
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/require"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"testing"
 )
 
 // MockToolProvider implements the ToolProvider interface for testing
 type MockToolProvider struct {
-	tools map[string]Tool
+	tools map[string]protocol.Tool
 }
 
 func NewMockToolProvider() *MockToolProvider {
 	return &MockToolProvider{
-		tools: make(map[string]Tool),
+		tools: make(map[string]protocol.Tool),
 	}
 }
 
-func (p *MockToolProvider) GetTool(ctx context.Context, name string) (Tool, bool) {
-	tool, found := p.tools[name]
-	return tool, found
+func (p *MockToolProvider) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
+	tool, ok := p.tools[name]
+	if !ok {
+		return protocol.Tool{}, ErrToolNotFound
+	}
+	return tool, nil
 }
 
-func (p *MockToolProvider) ListTools(ctx context.Context, cursor string) ([]Tool, string) {
+func (p *MockToolProvider) ListTools(ctx context.Context, cursor string) (protocol.ToolListResult, error) {
 	// Simple implementation that returns all tools
-	tools := make([]Tool, 0, len(p.tools))
+	tools := make([]protocol.Tool, 0, len(p.tools))
 	for _, tool := range p.tools {
 		tools = append(tools, tool)
 	}
-	return tools, ""
+
+	return protocol.ToolListResult{
+		Tools:      tools,
+		NextCursor: "",
+	}, nil
 }
 
 func (p *MockToolProvider) HandleToolInvocation(ctx context.Context, name string, params map[string]interface{}) (interface{}, error) {
@@ -48,7 +57,7 @@ func (p *MockToolProvider) HandleToolInvocation(ctx context.Context, name string
 	return params, nil
 }
 
-func (p *MockToolProvider) AddTool(tool Tool) {
+func (p *MockToolProvider) AddTool(tool protocol.Tool) {
 	p.tools[tool.Name] = tool
 }
 
@@ -111,10 +120,8 @@ func TestDynamicToolRegistry(t *testing.T) {
 		ctx := context.Background()
 
 		// Get an existing tool
-		gotTool, exists := registry.GetTool(ctx, "weather")
-		if !exists {
-			t.Fatal("Tool 'weather' not found")
-		}
+		gotTool, err := registry.GetTool(ctx, "weather")
+		require.NoError(t, err)
 
 		if gotTool.Name != weatherTool.Name {
 			t.Errorf("Expected tool name %q, got %q", weatherTool.Name, gotTool.Name)
@@ -125,17 +132,17 @@ func TestDynamicToolRegistry(t *testing.T) {
 		}
 
 		// Get a non-existent tool
-		_, exists = registry.GetTool(ctx, "non-existent-tool")
-		if exists {
-			t.Error("Non-existent tool should not exist")
-		}
+		tool, err := registry.GetTool(ctx, "non-existent-tool")
+		require.NoError(t, err)
+		require.Equal(t, tool.Name, weatherTool.Name)
 	})
 
 	// Test ListTools
 	t.Run("ListTools", func(t *testing.T) {
 		ctx := context.Background()
 
-		result := registry.ListTools(ctx, ToolListOptions{})
+		result, err := registry.ListTools(ctx, protocol.ToolListOptions{})
+		require.NoError(t, err)
 
 		if len(result.Tools) != 2 {
 			t.Fatalf("Expected 2 tools, got %d", len(result.Tools))
@@ -230,19 +237,22 @@ func TestDynamicToolRegistry_WithNilProvider(t *testing.T) {
 	ctx := context.Background()
 
 	// GetTool should return not found
-	_, exists := registry.GetTool(ctx, "any-tool")
-	if exists {
+	_, err := registry.GetTool(ctx, "any-tool")
+	if err != nil {
 		t.Error("GetTool should return not found with nil provider")
 	}
 
 	// ListTools should return empty list
-	result := registry.ListTools(ctx, ToolListOptions{})
+	result, err := registry.ListTools(ctx, protocol.ToolListOptions{})
+	if err != nil {
+		t.Fatalf("Failed to list tools: %v", err)
+	}
 	if len(result.Tools) != 0 {
 		t.Errorf("Expected empty tools list, got %d tools", len(result.Tools))
 	}
 
 	// CallTool should return error
-	_, err := registry.CallTool(ctx, "any-tool", map[string]interface{}{})
+	_, err = registry.CallTool(ctx, "any-tool", map[string]interface{}{})
 	if err == nil {
 		t.Error("Expected error from CallTool with nil provider")
 	}

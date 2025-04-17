@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"log/slog"
 	"net/http"
 	"os"
@@ -58,13 +59,13 @@ func main() {
 
 // ExampleToolProvider implements the resources.ToolProvider interface
 type ExampleToolProvider struct {
-	tools map[string]resources.Tool
+	tools map[string]protocol.Tool
 }
 
 // NewExampleToolProvider creates a new client_example tool provider
 func NewExampleToolProvider() *ExampleToolProvider {
 	provider := &ExampleToolProvider{
-		tools: make(map[string]resources.Tool),
+		tools: make(map[string]protocol.Tool),
 	}
 
 	// Register some client_example tools
@@ -114,13 +115,16 @@ func NewExampleToolProvider() *ExampleToolProvider {
 }
 
 // GetTool returns a tool by name
-func (p *ExampleToolProvider) GetTool(ctx context.Context, name string) (resources.Tool, bool) {
-	tool, found := p.tools[name]
-	return tool, found
+func (p *ExampleToolProvider) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
+	tool, ok := p.tools[name]
+	if !ok {
+		return protocol.Tool{}, resources.ErrToolNotFound
+	}
+	return tool, nil
 }
 
 // ListTools returns a list of available tools
-func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string) ([]resources.Tool, string) {
+func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string) (protocol.ToolListResult, error) {
 	// Get all tool names and sort them
 	names := make([]string, 0, len(p.tools))
 	for name := range p.tools {
@@ -146,11 +150,11 @@ func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string) ([]r
 
 	// No tools or cursor beyond the end
 	if startPos >= len(names) {
-		return []resources.Tool{}, ""
+		return protocol.ToolListResult{}, nil
 	}
 
 	// Get the tools for this page
-	result := make([]resources.Tool, 0, endPos-startPos)
+	result := make([]protocol.Tool, 0, endPos-startPos)
 	for i := startPos; i < endPos; i++ {
 		result = append(result, p.tools[names[i]])
 	}
@@ -161,7 +165,12 @@ func (p *ExampleToolProvider) ListTools(ctx context.Context, cursor string) ([]r
 		nextCursor = names[endPos-1]
 	}
 
-	return result, nextCursor
+	toolListResult := protocol.ToolListResult{
+		Tools:      result,
+		NextCursor: nextCursor,
+	}
+
+	return toolListResult, nil
 }
 
 // HandleToolInvocation handles a tool invocation

@@ -30,12 +30,12 @@ func TestToolsClient(t *testing.T) {
 	registry := resources.NewStaticToolRegistry()
 
 	// Register a test tool that returns a simple response
-	err = registry.RegisterTool(resources.Tool{
+	err = registry.RegisterTool(protocol.Tool{
 		Name:        "test/echo",
 		Description: "Echoes back the input message",
-		InputSchema: resources.InputSchema{
+		InputSchema: protocol.InputSchema{
 			Type: "object",
-			Properties: map[string]resources.SchemaProperty{
+			Properties: map[string]protocol.SchemaProperty{
 				"message": {
 					Type:        "string",
 					Description: "Message to echo",
@@ -51,12 +51,12 @@ func TestToolsClient(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register another test tool for testing FindTool
-	err = registry.RegisterTool(resources.Tool{
+	err = registry.RegisterTool(protocol.Tool{
 		Name:        "test/add",
 		Description: "Adds two numbers",
-		InputSchema: resources.InputSchema{
+		InputSchema: protocol.InputSchema{
 			Type: "object",
-			Properties: map[string]resources.SchemaProperty{
+			Properties: map[string]protocol.SchemaProperty{
 				"a": {
 					Type:        "number",
 					Description: "First number",

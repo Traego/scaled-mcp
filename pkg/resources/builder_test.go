@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"reflect"
 	"testing"
 )
@@ -47,16 +48,16 @@ func TestWithInputs(t *testing.T) {
 	testCases := []struct {
 		name     string
 		inputs   []ToolInput
-		expected Tool
+		expected protocol.Tool
 	}{
 		{
 			name:   "Empty inputs",
 			inputs: []ToolInput{},
-			expected: Tool{
+			expected: protocol.Tool{
 				Name: "test-tool",
-				InputSchema: InputSchema{
+				InputSchema: protocol.InputSchema{
 					Type:       "object",
-					Properties: map[string]SchemaProperty{},
+					Properties: map[string]protocol.SchemaProperty{},
 					Required:   []string{},
 				},
 			},
@@ -71,11 +72,11 @@ func TestWithInputs(t *testing.T) {
 					Required:    true,
 				},
 			},
-			expected: Tool{
+			expected: protocol.Tool{
 				Name: "test-tool",
-				InputSchema: InputSchema{
+				InputSchema: protocol.InputSchema{
 					Type: "object",
-					Properties: map[string]SchemaProperty{
+					Properties: map[string]protocol.SchemaProperty{
 						"param1": {
 							Type:        "string",
 							Description: "Parameter 1",
@@ -109,11 +110,11 @@ func TestWithInputs(t *testing.T) {
 					Default:     true,
 				},
 			},
-			expected: Tool{
+			expected: protocol.Tool{
 				Name: "test-tool",
-				InputSchema: InputSchema{
+				InputSchema: protocol.InputSchema{
 					Type: "object",
-					Properties: map[string]SchemaProperty{
+					Properties: map[string]protocol.SchemaProperty{
 						"param1": {
 							Type:        "string",
 							Description: "Parameter 1",

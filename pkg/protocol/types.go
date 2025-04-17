@@ -14,6 +14,38 @@ type JSONRPCMessage struct {
 	Headers map[string][]string `json:"headers,omitempty"`
 }
 
+// Tool represents an MCP tool definition
+type Tool struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	InputSchema InputSchema `json:"inputSchema,omitempty"`
+}
+
+// InputSchema represents the schema for tool inputs
+type InputSchema struct {
+	Type       string                    `json:"type"`
+	Properties map[string]SchemaProperty `json:"properties"`
+	Required   []string                  `json:"required,omitempty"`
+}
+
+// SchemaProperty represents a property in an input schema
+type SchemaProperty struct {
+	Type        string      `json:"type"`
+	Description string      `json:"description,omitempty"`
+	Default     interface{} `json:"default,omitempty"`
+}
+
+// ToolListOptions provides pagination options for listing resources
+type ToolListOptions struct {
+	Cursor string // Cursor for pagination
+}
+
+// ToolListResult represents a paginated list of resources
+type ToolListResult struct {
+	Tools      []Tool `json:"tools"`
+	NextCursor string `json:"nextCursor,omitempty"` // Cursor for the next page, empty if no more pages
+}
+
 // ClientInfo represents information about the client
 type ClientInfo struct {
 	Name    string `json:"name"`

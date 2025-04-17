@@ -1,14 +1,16 @@
 package resources
 
+import "github.com/traego/scaled-mcp/pkg/protocol"
+
 // ToolBuilder is a builder for creating resources
 type ToolBuilder struct {
-	tool Tool
+	tool protocol.Tool
 }
 
 // ParameterBuilder is a builder for creating tool parameters
 type ParameterBuilder struct {
 	name     string
-	property SchemaProperty
+	property protocol.SchemaProperty
 	tool     *ToolBuilder
 }
 
@@ -24,11 +26,11 @@ type ToolInput struct {
 // NewTool creates a new tool builder
 func NewTool(name string) *ToolBuilder {
 	return &ToolBuilder{
-		tool: Tool{
+		tool: protocol.Tool{
 			Name: name,
-			InputSchema: InputSchema{
+			InputSchema: protocol.InputSchema{
 				Type:       "object",
-				Properties: make(map[string]SchemaProperty),
+				Properties: make(map[string]protocol.SchemaProperty),
 				Required:   []string{},
 			},
 		},
@@ -44,7 +46,7 @@ func (b *ToolBuilder) WithDescription(description string) *ToolBuilder {
 // WithInputs adds multiple input parameters to the tool at once
 func (b *ToolBuilder) WithInputs(inputs []ToolInput) *ToolBuilder {
 	for _, input := range inputs {
-		property := SchemaProperty{
+		property := protocol.SchemaProperty{
 			Type:        input.Type,
 			Description: input.Description,
 		}
@@ -67,7 +69,7 @@ func (b *ToolBuilder) WithInputs(inputs []ToolInput) *ToolBuilder {
 func (b *ToolBuilder) WithString(name string) *ParameterBuilder {
 	return &ParameterBuilder{
 		name: name,
-		property: SchemaProperty{
+		property: protocol.SchemaProperty{
 			Type: "string",
 		},
 		tool: b,
@@ -78,7 +80,7 @@ func (b *ToolBuilder) WithString(name string) *ParameterBuilder {
 func (b *ToolBuilder) WithInteger(name string) *ParameterBuilder {
 	return &ParameterBuilder{
 		name: name,
-		property: SchemaProperty{
+		property: protocol.SchemaProperty{
 			Type: "integer",
 		},
 		tool: b,
@@ -89,7 +91,7 @@ func (b *ToolBuilder) WithInteger(name string) *ParameterBuilder {
 func (b *ToolBuilder) WithBoolean(name string) *ParameterBuilder {
 	return &ParameterBuilder{
 		name: name,
-		property: SchemaProperty{
+		property: protocol.SchemaProperty{
 			Type: "boolean",
 		},
 		tool: b,
@@ -100,7 +102,7 @@ func (b *ToolBuilder) WithBoolean(name string) *ParameterBuilder {
 func (b *ToolBuilder) WithObject(name string) *ParameterBuilder {
 	return &ParameterBuilder{
 		name: name,
-		property: SchemaProperty{
+		property: protocol.SchemaProperty{
 			Type: "object",
 		},
 		tool: b,
@@ -111,7 +113,7 @@ func (b *ToolBuilder) WithObject(name string) *ParameterBuilder {
 func (b *ToolBuilder) WithArray(name string) *ParameterBuilder {
 	return &ParameterBuilder{
 		name: name,
-		property: SchemaProperty{
+		property: protocol.SchemaProperty{
 			Type: "array",
 		},
 		tool: b,
@@ -119,7 +121,7 @@ func (b *ToolBuilder) WithArray(name string) *ParameterBuilder {
 }
 
 // Build builds the tool
-func (b *ToolBuilder) Build() Tool {
+func (b *ToolBuilder) Build() protocol.Tool {
 	return b.tool
 }
 

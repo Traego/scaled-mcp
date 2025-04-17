@@ -3,6 +3,8 @@ package resources
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/require"
+	"github.com/traego/scaled-mcp/pkg/protocol"
 	"testing"
 )
 
@@ -57,10 +59,8 @@ func TestStaticToolRegistry(t *testing.T) {
 		ctx := context.Background()
 
 		// Get an existing tool
-		gotTool, exists := registry.GetTool(ctx, toolName)
-		if !exists {
-			t.Fatalf("Tool %q not found", toolName)
-		}
+		gotTool, err := registry.GetTool(ctx, toolName)
+		require.NoError(t, err)
 
 		if gotTool.Name != tool.Name {
 			t.Errorf("Expected tool name %q, got %q", tool.Name, gotTool.Name)
@@ -71,17 +71,16 @@ func TestStaticToolRegistry(t *testing.T) {
 		}
 
 		// Get a non-existent tool
-		_, exists = registry.GetTool(ctx, "non-existent-tool")
-		if exists {
-			t.Error("Non-existent tool should not exist")
-		}
+		_, err = registry.GetTool(ctx, "non-existent-tool")
+		require.Error(t, err)
 	})
 
 	// Test ListTools
 	t.Run("ListTools", func(t *testing.T) {
 		ctx := context.Background()
 
-		result := registry.ListTools(ctx, ToolListOptions{})
+		result, err := registry.ListTools(ctx, protocol.ToolListOptions{})
+		require.NoError(t, err)
 
 		if len(result.Tools) != 1 {
 			t.Fatalf("Expected 1 tool, got %d", len(result.Tools))

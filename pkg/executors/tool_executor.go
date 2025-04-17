@@ -68,7 +68,7 @@ func (t *ToolExecutor) HandleMethod(ctx context.Context, method string, req *mcp
 }
 
 // handleListTools handles a request to list tools
-func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]interface{}) (resources.ToolListResult, error) {
+func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]interface{}) (protocol.ToolListResult, error) {
 	var cursor string
 
 	// Extract cursor
@@ -79,32 +79,35 @@ func (t *ToolExecutor) handleListTools(ctx context.Context, params map[string]in
 	}
 
 	// Create options
-	opts := resources.ToolListOptions{
+	opts := protocol.ToolListOptions{
 		Cursor: cursor,
 	}
 
-	results := t.serverInfo.GetFeatureRegistry().ToolRegistry.ListTools(ctx, opts)
-	// Call the registry
+	results, err := t.serverInfo.GetFeatureRegistry().ToolRegistry.ListTools(ctx, opts)
+	if err != nil {
+		return protocol.ToolListResult{}, fmt.Errorf("error listing tools: %w", err)
+	}
+
 	return results, nil
 }
 
 // handleGetTool handles a request to get a specific tool
-func (t *ToolExecutor) handleGetTool(ctx context.Context, params map[string]interface{}) (resources.Tool, error) {
+func (t *ToolExecutor) handleGetTool(ctx context.Context, params map[string]interface{}) (protocol.Tool, error) {
 	// Extract name
 	nameVal, ok := params["name"]
 	if !ok {
-		return resources.Tool{}, fmt.Errorf("%w: tool name is required", resources.ErrInvalidParams)
+		return protocol.Tool{}, fmt.Errorf("%w: tool name is required", resources.ErrInvalidParams)
 	}
 
 	name, ok := nameVal.(string)
 	if !ok || name == "" {
-		return resources.Tool{}, fmt.Errorf("%w: tool name must be a non-empty string", resources.ErrInvalidParams)
+		return protocol.Tool{}, fmt.Errorf("%w: tool name must be a non-empty string", resources.ErrInvalidParams)
 	}
 
 	// Get the tool
-	tool, found := t.serverInfo.GetFeatureRegistry().ToolRegistry.GetTool(ctx, name)
-	if !found {
-		return resources.Tool{}, fmt.Errorf("%w: tool '%s' not found", resources.ErrToolNotFound, name)
+	tool, err := t.serverInfo.GetFeatureRegistry().ToolRegistry.GetTool(ctx, name)
+	if err != nil {
+		return protocol.Tool{}, fmt.Errorf("error getting tool %s: %w", name, err)
 	}
 
 	return tool, nil

@@ -712,7 +712,7 @@ func (c *httpClient) extractJSONRPCError(prefix string, jsonRpcErr interface{}) 
 }
 
 // ListTools retrieves the list of available tools from the server
-func (c *httpClient) ListTools(ctx context.Context) (*ToolsList, error) {
+func (c *httpClient) ListTools(ctx context.Context) (*protocol.ToolListResult, error) {
 	resp, err := c.SendRequest(ctx, "tools/list", nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %w", err)
@@ -723,7 +723,7 @@ func (c *httpClient) ListTools(ctx context.Context) (*ToolsList, error) {
 	}
 
 	// Convert the response to a ToolsList
-	var toolsList ToolsList
+	var toolsList protocol.ToolListResult
 
 	// First, try to directly unmarshal the result
 	resultBytes, err := json.Marshal(resp.Result)
@@ -740,7 +740,7 @@ func (c *httpClient) ListTools(ctx context.Context) (*ToolsList, error) {
 					return nil, fmt.Errorf("failed to marshal tools: %w", err)
 				}
 
-				var tools []Tool
+				var tools []protocol.Tool
 				if err := json.Unmarshal(toolsBytes, &tools); err != nil {
 					return nil, fmt.Errorf("failed to unmarshal tools: %w", err)
 				}
@@ -754,7 +754,7 @@ func (c *httpClient) ListTools(ctx context.Context) (*ToolsList, error) {
 }
 
 // FindTool searches for a tool by name in the tools list
-func (c *httpClient) FindTool(ctx context.Context, toolName string) (*Tool, error) {
+func (c *httpClient) FindTool(ctx context.Context, toolName string) (*protocol.Tool, error) {
 	toolsList, err := c.ListTools(ctx)
 	if err != nil {
 		return nil, err
