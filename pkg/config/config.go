@@ -217,7 +217,7 @@ func DefaultConfig() *ServerConfig {
 		ProtocolVersion:            "1.0.0",
 		EnableSSE:                  true,
 		EnableWebSockets:           false,
-		BackwardCompatible20241105: false,
+		BackwardCompatible20241105: true,
 		ServerCapabilities: protocol.ServerCapabilities{
 			Tools:     &protocol.ToolsServerCapability{},
 			Prompts:   &protocol.PromptsServerCapability{},
