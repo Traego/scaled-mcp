@@ -31,31 +31,24 @@ func (u *UtilitiesExecutor) CanHandleMethod(method string) bool {
 
 // HandleMethod handles utility-related methods
 func (u *UtilitiesExecutor) HandleMethod(ctx context.Context, method string, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
-	// Create base response
-	response := &mcppb.JsonRpcResponse{
-		Jsonrpc: "2.0",
-	}
-
-	// Copy the ID from the request
-	switch id := req.Id.(type) {
-	case *mcppb.JsonRpcRequest_IntId:
-		response.Id = &mcppb.JsonRpcResponse_IntId{IntId: id.IntId}
-	case *mcppb.JsonRpcRequest_StringId:
-		response.Id = &mcppb.JsonRpcResponse_StringId{StringId: id.StringId}
+	// Use the utility function to process the request - utilities don't require any specific registry
+	response, _, err := ProcessRequest(method, req, true)
+	if err != nil {
+		return nil, err
 	}
 
 	var result interface{}
-	var err error
 
-	switch req.Method {
+	// Handle the method
+	switch method {
 	case "ping":
 		result, err = u.handlePing(ctx)
 	default:
-		return nil, protocol.NewMethodNotFoundError(req.Method, req.Id)
+		return nil, protocol.NewMethodNotFoundError(method, req.Id)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("error handling %s: %w", req.Method, err)
+		return nil, fmt.Errorf("error handling %s: %w", method, err)
 	}
 
 	// Marshal the result

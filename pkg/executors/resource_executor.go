@@ -32,38 +32,16 @@ func (r *ResourceExecutor) CanHandleMethod(method string) bool {
 
 // HandleMethod handles resource-related methods
 func (r *ResourceExecutor) HandleMethod(ctx context.Context, method string, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
-	// Create base response
-	response := &mcppb.JsonRpcResponse{
-		Jsonrpc: "2.0",
-	}
-
-	// Copy the ID from the request
-	switch id := req.Id.(type) {
-	case *mcppb.JsonRpcRequest_IntId:
-		response.Id = &mcppb.JsonRpcResponse_IntId{IntId: id.IntId}
-	case *mcppb.JsonRpcRequest_StringId:
-		response.Id = &mcppb.JsonRpcResponse_StringId{StringId: id.StringId}
-	}
-
-	// Check if resource registry is available
-	if r.serverInfo.GetFeatureRegistry().ResourceRegistry == nil {
-		return nil, protocol.NewMethodNotFoundError(req.Method, req.Id)
-	}
-
-	// Parse the params
-	var params map[string]interface{}
-	if req.ParamsJson != "" {
-		if err := json.Unmarshal([]byte(req.ParamsJson), &params); err != nil {
-			return nil, protocol.NewInvalidParamsError("Invalid parameters: "+err.Error(), req.Id)
-		}
-	} else {
-		params = make(map[string]interface{})
+	// Use the utility function to process the request
+	response, params, err := ProcessRequest(method, req, r.serverInfo.GetFeatureRegistry().ResourceRegistry != nil)
+	if err != nil {
+		return nil, err
 	}
 
 	var result interface{}
-	var err error
 
-	switch req.Method {
+	// Handle the method
+	switch method {
 	case "resources/list":
 		result, err = r.handleListResources(ctx, params)
 	case "resources/read":
