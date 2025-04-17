@@ -98,9 +98,7 @@ func (m *MockResourceRegistry) ListResources(ctx context.Context, opts resources
 	}
 
 	// Simple implementation that ignores cursor for testing
-	for _, resource := range m.resourceList {
-		result.Resources = append(result.Resources, resource)
-	}
+	result.Resources = append(result.Resources, m.resourceList...)
 
 	return result
 }
@@ -135,9 +133,7 @@ func (m *MockResourceRegistry) ListResourceTemplates(ctx context.Context, opts r
 	}
 
 	// Simple implementation that ignores cursor for testing
-	for _, template := range m.resourceTemplates {
-		result.ResourceTemplates = append(result.ResourceTemplates, template)
-	}
+	result.ResourceTemplates = append(result.ResourceTemplates, m.resourceTemplates...)
 
 	return result
 }
@@ -271,7 +267,7 @@ func TestResourceExecutor_HandleMethod_Read(t *testing.T) {
 		resp, err := executor.HandleMethod(ctx, "resources/read", req)
 		assert.Error(t, err, "Should return error for non-existent resource")
 		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "resource not found")
+		assert.ErrorIs(t, err, resources.ErrResourceNotFound)
 	})
 
 	t.Run("Missing URI Parameter", func(t *testing.T) {

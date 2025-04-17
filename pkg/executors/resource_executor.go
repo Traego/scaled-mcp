@@ -109,9 +109,6 @@ func (r *ResourceExecutor) handleReadResource(ctx context.Context, params map[st
 	// Read the resource
 	contents, err := r.serverInfo.GetFeatureRegistry().ResourceRegistry.ReadResource(ctx, uri)
 	if err != nil {
-		if err == resources.ErrResourceNotFound {
-			return nil, fmt.Errorf("resource not found: %s", uri)
-		}
 		return nil, fmt.Errorf("error reading resource: %w", err)
 	}
 

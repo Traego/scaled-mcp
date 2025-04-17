@@ -11,7 +11,6 @@ import (
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/tochemey/goakt/v3/goaktpb"
 
-	"github.com/traego/scaled-mcp/pkg/actorutils"
 	"github.com/traego/scaled-mcp/pkg/config"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -155,8 +154,12 @@ func handleUnhandledMessage(ctx *actor.ReceiveContext, data utils.Data, message 
 // handlePostStart handles the PostStart message
 func handlePostStart(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
 	ctx.Logger().Debug("mcp session actor finished starting, sending cleanup message", "session_id", sessionData.SessionID)
-	//err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), &mcppb.TryCleanupPreInitialized{}, ctx.Self(), 1*time.Second) // sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
-	actorutils.ScheduleOnce(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.TryCleanupPreInitialized{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
+	err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), &mcppb.TryCleanupPreInitialized{}, ctx.Self(), sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
+	if err != nil {
+		return utils.MessageHandlingResult{}, fmt.Errorf("failed to send cleanup pre-initialized message: %w", err)
+	}
+	
+	//actorutils.ScheduleOnce(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.TryCleanupPreInitialized{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
 	return utils.Stay(sessionData)
 }
 
@@ -251,8 +254,13 @@ func handleTryCleanupPreInitialized(ctx *actor.ReceiveContext, sessionData *Sess
 		}
 	}
 
+	err := ctx.ActorSystem().Schedule(ctx.Context(), &mcppb.CheckSessionTTL{}, ctx.Self(), sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
+	if err != nil {
+		return utils.MessageHandlingResult{}, fmt.Errorf("problem scheduling check_session_ttl: %w", err)
+	}
+
 	// Schedule the session TTL check
-	actorutils.Schedule(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.CheckSessionTTL{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
+	//actorutils.Schedule(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.CheckSessionTTL{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
 
 	return utils.Stay(sessionData)
 }
