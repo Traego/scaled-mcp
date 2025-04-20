@@ -158,7 +158,7 @@ func handlePostStart(ctx *actor.ReceiveContext, sessionData *SessionData) (utils
 	if err != nil {
 		return utils.MessageHandlingResult{}, fmt.Errorf("failed to send cleanup pre-initialized message: %w", err)
 	}
-	
+
 	//actorutils.ScheduleOnce(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.TryCleanupPreInitialized{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
 	return utils.Stay(sessionData)
 }

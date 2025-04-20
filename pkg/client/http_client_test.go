@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"testing"
 
@@ -191,12 +192,22 @@ func TestToolsClient(t *testing.T) {
 		}
 		require.True(t, ok, "Result should be a map")
 
-		echo, ok := resultMap["echo"].(string)
+		content, ok := resultMap["content"].([]interface{})
 		if !ok {
-			t.Logf("Echo is not a string: %T %+v", resultMap["echo"], resultMap["echo"])
+			t.Logf("content is not array")
 			t.FailNow()
 		}
-		require.True(t, ok, "echo should be a string")
-		assert.Equal(t, "Hello, world!", echo, "Echo response should match input")
+		resContent, ok := content[0].(map[string]interface{})
+		require.True(t, ok, "resContent should be map")
+
+		res := resContent["text"]
+		// Parse the JSON string in res
+		var echoMap map[string]interface{}
+		err = json.Unmarshal([]byte(res.(string)), &echoMap)
+		require.NoError(t, err, "Failed to parse echo JSON")
+		echoVal, ok := echoMap["echo"]
+		require.True(t, ok, "echo key should be present")
+		assert.Equal(t, "Hello, world!", echoVal, "Echo response should match input")
+
 	})
 }

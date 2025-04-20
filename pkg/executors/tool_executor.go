@@ -140,7 +140,34 @@ func (t *ToolExecutor) handleCallTool(ctx context.Context, params map[string]int
 	}
 
 	// Invoke the tool
-	return t.serverInfo.GetFeatureRegistry().ToolRegistry.CallTool(ctx, name, toolArgs)
+	results, err := t.serverInfo.GetFeatureRegistry().ToolRegistry.CallTool(ctx, name, toolArgs)
+	if err != nil {
+		// Create an error result
+		errorContent := protocol.NewTextContent(fmt.Sprintf("Error calling %s: %v", name, err))
+		return protocol.NewToolCallResult([]protocol.ToolCallContent{errorContent}, true), nil
+	}
+
+	// Convert the results to a ToolCallResult
+	// If results is already a ToolCallResult, return it directly
+	if toolCallResult, ok := results.(protocol.ToolCallResult); ok {
+		return toolCallResult, nil
+	}
+
+	// If results is a string, create a text content item
+	if strResult, ok := results.(string); ok {
+		textContent := protocol.NewTextContent(strResult)
+		return protocol.NewToolCallResult([]protocol.ToolCallContent{textContent}, false), nil
+	}
+
+	// For other result types, convert to JSON and create a text content item
+	resultJSON, err := json.Marshal(results)
+	if err != nil {
+		errorContent := protocol.NewTextContent(fmt.Sprintf("Error marshaling result: %v", err))
+		return protocol.NewToolCallResult([]protocol.ToolCallContent{errorContent}, true), nil
+	}
+
+	textContent := protocol.NewTextContent(string(resultJSON))
+	return protocol.NewToolCallResult([]protocol.ToolCallContent{textContent}, false), nil
 }
 
 var _ config.MethodHandler = (*ToolExecutor)(nil)

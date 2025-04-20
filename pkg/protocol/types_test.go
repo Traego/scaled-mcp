@@ -472,3 +472,166 @@ func TestInitializeStructsMarshaling(t *testing.T) {
 		assert.Equal(t, true, resources["listChanged"])
 	})
 }
+
+func TestToolCallResultMarshaling(t *testing.T) {
+	t.Run("text content marshaling", func(t *testing.T) {
+		// Create a text content
+		textContent := NewTextContent("This is a test message")
+
+		// Marshal to JSON
+		data, err := json.Marshal(textContent)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		assert.Equal(t, "text", jsonMap["type"])
+		assert.Equal(t, "This is a test message", jsonMap["text"])
+	})
+
+	t.Run("image content marshaling", func(t *testing.T) {
+		// Create an image content
+		imageContent := NewImageContent("base64data", "image/png")
+
+		// Marshal to JSON
+		data, err := json.Marshal(imageContent)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		assert.Equal(t, "image", jsonMap["type"])
+		assert.Equal(t, "base64data", jsonMap["data"])
+		assert.Equal(t, "image/png", jsonMap["mimeType"])
+	})
+
+	t.Run("audio content marshaling", func(t *testing.T) {
+		// Create an audio content
+		audioContent := NewAudioContent("base64audio", "audio/wav")
+
+		// Marshal to JSON
+		data, err := json.Marshal(audioContent)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		assert.Equal(t, "audio", jsonMap["type"])
+		assert.Equal(t, "base64audio", jsonMap["data"])
+		assert.Equal(t, "audio/wav", jsonMap["mimeType"])
+	})
+
+	t.Run("resource content marshaling", func(t *testing.T) {
+		// Create a resource content
+		resource := map[string]interface{}{
+			"uri":      "resource://example",
+			"mimeType": "text/plain",
+			"text":     "Resource content",
+		}
+		resourceContent := NewResourceContent(resource)
+
+		// Marshal to JSON
+		data, err := json.Marshal(resourceContent)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		assert.Equal(t, "resource", jsonMap["type"])
+		resourceObj, ok := jsonMap["resource"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "resource://example", resourceObj["uri"])
+		assert.Equal(t, "text/plain", resourceObj["mimeType"])
+		assert.Equal(t, "Resource content", resourceObj["text"])
+	})
+
+	t.Run("tool call result marshaling", func(t *testing.T) {
+		// Create a tool call result with multiple content types
+		textContent := NewTextContent("Text result")
+		imageContent := NewImageContent("base64image", "image/jpeg")
+		
+		toolCallResult := NewToolCallResult(
+			[]ToolCallContent{textContent, imageContent},
+			false,
+		)
+
+		// Marshal to JSON
+		data, err := json.Marshal(toolCallResult)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		content, ok := jsonMap["content"].([]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 2, len(content))
+
+		// Check first content item (text)
+		textItem, ok := content[0].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "text", textItem["type"])
+		assert.Equal(t, "Text result", textItem["text"])
+
+		// Check second content item (image)
+		imageItem, ok := content[1].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "image", imageItem["type"])
+		assert.Equal(t, "base64image", imageItem["data"])
+		assert.Equal(t, "image/jpeg", imageItem["mimeType"])
+
+		// Check isError field
+		isError, ok := jsonMap["isError"].(bool)
+		require.True(t, ok)
+		assert.False(t, isError)
+	})
+
+	t.Run("error tool call result marshaling", func(t *testing.T) {
+		// Create an error tool call result
+		errorContent := NewTextContent("Error: API rate limit exceeded")
+		
+		toolCallResult := NewToolCallResult(
+			[]ToolCallContent{errorContent},
+			true,
+		)
+
+		// Marshal to JSON
+		data, err := json.Marshal(toolCallResult)
+		require.NoError(t, err)
+
+		// Verify JSON structure
+		var jsonMap map[string]interface{}
+		err = json.Unmarshal(data, &jsonMap)
+		require.NoError(t, err)
+
+		// Check fields
+		content, ok := jsonMap["content"].([]interface{})
+		require.True(t, ok)
+		assert.Equal(t, 1, len(content))
+
+		// Check content item
+		textItem, ok := content[0].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "text", textItem["type"])
+		assert.Equal(t, "Error: API rate limit exceeded", textItem["text"])
+
+		// Check isError field
+		isError, ok := jsonMap["isError"].(bool)
+		require.True(t, ok)
+		assert.True(t, isError)
+	})
+}

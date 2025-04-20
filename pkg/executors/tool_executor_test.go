@@ -54,8 +54,9 @@ func (r *TestToolRegistry) CallTool(ctx context.Context, name string, params map
 	// Store the call for verification
 	r.Calls[name] = params
 
-	// Return a simple success result
-	return map[string]interface{}{"result": "success"}, nil
+	// Return a ToolCallResult with text content
+	textContent := protocol.NewTextContent("Tool execution successful")
+	return protocol.NewToolCallResult([]protocol.ToolCallContent{textContent}, false), nil
 }
 
 // TestServerInfo is an in-memory implementation of config.McpServerInfo for testing
@@ -290,7 +291,7 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 	toolRegistry, ok := serverInfo.FeatureRegistry.ToolRegistry.(*TestToolRegistry)
 	require.True(t, ok)
 
-	// Add a test tool
+	// Add some test tools
 	toolRegistry.Tools["test-tool"] = protocol.Tool{
 		Name:        "test-tool",
 		Description: "A test tool",
@@ -309,99 +310,159 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 	// Create a tool executor
 	executor := NewToolExecutor(serverInfo)
 
-	// Test the call method with a valid tool and parameters
+	// Test context
 	ctx := context.Background()
-	paramsBytes, _ := json.Marshal(map[string]interface{}{
-		"name": "test-tool",
-		"arguments": map[string]interface{}{
-			"param1": "test-value",
-		},
+
+	t.Run("Call with valid parameters", func(t *testing.T) {
+		paramsBytes, _ := json.Marshal(map[string]interface{}{
+			"name": "test-tool",
+			"arguments": map[string]interface{}{
+				"param1": "test-value",
+			},
+		})
+		req := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Id: &mcppb.JsonRpcRequest_StringId{
+				StringId: "1",
+			},
+			Method:     "tools/call",
+			ParamsJson: string(paramsBytes),
+		}
+
+		resp, err := executor.HandleMethod(ctx, "tools/call", req)
+		require.NoError(t, err)
+		assert.Equal(t, "1", resp.GetStringId())
+		assert.Equal(t, "2.0", resp.Jsonrpc)
+
+		// Parse the result
+		var result map[string]interface{}
+		err = json.Unmarshal([]byte(resp.GetResultJson()), &result)
+		require.NoError(t, err)
+
+		// Verify the result structure matches ToolCallResult
+		content, ok := result["content"].([]interface{})
+		require.True(t, ok, "Result should contain a 'content' array")
+		require.Equal(t, 1, len(content), "Should have 1 content item")
+		
+		// Check the content item
+		contentItem, ok := content[0].(map[string]interface{})
+		require.True(t, ok, "Content item should be a map")
+		assert.Equal(t, "text", contentItem["type"], "Content type should be 'text'")
+		assert.Equal(t, "Tool execution successful", contentItem["text"], "Content text should match")
+		
+		// Check isError field
+		isError, ok := result["isError"].(bool)
+		require.True(t, ok, "Result should contain an 'isError' boolean")
+		assert.False(t, isError, "isError should be false")
+
+		// Verify the call was recorded with the correct parameters
+		params, ok := toolRegistry.Calls["test-tool"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "test-value", params["param1"])
 	})
-	req := &mcppb.JsonRpcRequest{
-		Jsonrpc: "2.0",
-		Id: &mcppb.JsonRpcRequest_StringId{
-			StringId: "1",
-		},
-		Method:     "tools/call",
-		ParamsJson: string(paramsBytes),
-	}
 
-	resp, err := executor.HandleMethod(ctx, "tools/call", req)
-	require.NoError(t, err)
-	assert.Equal(t, "1", resp.GetStringId())
-	assert.Equal(t, "2.0", resp.Jsonrpc)
+	t.Run("Call with non-existent tool", func(t *testing.T) {
+		paramsBytes, _ := json.Marshal(map[string]interface{}{
+			"name": "non-existent-tool",
+			"arguments": map[string]interface{}{
+				"param1": "test-value",
+			},
+		})
+		req := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Id: &mcppb.JsonRpcRequest_StringId{
+				StringId: "2",
+			},
+			Method:     "tools/call",
+			ParamsJson: string(paramsBytes),
+		}
 
-	// Parse the result
-	var result map[string]interface{}
-	err = json.Unmarshal([]byte(resp.GetResultJson()), &result)
-	require.NoError(t, err)
-
-	// Verify the result
-	assert.Equal(t, "success", result["result"])
-
-	// Verify the call was recorded with the correct parameters
-	params, ok := toolRegistry.Calls["test-tool"].(map[string]interface{})
-	assert.True(t, ok)
-	assert.Equal(t, "test-value", params["param1"])
-
-	// Test the call method with an invalid tool
-	paramsBytes, _ = json.Marshal(map[string]interface{}{
-		"name": "non-existent-tool",
-		"arguments": map[string]interface{}{
-			"param1": "test-value",
-		},
+		resp, err := executor.HandleMethod(ctx, "tools/call", req)
+		require.NoError(t, err, "Should not return an error for non-existent tool")
+		
+		// Parse the result
+		var result map[string]interface{}
+		err = json.Unmarshal([]byte(resp.GetResultJson()), &result)
+		require.NoError(t, err)
+		
+		// Verify this is an error result
+		isError, ok := result["isError"].(bool)
+		require.True(t, ok, "Result should contain an 'isError' boolean")
+		assert.True(t, isError, "isError should be true for non-existent tool")
+		
+		// Verify the content contains an error message
+		content, ok := result["content"].([]interface{})
+		require.True(t, ok, "Result should contain a 'content' array")
+		require.Equal(t, 1, len(content), "Should have 1 content item")
+		
+		contentItem, ok := content[0].(map[string]interface{})
+		require.True(t, ok, "Content item should be a map")
+		assert.Equal(t, "text", contentItem["type"], "Content type should be 'text'")
+		assert.Contains(t, contentItem["text"], "Error calling non-existent-tool", "Content should contain error message")
 	})
-	req = &mcppb.JsonRpcRequest{
-		Jsonrpc: "2.0",
-		Id: &mcppb.JsonRpcRequest_StringId{
-			StringId: "2",
-		},
-		Method:     "tools/call",
-		ParamsJson: string(paramsBytes),
-	}
 
-	resp, err = executor.HandleMethod(ctx, "tools/call", req)
-	assert.Error(t, err)
-	assert.Nil(t, resp)
+	t.Run("Call with missing name parameter", func(t *testing.T) {
+		paramsBytes, _ := json.Marshal(map[string]interface{}{
+			"arguments": map[string]interface{}{
+				"param1": "test-value",
+			},
+		})
+		req := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Id: &mcppb.JsonRpcRequest_StringId{
+				StringId: "3",
+			},
+			Method:     "tools/call",
+			ParamsJson: string(paramsBytes),
+		}
 
-	// Test the call method with missing name parameter
-	paramsBytes, _ = json.Marshal(map[string]interface{}{
-		"arguments": map[string]interface{}{
-			"param1": "test-value",
-		},
+		resp, err := executor.HandleMethod(ctx, "tools/call", req)
+		assert.Error(t, err, "Should return error for missing name parameter")
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "tool name is required")
 	})
-	req = &mcppb.JsonRpcRequest{
-		Jsonrpc: "2.0",
-		Id: &mcppb.JsonRpcRequest_StringId{
-			StringId: "3",
-		},
-		Method:     "tools/call",
-		ParamsJson: string(paramsBytes),
-	}
 
-	resp, err = executor.HandleMethod(ctx, "tools/call", req)
-	assert.Error(t, err)
-	assert.Nil(t, resp)
+	t.Run("Call with empty name parameter", func(t *testing.T) {
+		paramsBytes, _ := json.Marshal(map[string]interface{}{
+			"name": "",
+			"arguments": map[string]interface{}{
+				"param1": "test-value",
+			},
+		})
+		req := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Id: &mcppb.JsonRpcRequest_StringId{
+				StringId: "4",
+			},
+			Method:     "tools/call",
+			ParamsJson: string(paramsBytes),
+		}
 
-	// Test the call method with empty name parameter
-	paramsBytes, _ = json.Marshal(map[string]interface{}{
-		"name": "",
-		"arguments": map[string]interface{}{
-			"param1": "test-value",
-		},
+		resp, err := executor.HandleMethod(ctx, "tools/call", req)
+		assert.Error(t, err, "Should return error for empty name parameter")
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "tool name must be a non-empty string")
 	})
-	req = &mcppb.JsonRpcRequest{
-		Jsonrpc: "2.0",
-		Id: &mcppb.JsonRpcRequest_StringId{
-			StringId: "4",
-		},
-		Method:     "tools/call",
-		ParamsJson: string(paramsBytes),
-	}
+	
+	t.Run("Call with invalid arguments parameter", func(t *testing.T) {
+		paramsBytes, _ := json.Marshal(map[string]interface{}{
+			"name": "test-tool",
+			"arguments": "not-an-object",
+		})
+		req := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Id: &mcppb.JsonRpcRequest_StringId{
+				StringId: "5",
+			},
+			Method:     "tools/call",
+			ParamsJson: string(paramsBytes),
+		}
 
-	resp, err = executor.HandleMethod(ctx, "tools/call", req)
-	assert.Error(t, err)
-	assert.Nil(t, resp)
+		resp, err := executor.HandleMethod(ctx, "tools/call", req)
+		assert.Error(t, err, "Should return error for invalid arguments parameter")
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "parameters must be an object")
+	})
 }
 
 func TestToolExecutor_HandleMethod_InvalidMethod(t *testing.T) {

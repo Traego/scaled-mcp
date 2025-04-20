@@ -1,5 +1,9 @@
 package protocol
 
+import (
+	"encoding/json"
+)
+
 // SESSION_ID_CONTEXT_KEY is the key used to store and retrieve the session ID from the context
 const SESSION_ID_CONTEXT_KEY = "sessionId"
 
@@ -18,7 +22,7 @@ type JSONRPCMessage struct {
 type Tool struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description,omitempty"`
-	InputSchema InputSchema `json:"inputSchema,omitempty"`
+	InputSchema InputSchema `json:"inputSchema,omitempty,omitzero"`
 }
 
 // InputSchema represents the schema for tool inputs
@@ -118,4 +122,121 @@ type ToolsServerCapability struct {
 // LoggingServerCapability represents the logging capability of the server
 type LoggingServerCapability struct {
 	// Empty struct as per the 2025 spec
+}
+
+// ToolCallResult represents the result of a tool call
+type ToolCallResult struct {
+	Content []ToolCallContent `json:"content"`
+	IsError bool              `json:"isError,omitempty"`
+}
+
+// MarshalJSON implements the json.Marshaler interface for ToolCallResult
+func (r ToolCallResult) MarshalJSON() ([]byte, error) {
+	// Create a map to hold the marshaled content
+	result := map[string]interface{}{
+		"isError": r.IsError,
+	}
+
+	// Marshal each content item separately
+	contentItems := make([]interface{}, len(r.Content))
+	for i, item := range r.Content {
+		contentItems[i] = item
+	}
+	result["content"] = contentItems
+
+	// Marshal the result map
+	return json.Marshal(result)
+}
+
+// ToolCallContent represents a content item in a tool call result
+type ToolCallContent interface {
+	GetType() string
+}
+
+// TextContent represents a text content item in a tool call result
+type TextContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+// GetType returns the type of the content item
+func (t TextContent) GetType() string {
+	return "text"
+}
+
+// ImageContent represents an image content item in a tool call result
+type ImageContent struct {
+	Type     string `json:"type"`
+	Data     string `json:"data"`
+	MimeType string `json:"mimeType"`
+}
+
+// GetType returns the type of the content item
+func (i ImageContent) GetType() string {
+	return "image"
+}
+
+// AudioContent represents an audio content item in a tool call result
+type AudioContent struct {
+	Type     string `json:"type"`
+	Data     string `json:"data"`
+	MimeType string `json:"mimeType"`
+}
+
+// GetType returns the type of the content item
+func (a AudioContent) GetType() string {
+	return "audio"
+}
+
+// ResourceContent represents a resource content item in a tool call result
+type ResourceContent struct {
+	Type     string      `json:"type"`
+	Resource interface{} `json:"resource"`
+}
+
+// GetType returns the type of the content item
+func (r ResourceContent) GetType() string {
+	return "resource"
+}
+
+// NewTextContent creates a new text content item
+func NewTextContent(text string) TextContent {
+	return TextContent{
+		Type: "text",
+		Text: text,
+	}
+}
+
+// NewImageContent creates a new image content item
+func NewImageContent(data string, mimeType string) ImageContent {
+	return ImageContent{
+		Type:     "image",
+		Data:     data,
+		MimeType: mimeType,
+	}
+}
+
+// NewAudioContent creates a new audio content item
+func NewAudioContent(data string, mimeType string) AudioContent {
+	return AudioContent{
+		Type:     "audio",
+		Data:     data,
+		MimeType: mimeType,
+	}
+}
+
+// NewResourceContent creates a new resource content item
+func NewResourceContent(resource interface{}) ResourceContent {
+	return ResourceContent{
+		Type:     "resource",
+		Resource: resource,
+	}
+}
+
+// NewToolCallResult creates a new tool call result with the given content items
+func NewToolCallResult(content []ToolCallContent, isError bool) ToolCallResult {
+	return ToolCallResult{
+		Content: content,
+		IsError: isError,
+	}
 }
