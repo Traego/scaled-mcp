@@ -58,7 +58,7 @@ func NewTestPromptServerInfo() *TestPromptServerInfo {
 			},
 		},
 		ServerConfig: &config.ServerConfig{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: protocol.ProtocolVersion20250326,
 		},
 	}
 }

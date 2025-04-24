@@ -17,14 +17,21 @@ import (
 // HandleMCPPost handles an MCP request
 func (h *MCPHandler) HandleMCPPost(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sessionId := r.Header.Get("Mcp-Session-Id")
-	demandInitialize := sessionId == ""
 
 	mcpRequest, err := parseMessageRequest(r)
 	if err != nil {
 		handleError(w, err, "")
 		return
 	}
+
+	sessionId := r.Header.Get("Mcp-Session-Id")
+	if sessionId == "" && mcpRequest.Message.Method == "initialize" {
+		// We only allow endpoint style sessions urls for the very first initialize. This is ambiguous in the spec,
+		// so we're assuming the endpoint is still the preferred way to do this
+		sessionId = r.URL.Query().Get("sessionId")
+	}
+
+	demandInitialize := sessionId == ""
 
 	if demandInitialize {
 		h.handleMcpInitDemand(ctx, w, r, mcpRequest)
@@ -45,12 +52,6 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 
 		san := utils.GetSessionActorName(sessionId)
 
-		//_, sa, err := h.actorSystem.ActorOf(ctx, utils.GetSessionActorName(sessionId))
-		//if err != nil {
-		//	handleError(w, err, mr.Message.ID)
-		//	return
-		//}
-
 		wrapped := mcppb.WrappedRequest{
 			IsAsk:                 true,
 			RespondToConnectionId: "",
@@ -61,42 +62,44 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
 		}
-		respMsg, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
-		if err != nil {
-			handleError(w, err, mr.Message.ID)
-			return
-		}
 
-		rjm, ok := respMsg.(*mcppb.JsonRpcResponse)
-		if !ok {
-			err := actor.NewInternalError(fmt.Errorf("failed to parse json-rpc response type"))
-			handleError(w, err, mr.Message.ID)
-			return
-		}
-		rm, err := protocol.ConvertProtoToJSONResponse(rjm)
-		if err != nil {
-			handleError(w, err, mr.Message.ID)
-			return
-		}
+		// So there's a one off one way only request which is notifications/initialized that we need to handle specially
+		if protocol.IsOnewayMethod(mr.Message.Method) {
+			err = rid.SendAsync(ctx, san, &wrapped)
+			if err != nil {
+				handleError(w, err, mr.Message.ID)
+				return
+			}
+		} else {
+			respMsg, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
+			if err != nil {
+				handleError(w, err, mr.Message.ID)
+				return
+			}
 
-		err = writeMessage(w, rm, nil)
-		if err != nil {
-			handleError(w, err, mr.Message.ID)
+			rjm, ok := respMsg.(*mcppb.JsonRpcResponse)
+			if !ok {
+				err := actor.NewInternalError(fmt.Errorf("failed to parse json-rpc response type"))
+				handleError(w, err, mr.Message.ID)
+				return
+			}
+			rm, err := protocol.ConvertProtoToJSONResponse(rjm)
+			if err != nil {
+				handleError(w, err, mr.Message.ID)
+				return
+			}
+
+			err = writeMessage(w, rm, nil)
+			if err != nil {
+				handleError(w, err, mr.Message.ID)
+				return
+			}
 			return
 		}
-		return
 	} else {
 		err := actor.NewInternalError(fmt.Errorf("batch messaging not implemented"))
 		handleError(w, err, mr.Message.ID)
 		return
-		//msgs := mr.Messages
-		//// Technically speaking, we should actually escalate to an SSE here
-		//err := rh.HandleBatch(ctx, msgs)
-		//if err != nil {
-		//	// For batch requests, this is really just to handle a broad error, the expectation is that we're
-		//	// writing errors out from the handle batch function
-		//	handleError(w, err, "")
-		//}
 	}
 }
 

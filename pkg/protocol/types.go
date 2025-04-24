@@ -64,14 +64,14 @@ type ServerInfo struct {
 
 // InitializeParams represents the parameters for an initialize request
 type InitializeParams struct {
-	ProtocolVersion string             `json:"protocolVersion"`
+	ProtocolVersion ProtocolVersion    `json:"protocolVersion"`
 	Capabilities    ClientCapabilities `json:"capabilities"`
 	ClientInfo      ClientInfo         `json:"clientInfo"`
 }
 
 // InitializeResult represents the result of an initialize request
 type InitializeResult struct {
-	ProtocolVersion string             `json:"protocolVersion"`
+	ProtocolVersion ProtocolVersion    `json:"protocolVersion"`
 	ServerInfo      ServerInfo         `json:"serverInfo"`
 	Capabilities    ServerCapabilities `json:"capabilities"`
 	SessionID       string             `json:"sessionId,omitempty"`

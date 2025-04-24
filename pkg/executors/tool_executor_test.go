@@ -82,7 +82,7 @@ func NewTestServerInfo() *TestServerInfo {
 			},
 		},
 		ServerConfig: &config.ServerConfig{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: protocol.ProtocolVersion20250326,
 		},
 	}
 }
@@ -343,13 +343,13 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 		content, ok := result["content"].([]interface{})
 		require.True(t, ok, "Result should contain a 'content' array")
 		require.Equal(t, 1, len(content), "Should have 1 content item")
-		
+
 		// Check the content item
 		contentItem, ok := content[0].(map[string]interface{})
 		require.True(t, ok, "Content item should be a map")
 		assert.Equal(t, "text", contentItem["type"], "Content type should be 'text'")
 		assert.Equal(t, "Tool execution successful", contentItem["text"], "Content text should match")
-		
+
 		// Check isError field
 		isError, ok := result["isError"].(bool)
 		require.True(t, ok, "Result should contain an 'isError' boolean")
@@ -379,22 +379,22 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 
 		resp, err := executor.HandleMethod(ctx, "tools/call", req)
 		require.NoError(t, err, "Should not return an error for non-existent tool")
-		
+
 		// Parse the result
 		var result map[string]interface{}
 		err = json.Unmarshal([]byte(resp.GetResultJson()), &result)
 		require.NoError(t, err)
-		
+
 		// Verify this is an error result
 		isError, ok := result["isError"].(bool)
 		require.True(t, ok, "Result should contain an 'isError' boolean")
 		assert.True(t, isError, "isError should be true for non-existent tool")
-		
+
 		// Verify the content contains an error message
 		content, ok := result["content"].([]interface{})
 		require.True(t, ok, "Result should contain a 'content' array")
 		require.Equal(t, 1, len(content), "Should have 1 content item")
-		
+
 		contentItem, ok := content[0].(map[string]interface{})
 		require.True(t, ok, "Content item should be a map")
 		assert.Equal(t, "text", contentItem["type"], "Content type should be 'text'")
@@ -443,10 +443,10 @@ func TestToolExecutor_HandleMethod_Call(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "tool name must be a non-empty string")
 	})
-	
+
 	t.Run("Call with invalid arguments parameter", func(t *testing.T) {
 		paramsBytes, _ := json.Marshal(map[string]interface{}{
-			"name": "test-tool",
+			"name":      "test-tool",
 			"arguments": "not-an-object",
 		})
 		req := &mcppb.JsonRpcRequest{

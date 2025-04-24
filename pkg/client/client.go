@@ -150,7 +150,7 @@ func DefaultClientOptions() ClientOptions {
 				Enabled: true,
 			},
 		},
-		UseSSEForEvents: true,
+		UseSSEForEvents: false,
 	}
 }
 

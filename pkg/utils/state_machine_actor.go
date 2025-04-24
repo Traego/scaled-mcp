@@ -122,7 +122,7 @@ func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 		a.mu.Lock()
 		// Check if state transition is needed
 		if result.NextStateId != nil && *result.NextStateId != a.currentState {
-			ctx.Logger().Debug("StateMachineActor state transition",
+			ctx.Logger().Info("StateMachineActor state transition",
 				"from", a.currentState,
 				"to", *result.NextStateId)
 			a.currentState = *result.NextStateId

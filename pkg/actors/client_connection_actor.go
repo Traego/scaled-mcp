@@ -104,8 +104,18 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 		}
 
 		if c.sendEndpoint {
+			var messageEndpoint string
+
 			// Create the message endpoint URL with the sessionId
-			messageEndpoint := fmt.Sprintf("%s?sessionId=%s", c.cfg.HTTP.MessagePath, c.sessionId)
+			// TODO [pw] I'm not wild about this - this is a cross dependency on config elsewhere that doesn't start
+			// the mcp endpoint. Maybe we don't do this.....
+			// Ok this is even more complex - this c.cfg is supplied from the client. So, if they hand in an invalid
+			// protocol, I have to still start the sse session. Anywhere, this something not quite right here
+			if c.cfg.ProtocolVersion == protocol.ProtocolVersion20250326 {
+				messageEndpoint = fmt.Sprintf("%s?sessionId=%s", c.cfg.HTTP.MCPPath, c.sessionId)
+			} else {
+				messageEndpoint = fmt.Sprintf("%s?sessionId=%s", c.cfg.HTTP.MessagePath, c.sessionId)
+			}
 
 			// Send the endpoint event
 			err := c.channel.SendEndpoint(messageEndpoint)

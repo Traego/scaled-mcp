@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/traego/scaled-mcp/internal/jsonrpc"
 	"net/http"
 	"strconv"
 	"testing"
@@ -229,11 +230,15 @@ func TestMCPServer2024(t *testing.T) {
 		connectionError := make(chan error, 1)
 		endpoint := ""
 
+		otherMsg := make(chan sse.Event)
+
 		// Subscribe to all events
 		sseConn.SubscribeToAll(func(event sse.Event) {
 			// Check if this is a session ID event
 			if event.Type == "endpoint" {
 				endpoint = event.Data
+			} else {
+				otherMsg <- event
 			}
 
 			// Signal that we've received an event
@@ -306,6 +311,23 @@ func TestMCPServer2024(t *testing.T) {
 		// and the error will be sent via the SSE channel
 		assert.Equal(t, http.StatusAccepted, invalidVersionResp.StatusCode,
 			"Invalid protocol version should return 202 Accepted")
+
+		select {
+		case msg := <-otherMsg:
+			// TODO this should be a reject message
+
+			resp := jsonrpc.RawJSONRPCResponse{}
+			err = json.Unmarshal([]byte(msg.Data), &resp)
+			require.NoError(t, err, "Failed to unmarshal json response")
+			assert.Equal(t, -32602, resp.Error.Code)
+			assert.Equal(t, "Unsupported protocol version", resp.Error.Message)
+			assert.Equal(t, string(protocol.ProtocolVersion20241105), resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{})[0].(string))
+			assert.Equal(t, string(protocol.ProtocolVersion20250326), resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{})[1].(string))
+			//assert.Equal(t, []interface{protocol.ProtocolVersion20241105), string(protocol.ProtocolVersion20250326)}, resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{}))
+
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for SSE connection")
+		}
 
 		// Clean up
 		testCancel()

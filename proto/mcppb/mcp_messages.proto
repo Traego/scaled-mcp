@@ -4,7 +4,7 @@ package mcppb;
 
 option go_package = "github.com/traego/scaled-mcp/pkg/proto/mcppb;mcppb";
 
-message TryCleanupPreInitialized{}
+message TryCleanupIfUninitialized{}
 
 message CheckSessionTTL{}
 

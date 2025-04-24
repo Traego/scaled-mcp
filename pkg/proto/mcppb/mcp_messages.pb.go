@@ -21,26 +21,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type TryCleanupPreInitialized struct {
+type TryCleanupIfUninitialized struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *TryCleanupPreInitialized) Reset() {
-	*x = TryCleanupPreInitialized{}
+func (x *TryCleanupIfUninitialized) Reset() {
+	*x = TryCleanupIfUninitialized{}
 	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TryCleanupPreInitialized) String() string {
+func (x *TryCleanupIfUninitialized) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TryCleanupPreInitialized) ProtoMessage() {}
+func (*TryCleanupIfUninitialized) ProtoMessage() {}
 
-func (x *TryCleanupPreInitialized) ProtoReflect() protoreflect.Message {
+func (x *TryCleanupIfUninitialized) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_mcppb_mcp_messages_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,8 +52,8 @@ func (x *TryCleanupPreInitialized) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TryCleanupPreInitialized.ProtoReflect.Descriptor instead.
-func (*TryCleanupPreInitialized) Descriptor() ([]byte, []int) {
+// Deprecated: Use TryCleanupIfUninitialized.ProtoReflect.Descriptor instead.
+func (*TryCleanupIfUninitialized) Descriptor() ([]byte, []int) {
 	return file_proto_mcppb_mcp_messages_proto_rawDescGZIP(), []int{0}
 }
 
@@ -237,8 +237,8 @@ var File_proto_mcppb_mcp_messages_proto protoreflect.FileDescriptor
 
 const file_proto_mcppb_mcp_messages_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/mcppb/mcp_messages.proto\x12\x05mcppb\"\x1a\n" +
-	"\x18TryCleanupPreInitialized\"\x11\n" +
+	"\x1eproto/mcppb/mcp_messages.proto\x12\x05mcppb\"\x1b\n" +
+	"\x19TryCleanupIfUninitialized\"\x11\n" +
 	"\x0fCheckSessionTTL\"8\n" +
 	"\x12RegisterConnection\x12\"\n" +
 	"\fconnectionId\x18\x01 \x01(\tR\fconnectionId\"L\n" +
@@ -262,7 +262,7 @@ func file_proto_mcppb_mcp_messages_proto_rawDescGZIP() []byte {
 
 var file_proto_mcppb_mcp_messages_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_mcppb_mcp_messages_proto_goTypes = []any{
-	(*TryCleanupPreInitialized)(nil),   // 0: mcppb.TryCleanupPreInitialized
+	(*TryCleanupIfUninitialized)(nil),  // 0: mcppb.TryCleanupIfUninitialized
 	(*CheckSessionTTL)(nil),            // 1: mcppb.CheckSessionTTL
 	(*RegisterConnection)(nil),         // 2: mcppb.RegisterConnection
 	(*RegisterConnectionResponse)(nil), // 3: mcppb.RegisterConnectionResponse

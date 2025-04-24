@@ -69,6 +69,11 @@ func (s *McpServer) GetServerCapabilities() protocol.ServerCapabilities {
 	return s.serverCapabilities
 }
 
+// GetActorSystem returns the actor system used by the server
+func (s *McpServer) GetActorSystem() actor.ActorSystem {
+	return s.actorSystem
+}
+
 var _ config.McpServerInfo = (*McpServer)(nil)
 
 // McpServerOption represents an option for the MCP server
@@ -224,7 +229,7 @@ func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 		case http.MethodPost:
 			s.mcpHandler.HandleMCPPost(w, r)
 		case http.MethodGet:
-			s.mcpHandler.HandleMCPGet(w, r)
+			s.mcpHandler.HandleSSEGet(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -382,7 +387,7 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 	// Main MCP endpoint - handles both POST (for new sessions) and GET (for resuming sessions)
 	r.Route(s.config.HTTP.MCPPath, func(r chi.Router) {
 		r.Post("/", s.mcpHandler.HandleMCPPost)
-		r.Get("/", s.mcpHandler.HandleMCPGet)
+		r.Get("/", s.mcpHandler.HandleSSEGet)
 	})
 
 	// Optional /messages endpoint for 2024 version client negotiation

@@ -25,7 +25,7 @@ type ServerConfig struct {
 	ServerInfo ServerInfo `json:"server_info"`
 
 	// Protocol version to use
-	ProtocolVersion string `json:"protocol_version"`
+	ProtocolVersion protocol.ProtocolVersion `json:"protocol_version"`
 
 	// Whether to enable SSE transport
 	EnableSSE bool `json:"enable_sse"`

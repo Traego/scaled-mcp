@@ -152,6 +152,11 @@ func (c *httpClient) Connect(ctx context.Context) error {
 		}
 	}
 
+	// Send notifications/initialized message to complete the initialization dance
+	if err := c.sendNotificationsInitialized(ctx); err != nil {
+		return fmt.Errorf("failed to send notifications/initialized: %w", err)
+	}
+
 	c.initialized = true
 	return nil
 }
@@ -469,7 +474,7 @@ func (c *httpClient) generateRequestID() string {
 
 // SendRequest sends a request to the server and waits for a response.
 func (c *httpClient) SendRequest(ctx context.Context, method string, params interface{}) (*protocol.JSONRPCMessage, error) {
-	if !c.initialized && method != "initialize" {
+	if !c.initialized && (method != "initialize" && method != "notifications/initialized") {
 		return nil, fmt.Errorf("client not initialized")
 	}
 
@@ -693,6 +698,11 @@ func (c *httpClient) createNotificationRequest(ctx context.Context, endpoint str
 	c.sessionIdMutex.Unlock()
 
 	return req, nil
+}
+
+// sendNotificationsInitialized sends the notifications/initialized message
+func (c *httpClient) sendNotificationsInitialized(ctx context.Context) error {
+	return c.SendNotification(ctx, "notifications/initialized", nil)
 }
 
 // extractJSONRPCError converts a JSON-RPC error to a Go error

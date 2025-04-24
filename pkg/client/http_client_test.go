@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"github.com/traego/scaled-mcp/pkg/actors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,6 +14,7 @@ import (
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
 	"github.com/traego/scaled-mcp/pkg/server"
+	"github.com/traego/scaled-mcp/pkg/utils"
 	"github.com/traego/scaled-mcp/test/testutils"
 	"log/slog"
 )
@@ -117,6 +120,47 @@ func TestToolsClient(t *testing.T) {
 
 	// Verify that the client is initialized
 	assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
+
+	// Verify that the session actor is initialized
+	// Get the session ID from the client
+	sessionID := mcpClient.GetSessionID()
+	require.NotEmpty(t, sessionID, "Session ID should not be empty")
+
+	// Get the actor system from the server
+	actorSystem := mcpServer.GetActorSystem()
+	require.NotNil(t, actorSystem, "Actor system should not be nil")
+
+	// Get the session actor name using the utility function
+	sessionActorName := utils.GetSessionActorName(sessionID)
+	slog.Info("Looking for session actor", "name", sessionActorName)
+
+	// Find the session actor
+	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Wait a bit to ensure the session actor has processed the initialization
+	time.Sleep(100 * time.Millisecond)
+
+	// Check if the session actor exists
+	_, sessionActor, err := actorSystem.ActorOf(ctx, sessionActorName)
+	require.NoError(t, err, "Failed to find session actor")
+	require.NotNil(t, sessionActor, "Session actor should not be nil")
+
+	// We can't directly check the actor's state, but we can verify it's running
+	// which means it didn't shut down due to initialization failure
+	assert.True(t, sessionActor.IsRunning(), "Session actor should be running")
+	sma, ok := sessionActor.Actor().(*utils.StateMachineActor)
+	assert.True(t, ok, "Session actor should be *utils.StateMachineActor")
+	sd, ok := sma.GetData().(*actors.SessionData)
+	assert.True(t, ok, "Session actor should be actors.SessionData")
+
+	assert.Equal(t, sd.ClientNotificationsInitialized, true, "Session actor should be initialized")
+
+	// We can also try to send a request through the client to verify the session is working
+	// If the session actor wasn't properly initialized, this would fail
+	toolsList, err := mcpClient.ListTools(ctx)
+	require.NoError(t, err, "Failed to list tools - session actor might not be properly initialized")
+	require.NotNil(t, toolsList, "Tools list should not be nil")
 
 	t.Run("ListTools", func(t *testing.T) {
 		// Test the ListTools method

@@ -33,29 +33,46 @@ type SessionData struct {
 	ServerInfo config.McpServerInfo
 
 	// MCP protocol state
-	ProtocolVersion string
+	ProtocolVersion protocol.ProtocolVersion
 	ClientInfo      protocol.ClientInfo
-	Initialized     bool
 
 	// Last activity time
 	LastActivity time.Time
+
+	// Session timeout duration
+	InitializeTimeout time.Duration
 
 	// Session timeout duration
 	SessionTimeout time.Duration
 
 	// Connection actors
 	ClientConnectionActors map[string]*actor.PID
+
+	// Flag to track if the session is initialized
+	ClientNotificationsInitialized bool
 }
 
 // NewMcpSessionStateMachine creates a new MCP session state machine actor
 func NewMcpSessionStateMachine(serverInfo config.McpServerInfo, sessionID string) actor.Actor {
 	// Initialize session data
+	sessionTimeout := 5 * time.Minute
+	if serverInfo.GetServerConfig().Session.TTL > 0 {
+		sessionTimeout = serverInfo.GetServerConfig().Session.TTL
+	}
+
+	initializeTimeout := sessionTimeout / 10
+	if serverInfo.GetServerConfig().Session.InitializeTimeout > 0 {
+		initializeTimeout = serverInfo.GetServerConfig().Session.InitializeTimeout
+	}
+
 	data := &SessionData{
-		SessionID:              sessionID,
-		ServerInfo:             serverInfo,
-		LastActivity:           time.Now(),
-		SessionTimeout:         serverInfo.GetServerConfig().Session.TTL,
-		ClientConnectionActors: make(map[string]*actor.PID),
+		SessionID:                      sessionID,
+		ServerInfo:                     serverInfo,
+		LastActivity:                   time.Now(),
+		InitializeTimeout:              initializeTimeout,
+		SessionTimeout:                 sessionTimeout,
+		ClientConnectionActors:         make(map[string]*actor.PID),
+		ClientNotificationsInitialized: false,
 	}
 
 	// Create state machine starting in uninitialized state
@@ -73,18 +90,17 @@ func NewMcpSessionStateMachine(serverInfo config.McpServerInfo, sessionID string
 // handleUninitializedState handles messages in the uninitialized state
 func handleUninitializedState(ctx *actor.ReceiveContext, data utils.Data) (utils.MessageHandlingResult, error) {
 	sessionData := data.(*SessionData)
-	sessionData.LastActivity = time.Now()
 
 	message := ctx.Message()
 	switch msg := message.(type) {
 	case *goaktpb.PostStart:
-		return handlePostStart(ctx, sessionData)
+		return handlePostStartUninitialized(ctx, sessionData)
 	case *mcppb.RegisterConnection:
 		return handleRegisterConnection(ctx, sessionData, msg)
 	case *mcppb.WrappedRequest:
 		return handleWrappedRequestUninitialized(ctx, sessionData, msg)
-	case *mcppb.TryCleanupPreInitialized:
-		return handleTryCleanupPreInitialized(ctx, sessionData)
+	case *mcppb.TryCleanupIfUninitialized:
+		return handleTryCleanupIfUninitialized(ctx, sessionData)
 	case *mcppb.CheckSessionTTL:
 		return handleCheckSessionTTL(ctx, sessionData)
 	default:
@@ -100,7 +116,6 @@ func handleUninitializedState(ctx *actor.ReceiveContext, data utils.Data) (utils
 // handleInitializedState handles messages in the initialized state
 func handleInitializedState(ctx *actor.ReceiveContext, data utils.Data) (utils.MessageHandlingResult, error) {
 	sessionData := data.(*SessionData)
-	sessionData.LastActivity = time.Now()
 
 	message := ctx.Message()
 	switch msg := message.(type) {
@@ -110,8 +125,8 @@ func handleInitializedState(ctx *actor.ReceiveContext, data utils.Data) (utils.M
 		return handleWrappedRequestInitialized(ctx, sessionData, msg)
 	case *mcppb.CheckSessionTTL:
 		return handleCheckSessionTTL(ctx, sessionData)
-	case *mcppb.TryCleanupPreInitialized:
-		return handleTryCleanupPreInitialized(ctx, sessionData)
+	case *mcppb.TryCleanupIfUninitialized:
+		return handleTryCleanupInitialized(ctx, sessionData)
 	default:
 		// Log unhandled message
 		slog.WarnContext(ctx.Context(), "Initialized state: Received unknown message type",
@@ -151,33 +166,35 @@ func handleUnhandledMessage(ctx *actor.ReceiveContext, data utils.Data, message 
 	return sessionData
 }
 
-// handlePostStart handles the PostStart message
-func handlePostStart(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
-	ctx.Logger().Debug("mcp session actor finished starting, sending cleanup message", "session_id", sessionData.SessionID)
-	err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), &mcppb.TryCleanupPreInitialized{}, ctx.Self(), sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
+// handlePostStartUninitialized handles the PostStart message
+func handlePostStartUninitialized(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
+	ctx.Logger().Info("mcp session actor finished starting, sending cleanup message", "session_id", sessionData.SessionID)
+	err := ctx.ActorSystem().ScheduleOnce(ctx.Context(), &mcppb.TryCleanupIfUninitialized{}, ctx.Self(), sessionData.InitializeTimeout)
 	if err != nil {
-		return utils.MessageHandlingResult{}, fmt.Errorf("failed to send cleanup pre-initialized message: %w", err)
+		return utils.MessageHandlingResult{}, fmt.Errorf("failed to send cleanup message: %w", err)
 	}
 
-	//actorutils.ScheduleOnce(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.TryCleanupPreInitialized{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/10)
 	return utils.Stay(sessionData)
 }
 
 // handleRegisterConnection handles the RegisterConnection message
 func handleRegisterConnection(ctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.RegisterConnection) (utils.MessageHandlingResult, error) {
 	sender := ctx.Sender()
+	sessionData.LastActivity = time.Now()
 	sessionData.ClientConnectionActors[msg.GetConnectionId()] = sender
 	ctx.Response(&mcppb.RegisterConnectionResponse{Success: true})
 	return utils.Stay(sessionData)
 }
 
 // handleWrappedRequestUninitialized handles wrapped requests in the uninitialized state
-func handleWrappedRequestUninitialized(ctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
+func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
+	ctx := context.WithValue(rctx.Context(), utils.SessionIdCtx, sessionData.SessionID)
 	// In uninitialized state, we only accept initialize requests
 	switch msg.Request.Method {
 	case "initialize":
-		response := handleInitialize(ctx.Context(), sessionData, msg.Request)
-		sendResponse(ctx, sessionData, msg, response)
+		response := handleInitialize(ctx, sessionData, msg.Request)
+		sendResponse(rctx, ctx, sessionData, msg, response)
+		sessionData.LastActivity = time.Now()
 
 		// Transition to initialized state
 		nextState := StateInitialized
@@ -186,31 +203,24 @@ func handleWrappedRequestUninitialized(ctx *actor.ReceiveContext, sessionData *S
 			NextData:    sessionData,
 		}, nil
 
-	case "notifications/initialized":
-		// This is a notification that initialization is complete
-		nextState := StateInitialized
-		return utils.MessageHandlingResult{
-			NextStateId: &nextState,
-			NextData:    sessionData,
-		}, nil
-
 	default:
 		// Return error for non-initialize requests in uninitialized state
-		ctx.Logger().Debug("mcp session actor got non-lifecycle message before being initialized", "session_id", sessionData.SessionID)
+		rctx.Logger().Info("mcp session actor got non-lifecycle message before being initialized", "session_id", sessionData.SessionID)
 		errorResp := utils.CreateErrorResponse(msg.Request, -32002, "Server not initialized", nil)
-		sendResponse(ctx, sessionData, msg, errorResp)
+		sendResponse(rctx, ctx, sessionData, msg, errorResp)
 
 		return utils.Stay(sessionData)
 	}
 }
 
 // handleWrappedRequestInitialized handles wrapped requests in the initialized state
-func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
+func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
+	ctx := context.WithValue(rctx.Context(), utils.SessionIdCtx, sessionData.SessionID)
 	// Handle the request based on the method
 	switch msg.Request.Method {
 	case "shutdown":
 		response := handleShutdown(msg.Request)
-		sendResponse(ctx, sessionData, msg, response)
+		sendResponse(rctx, ctx, sessionData, msg, response)
 
 		// Transition to shutdown state
 		nextState := StateShutdown
@@ -219,9 +229,16 @@ func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *Ses
 			NextData:    sessionData,
 		}, nil
 
+	case "notifications/initialized":
+		slog.InfoContext(ctx, "Handling notifications/initialized request", "session_id", sessionData.SessionID)
+		// This is a notification that initialization is complete
+		sessionData.LastActivity = time.Now()
+		sessionData.ClientNotificationsInitialized = true
+		sessionData.LastActivity = time.Now()
+		return utils.Stay(sessionData)
 	default:
 		// Handle non-lifecycle messages
-		response, err := handleNonLifecycleRequest(ctx.Context(), sessionData, msg.Request.Id, msg.Request)
+		response, err := handleNonLifecycleRequest(ctx, sessionData, msg.Request.Id, msg.Request)
 		if err != nil {
 			var retErr *mcppb.JsonRpcResponse
 
@@ -233,58 +250,65 @@ func handleWrappedRequestInitialized(ctx *actor.ReceiveContext, sessionData *Ses
 				retErr = utils.CreateErrorResponseFromJsonRpcError(msg.Request, hndlErr)
 			}
 
-			sendResponse(ctx, sessionData, msg, retErr)
-			slog.ErrorContext(ctx.Context(), "problem handling non-lifecycle message", "session_id", sessionData.SessionID, "err", err)
+			sendResponse(rctx, ctx, sessionData, msg, retErr)
+			slog.ErrorContext(ctx, "problem handling non-lifecycle message", "session_id", sessionData.SessionID, "err", err)
 			return utils.Stay(sessionData)
 		}
 
-		sendResponse(ctx, sessionData, msg, response)
+		sendResponse(rctx, ctx, sessionData, msg, response)
+		sessionData.LastActivity = time.Now()
 		return utils.Stay(sessionData)
 	}
 }
 
-// handleTryCleanupPreInitialized handles the TryCleanupPreInitialized message
-func handleTryCleanupPreInitialized(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
-	// Check if we're still in uninitialized state after the timeout
-	// If so, shut down the actor
-	if ctx.Self() != nil {
-		err := ctx.Self().Shutdown(ctx.Context())
-		if err != nil {
-			slog.ErrorContext(ctx.Context(), "error in shutdown", "session_id", sessionData.SessionID)
-		}
+// handleTryCleanupIfUninitialized handles the TryCleanupIfUninitialized message
+func handleTryCleanupIfUninitialized(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
+	slog.InfoContext(ctx.Context(), "handling cleanup request - session is uninitialized, shutting down", "session_id", sessionData.SessionID)
+	err := ctx.Self().Shutdown(ctx.Context())
+	if err != nil {
+		ctx.Logger().Error("failed to shut down session actor", "session_id", sessionData.SessionID, "error", err)
+		return utils.MessageHandlingResult{}, err
 	}
+	return utils.Stay(sessionData)
+}
 
-	err := ctx.ActorSystem().Schedule(ctx.Context(), &mcppb.CheckSessionTTL{}, ctx.Self(), sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
+// handleTryCleanupIfUninitialized handles the TryCleanupIfUninitialized message
+func handleTryCleanupInitialized(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
+	slog.InfoContext(ctx.Context(), "handling cleanup request - session is initialized, scheduling periodic session check", "session_id", sessionData.SessionID)
+
+	sessionData.LastActivity = time.Now()
+
+	err := ctx.ActorSystem().Schedule(ctx.Context(), &mcppb.CheckSessionTTL{}, ctx.Self(), sessionData.SessionTimeout/2)
 	if err != nil {
 		return utils.MessageHandlingResult{}, fmt.Errorf("problem scheduling check_session_ttl: %w", err)
 	}
-
-	// Schedule the session TTL check
-	//actorutils.Schedule(ctx.Context(), ctx.Self().ActorSystem(), ctx.Self().Name(), &mcppb.CheckSessionTTL{}, sessionData.ServerInfo.GetServerConfig().Session.TTL/6)
 
 	return utils.Stay(sessionData)
 }
 
 // handleCheckSessionTTL handles the CheckSessionTTL message
 func handleCheckSessionTTL(ctx *actor.ReceiveContext, sessionData *SessionData) (utils.MessageHandlingResult, error) {
-	if sessionData.LastActivity.Add(sessionData.SessionTimeout).Before(time.Now()) {
-		ctx.Logger().Debug("mcp session actor timeout", "session_id", sessionData.SessionID)
+	timeoutAt := sessionData.LastActivity.Add(sessionData.SessionTimeout)
+	slog.InfoContext(ctx.Context(), "checking if session is alive", "session_id", sessionData.SessionID, "timeout_at", timeoutAt)
+	if timeoutAt.Before(time.Now()) {
+		slog.InfoContext(ctx.Context(), fmt.Sprintf("session has had no activity since %s, shutting down", sessionData.LastActivity.String()), "session_id", sessionData.SessionID)
+		ctx.Logger().Info("mcp session actor timeout", "session_id", sessionData.SessionID)
 		utils.Shutdown(ctx)
 	}
 	return utils.Stay(sessionData)
 }
 
 // sendResponse sends a response to the client
-func sendResponse(ctx *actor.ReceiveContext, sessionData *SessionData, wrappedMsg *mcppb.WrappedRequest, response *mcppb.JsonRpcResponse) {
+func sendResponse(rctx *actor.ReceiveContext, ctx context.Context, sessionData *SessionData, wrappedMsg *mcppb.WrappedRequest, response *mcppb.JsonRpcResponse) {
 	if wrappedMsg.IsAsk {
-		ctx.Response(response)
+		rctx.Response(response)
 	} else {
 		rc, ok := sessionData.ClientConnectionActors[wrappedMsg.RespondToConnectionId]
 		if !ok {
-			slog.ErrorContext(ctx.Context(), "could not find actor to respond for connection to", "connectionId", wrappedMsg.RespondToConnectionId)
+			slog.ErrorContext(ctx, "could not find actor to respond for connection to", "connectionId", wrappedMsg.RespondToConnectionId)
 			return
 		}
-		ctx.Tell(rc, response)
+		rctx.Tell(rc, response)
 	}
 }
 
@@ -317,7 +341,7 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	}
 
 	// Check protocol version
-	supportedVersions := []string{"2024-11-05", "2025-03-26"}
+	supportedVersions := []protocol.ProtocolVersion{protocol.ProtocolVersion20241105, protocol.ProtocolVersion20250326}
 	versionSupported := false
 	for _, v := range supportedVersions {
 		if params.ProtocolVersion == v {
@@ -337,7 +361,6 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	sessionData.ProtocolVersion = params.ProtocolVersion
 	sessionData.ClientInfo = params.ClientInfo
 	sessionData.LastActivity = time.Now()
-	sessionData.Initialized = true
 
 	// Create the result
 	result := protocol.InitializeResult{

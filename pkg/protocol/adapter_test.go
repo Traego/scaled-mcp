@@ -17,7 +17,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 			ID:      "request-1",
 			Method:  "initialize",
 			Params: map[string]interface{}{
-				"protocolVersion": "2025-03",
+				"protocolVersion": ProtocolVersion20250326,
 				"clientInfo": map[string]interface{}{
 					"name":    "test-client",
 					"version": "1.0.0",
@@ -43,7 +43,7 @@ func TestConvertJSONToProtoRequest(t *testing.T) {
 		var params map[string]interface{}
 		err = json.Unmarshal([]byte(protoReq.ParamsJson), &params)
 		require.NoError(t, err)
-		assert.Equal(t, "2025-03", params["protocolVersion"])
+		assert.Equal(t, string(ProtocolVersion20250326), params["protocolVersion"])
 
 		clientInfo, ok := params["clientInfo"].(map[string]interface{})
 		require.True(t, ok)

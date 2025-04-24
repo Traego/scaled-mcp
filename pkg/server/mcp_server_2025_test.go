@@ -107,4 +107,52 @@ func TestMCPServer2025(t *testing.T) {
 
 		assert.Nil(t, resp.Error, "Response should not contain an error")
 	})
+
+	t.Run("SSE First Initialization should succeed", func(t *testing.T) {
+		opts := options
+		opts.UseSSEForEvents = true
+		// Create a new MCP client
+		mcpClient, err := client.NewMcpClient(serverAddr, options)
+		defer func() {
+			_ = mcpClient.Close(context.Background())
+		}()
+		require.NoError(t, err, "Failed to create MCP client")
+
+		// Connect the client
+		err = mcpClient.Connect(ctx)
+		require.NoError(t, err, "Failed to connect MCP client")
+
+		// Verify that the client is initialized
+		assert.True(t, mcpClient.IsInitialized(), "McpClient should be initialized")
+
+		// Verify the protocol version
+		assert.Equal(t, protocol.ProtocolVersion20250326, mcpClient.GetProtocolVersion(),
+			"Protocol version should be 2025-03-26")
+
+		// Verify the connection method
+		assert.Equal(t, client.ConnectionMethodHTTP, mcpClient.GetConnectionMethod(),
+			"Connection method should be HTTP for 2025 spec")
+
+		// Test sending a request
+		resp, err := mcpClient.SendRequest(ctx, "tools/list", nil)
+		require.NoError(t, err, "Failed to send tools/list request")
+		assert.NotNil(t, resp, "Response should not be nil")
+
+		// Type assert the response result to access nested fields
+		resultMap, ok := resp.Result.(map[string]interface{})
+		require.True(t, ok, "Result should be a map")
+
+		tools, ok := resultMap["tools"].([]interface{})
+		require.True(t, ok, "tools should be a slice")
+		require.NotEmpty(t, tools, "tools slice should not be empty")
+
+		require.Len(t, tools, 1, "tools len should be 1")
+
+		// Check that the first tool is initialize or another expected value
+		toolName, ok := tools[0].(map[string]interface{})["name"].(string)
+		require.True(t, ok, "tool should be a string")
+		assert.Equal(t, toolName, "Amazing Tool")
+
+		assert.Nil(t, resp.Error, "Response should not contain an error")
+	})
 }

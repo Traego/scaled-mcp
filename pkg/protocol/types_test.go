@@ -16,7 +16,7 @@ func TestJSONRPCMessageMarshaling(t *testing.T) {
 			ID:      "request-1",
 			Method:  "initialize",
 			Params: map[string]interface{}{
-				"protocolVersion": "2025-03",
+				"protocolVersion": ProtocolVersion20250326,
 				"clientInfo": map[string]interface{}{
 					"name":    "test-client",
 					"version": "1.0.0",
@@ -41,7 +41,7 @@ func TestJSONRPCMessageMarshaling(t *testing.T) {
 		// Check params
 		params, ok := jsonMap["params"].(map[string]interface{})
 		require.True(t, ok)
-		assert.Equal(t, "2025-03", params["protocolVersion"])
+		assert.Equal(t, string(ProtocolVersion20250326), params["protocolVersion"])
 
 		// Result and error should not be present in a request
 		_, hasResult := jsonMap["result"]
@@ -170,7 +170,7 @@ func TestJSONRPCMessageUnmarshaling(t *testing.T) {
 			"id": "request-1",
 			"method": "initialize",
 			"params": {
-				"protocolVersion": "2025-03",
+				"protocolVersion": "2025-03-26",
 				"clientInfo": {
 					"name": "test-client",
 					"version": "1.0.0"
@@ -191,7 +191,7 @@ func TestJSONRPCMessageUnmarshaling(t *testing.T) {
 		// Check params
 		params, ok := req.Params.(map[string]interface{})
 		require.True(t, ok)
-		assert.Equal(t, "2025-03", params["protocolVersion"])
+		assert.Equal(t, string(ProtocolVersion20250326), params["protocolVersion"])
 
 		clientInfo, ok := params["clientInfo"].(map[string]interface{})
 		require.True(t, ok)
@@ -393,7 +393,7 @@ func TestInitializeStructsMarshaling(t *testing.T) {
 	t.Run("initialize params marshaling", func(t *testing.T) {
 		// Create initialize params
 		params := InitializeParams{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: ProtocolVersion20250326,
 			ClientInfo: ClientInfo{
 				Name:    "test-client",
 				Version: "1.0.0",
@@ -415,7 +415,7 @@ func TestInitializeStructsMarshaling(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check fields
-		assert.Equal(t, "2025-03", jsonMap["protocolVersion"])
+		assert.Equal(t, string(ProtocolVersion20250326), jsonMap["protocolVersion"])
 
 		clientInfo, ok := jsonMap["clientInfo"].(map[string]interface{})
 		require.True(t, ok)
@@ -432,7 +432,7 @@ func TestInitializeStructsMarshaling(t *testing.T) {
 	t.Run("initialize result marshaling", func(t *testing.T) {
 		// Create initialize result
 		result := InitializeResult{
-			ProtocolVersion: "2025-03",
+			ProtocolVersion: ProtocolVersion20250326,
 			ServerInfo: ServerInfo{
 				Name:    "test-server",
 				Version: "1.0.0",
@@ -456,7 +456,7 @@ func TestInitializeStructsMarshaling(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check fields
-		assert.Equal(t, "2025-03", jsonMap["protocolVersion"])
+		assert.Equal(t, string(ProtocolVersion20250326), jsonMap["protocolVersion"])
 		assert.Equal(t, "session-123", jsonMap["sessionId"])
 
 		serverInfo, ok := jsonMap["serverInfo"].(map[string]interface{})
@@ -561,7 +561,7 @@ func TestToolCallResultMarshaling(t *testing.T) {
 		// Create a tool call result with multiple content types
 		textContent := NewTextContent("Text result")
 		imageContent := NewImageContent("base64image", "image/jpeg")
-		
+
 		toolCallResult := NewToolCallResult(
 			[]ToolCallContent{textContent, imageContent},
 			false,
@@ -603,7 +603,7 @@ func TestToolCallResultMarshaling(t *testing.T) {
 	t.Run("error tool call result marshaling", func(t *testing.T) {
 		// Create an error tool call result
 		errorContent := NewTextContent("Error: API rate limit exceeded")
-		
+
 		toolCallResult := NewToolCallResult(
 			[]ToolCallContent{errorContent},
 			true,
