@@ -79,6 +79,10 @@ func (s *TestPromptServerInfo) GetExecutors() config.MethodHandler {
 	return nil // Not needed for these tests
 }
 
+func (s *TestPromptServerInfo) GetAuthHandler() config.AuthHandler {
+	return nil
+}
+
 // MockPromptRegistry is a mock implementation of the PromptRegistry interface
 type MockPromptRegistry struct {
 	prompts map[string]resources.Prompt

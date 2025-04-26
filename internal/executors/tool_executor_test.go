@@ -103,6 +103,10 @@ func (s *TestServerInfo) GetExecutors() config.MethodHandler {
 	return nil // Not needed for these tests
 }
 
+func (s *TestServerInfo) GetAuthHandler() config.AuthHandler {
+	return nil
+}
+
 func TestToolExecutor_CanHandleMethod(t *testing.T) {
 	// Create a test server info
 	serverInfo := NewTestServerInfo()

@@ -3,10 +3,10 @@ package httphandlers
 import (
 	"context"
 	"fmt"
+	"github.com/traego/scaled-mcp/internal/actors"
+	"github.com/traego/scaled-mcp/pkg/auth"
 	"log/slog"
 	"net/http"
-
-	"github.com/traego/scaled-mcp/pkg/actors"
 
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
@@ -56,6 +56,14 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			IsAsk:                 true,
 			RespondToConnectionId: "",
 			Request:               protoMsg,
+		}
+
+		if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
+			ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
+			if err != nil {
+				handleError(w, fmt.Errorf("unable to serialize auth"), mr.Message.ID)
+			}
+			wrapped.AuthInfo = ser
 		}
 
 		_, rid, err := h.actorSystem.ActorOf(ctx, "root")
@@ -137,6 +145,14 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				IsAsk:                 true,
 				RespondToConnectionId: "",
 				Request:               protoInit,
+			}
+
+			if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
+				ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
+				if err != nil {
+					handleError(w, fmt.Errorf("unable to serialize auth"), mr.Message.ID)
+				}
+				wrapped.AuthInfo = ser
 			}
 
 			_, rid, err := h.actorSystem.ActorOf(ctx, san)

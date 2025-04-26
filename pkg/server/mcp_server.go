@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	actors2 "github.com/traego/scaled-mcp/internal/actors"
+	"github.com/traego/scaled-mcp/internal/executors"
+	"github.com/traego/scaled-mcp/internal/httphandlers"
+	"github.com/traego/scaled-mcp/pkg/auth"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,14 +24,10 @@ import (
 	"github.com/tochemey/goakt/v3/remote"
 
 	"github.com/traego/scaled-mcp/internal/logger"
-	"github.com/traego/scaled-mcp/pkg/actors"
 	"github.com/traego/scaled-mcp/pkg/config"
-	"github.com/traego/scaled-mcp/pkg/executors"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
 	"github.com/traego/scaled-mcp/pkg/utils"
-
-	"github.com/traego/scaled-mcp/pkg/server/httphandlers"
 )
 
 // McpServer represents an MCP server
@@ -51,10 +51,16 @@ type McpServer struct {
 
 	// Store the handler for reuse
 	internalHandler http.Handler
+
+	authHandler config.AuthHandler
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
 	return s.executors
+}
+
+func (s *McpServer) GetAuthHandler() config.AuthHandler {
+	return s.authHandler
 }
 
 func (s *McpServer) GetServerConfig() *config.ServerConfig {
@@ -127,6 +133,12 @@ func WithExecutors(executors *executors.Executors) McpServerOption {
 	}
 }
 
+func WithAuthHandler(ah config.AuthHandler) McpServerOption {
+	return func(s *McpServer) {
+		s.authHandler = ah
+	}
+}
+
 // NewMcpServer creates a new MCP server
 func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpServer, error) {
 	if cfg == nil {
@@ -152,9 +164,9 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 			WithDiscovery(disco).
 			WithPartitionCount(19).
 			WithKinds(
-				&actors.DeathWatcher{},
+				&actors2.DeathWatcher{},
 				&utils.StateMachineActor{},
-				&actors.ClientConnectionActor{},
+				&actors2.ClientConnectionActor{},
 			).
 			WithDiscoveryPort(cfg.Clustering.GossipPort).
 			WithPeersPort(cfg.Clustering.PeersPort)
@@ -167,6 +179,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		opts = append(opts, actor.WithRemote(remote.NewConfig(cfg.Clustering.NodeHost, cfg.Clustering.RemotingPort)))
 	}
 
+	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}).WithGroup("mcp"))))
 	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}).WithGroup("mcp"))))
 	opts = append(opts, actor.WithPassivationDisabled())
 
@@ -288,7 +301,7 @@ func (s *McpServer) Start(ctx context.Context) error {
 
 	// Create the root actor
 	supervisor := actor.NewSupervisor(actor.WithAnyErrorDirective(actor.RestartDirective))
-	_, err = s.actorSystem.Spawn(ctx, "root", actors.NewRootActor(), actor.WithLongLived(), actor.WithSupervisor(supervisor))
+	_, err = s.actorSystem.Spawn(ctx, "root", actors2.NewRootActor(), actor.WithLongLived(), actor.WithSupervisor(supervisor))
 	if err != nil {
 		return fmt.Errorf("failed to start root actor: %w", err)
 	}
@@ -366,6 +379,7 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 		r.Use(middleware.RealIP)
 		r.Use(s.loggingMiddleware)
 		r.Use(s.jsonRpcErrorMiddleware)
+		r.Use(s.authHandlerMiddleware)
 		r.Use(middleware.Recoverer) // Recover from panics
 
 		// CORS middleware if needed
@@ -472,5 +486,18 @@ func (s *McpServer) jsonRpcErrorMiddleware(next http.Handler) http.Handler {
 
 		// Call the next handler
 		next.ServeHTTP(ww, r)
+	})
+}
+
+func (s *McpServer) authHandlerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.authHandler != nil {
+			ai := s.authHandler.ExtractAuth(r)
+			if ai != nil {
+				ctx := auth.SetAuthInfo(r.Context(), ai)
+				r = r.WithContext(ctx)
+			}
+		}
+		next.ServeHTTP(w, r)
 	})
 }

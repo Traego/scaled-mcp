@@ -40,6 +40,7 @@ type httpClient struct {
 	endpointMutex    sync.RWMutex
 	protocolMutex    sync.RWMutex
 	cancelSSE        context.CancelFunc
+	authHeader       string
 }
 
 // NewHTTPClient creates a new HTTP-based MCP client.
@@ -570,6 +571,9 @@ func (c *httpClient) sendHTTPRequest(ctx context.Context, endpoint string, paylo
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, text/event-stream")
+	if c.authHeader != "" {
+		req.Header.Set("Authorization", c.authHeader)
+	}
 
 	// Add session ID if we have one
 	c.sessionIdMutex.Lock()

@@ -2,8 +2,8 @@ package httphandlers
 
 import (
 	"fmt"
-	"github.com/traego/scaled-mcp/pkg/actors"
-	"github.com/traego/scaled-mcp/pkg/channels"
+	actors2 "github.com/traego/scaled-mcp/internal/actors"
+	"github.com/traego/scaled-mcp/internal/channels"
 	"log/slog"
 	"net/http"
 )
@@ -29,7 +29,7 @@ func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
-	cca := actors.NewClientConnectionActor(h.config, sessionId, nil, channel, true, false)
+	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, false)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
@@ -37,7 +37,7 @@ func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 		handleError(w, respErr, "")
 	}
 
-	_, dc, err := actors.SpawnDeathWatcher(ctx, h.actorSystem, clientActor)
+	_, dc, err := actors2.SpawnDeathWatcher(ctx, h.actorSystem, clientActor)
 	if err != nil {
 		respErr := fmt.Errorf("error spawning connection watcher: %w", err)
 		handleError(w, respErr, "")

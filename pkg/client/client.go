@@ -5,6 +5,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/traego/scaled-mcp/pkg/protocol"
@@ -154,7 +155,24 @@ func DefaultClientOptions() ClientOptions {
 	}
 }
 
+type McpClientOptions func(httpClient *httpClient)
+
+func WithAuthHeader(authHeader string) McpClientOptions {
+	return func(httpClient *httpClient) {
+		httpClient.authHeader = authHeader
+	}
+}
+
 // NewMcpClient creates a new MCP client with the given server URL and options.
-func NewMcpClient(serverURL string, options ClientOptions) (McpClient, error) {
-	return NewHTTPClient(serverURL, options)
+func NewMcpClient(serverURL string, config ClientOptions, options ...McpClientOptions) (McpClient, error) {
+	client, err := NewHTTPClient(serverURL, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate client: %w", err)
+	}
+
+	for _, opt := range options {
+		opt(client)
+	}
+
+	return client, nil
 }

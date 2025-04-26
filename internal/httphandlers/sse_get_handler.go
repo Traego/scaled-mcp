@@ -2,8 +2,8 @@ package httphandlers
 
 import (
 	"fmt"
-	"github.com/traego/scaled-mcp/pkg/actors"
-	"github.com/traego/scaled-mcp/pkg/channels"
+	actors2 "github.com/traego/scaled-mcp/internal/actors"
+	"github.com/traego/scaled-mcp/internal/channels"
 	"github.com/traego/scaled-mcp/pkg/utils"
 	"net/http"
 )
@@ -19,7 +19,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sa := actors.NewMcpSessionStateMachine(h.serverInfo, sessionId)
+	sa := actors2.NewMcpSessionStateMachine(h.serverInfo, sessionId)
 	san := utils.GetSessionActorName(sessionId)
 	_, err = h.actorSystem.Spawn(ctx, san, sa)
 	if err != nil {
@@ -30,7 +30,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
-	cca := actors.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true)
+	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
@@ -38,7 +38,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 		handleError(w, respErr, "")
 	}
 
-	_, dc, err := actors.SpawnDeathWatcher(ctx, h.actorSystem, clientActor)
+	_, dc, err := actors2.SpawnDeathWatcher(ctx, h.actorSystem, clientActor)
 	if err != nil {
 		handleError(w, err, "")
 	}

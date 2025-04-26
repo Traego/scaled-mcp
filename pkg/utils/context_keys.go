@@ -1,5 +1,7 @@
 package utils
 
-type SessionId string
+type sessionIdCtxKey string
+type authInfoCtxKey string
 
-var SessionIdCtx SessionId = "session_id"
+var SessionIdCtx sessionIdCtxKey = "session_id"
+var AuthInfoCtx authInfoCtxKey = "auth"

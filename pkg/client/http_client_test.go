@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"github.com/traego/scaled-mcp/pkg/actors"
+	"github.com/traego/scaled-mcp/internal/actors"
 	"strconv"
 	"testing"
 	"time"

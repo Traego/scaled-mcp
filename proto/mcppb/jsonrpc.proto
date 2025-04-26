@@ -10,6 +10,7 @@ message WrappedRequest {
   bool is_ask = 1;
   string respond_to_connection_id = 2;
   JsonRpcRequest request = 3;
+  bytes auth_info = 4;
 }
 
 // JsonRpcRequest represents a JSON-RPC request message

@@ -1,6 +1,8 @@
 package httphandlers
 
 import (
+	"fmt"
+	"github.com/traego/scaled-mcp/pkg/auth"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"net/http"
 	"strings"
@@ -45,6 +47,14 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		IsAsk:                 false,
 		RespondToConnectionId: utils.GetDefaultSSEConnectionName(sessionId),
 		Request:               protoMsg,
+	}
+
+	if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
+		ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
+		if err != nil {
+			handleError(w, fmt.Errorf("unable to serialize auth"), mcpRequest.Message.ID)
+		}
+		wrapped.AuthInfo = ser
 	}
 
 	_, rid, err := h.actorSystem.ActorOf(ctx, "root")

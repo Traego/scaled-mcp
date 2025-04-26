@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/auth"
 	"log/slog"
 	"time"
 
@@ -188,7 +189,7 @@ func handleRegisterConnection(ctx *actor.ReceiveContext, sessionData *SessionDat
 
 // handleWrappedRequestUninitialized handles wrapped requests in the uninitialized state
 func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
-	ctx := context.WithValue(rctx.Context(), utils.SessionIdCtx, sessionData.SessionID)
+	ctx := context.WithValue(context.Background(), utils.SessionIdCtx, sessionData.SessionID)
 	// In uninitialized state, we only accept initialize requests
 	switch msg.Request.Method {
 	case "initialize":
@@ -215,7 +216,18 @@ func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *
 
 // handleWrappedRequestInitialized handles wrapped requests in the initialized state
 func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
-	ctx := context.WithValue(rctx.Context(), utils.SessionIdCtx, sessionData.SessionID)
+	// TODO Set a timeout here, need to think through just a bit what timeout to use
+	ctx := context.WithValue(context.Background(), utils.SessionIdCtx, sessionData.SessionID)
+
+	if len(msg.AuthInfo) > 0 {
+		authInfoRaw := msg.AuthInfo
+		authInfo, err := sessionData.ServerInfo.GetAuthHandler().Deserialize(authInfoRaw)
+		if err != nil {
+			return utils.MessageHandlingResult{}, fmt.Errorf("failed to deserialize auth info: %w", err)
+		}
+		ctx = auth.SetAuthInfo(ctx, authInfo)
+	}
+
 	// Handle the request based on the method
 	switch msg.Request.Method {
 	case "shutdown":
@@ -410,6 +422,9 @@ func handleShutdown(req *mcppb.JsonRpcRequest) *mcppb.JsonRpcResponse {
 
 // handleNonLifecycleRequest processes other MCP requests
 func handleNonLifecycleRequest(ctx context.Context, sessionData *SessionData, messageId interface{}, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, sessionData.ServerInfo.GetServerConfig().RequestTimeout)
+	defer cancel()
+
 	// Create base response
 	response := &mcppb.JsonRpcResponse{
 		Jsonrpc: "2.0",

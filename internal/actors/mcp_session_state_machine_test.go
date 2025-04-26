@@ -107,6 +107,10 @@ func (s *TestServerInfo) GetFeatureRegistry() resources.FeatureRegistry {
 	return s.registry
 }
 
+func (s *TestServerInfo) GetAuthHandler() config.AuthHandler {
+	return nil
+}
+
 // TestConnectionActor is a real implementation of a client connection actor for testing
 type TestConnectionActor struct {
 	receivedMessages []interface{}
