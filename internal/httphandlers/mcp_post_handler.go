@@ -56,6 +56,7 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			IsAsk:                 true,
 			RespondToConnectionId: "",
 			Request:               protoMsg,
+			TraceId:               utils.GetTraceId(ctx),
 		}
 
 		if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
@@ -145,6 +146,7 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				IsAsk:                 true,
 				RespondToConnectionId: "",
 				Request:               protoInit,
+				TraceId:               utils.GetTraceId(ctx),
 			}
 
 			if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {

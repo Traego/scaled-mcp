@@ -28,6 +28,7 @@ type WrappedRequest struct {
 	RespondToConnectionId string                 `protobuf:"bytes,2,opt,name=respond_to_connection_id,json=respondToConnectionId,proto3" json:"respond_to_connection_id,omitempty"`
 	Request               *JsonRpcRequest        `protobuf:"bytes,3,opt,name=request,proto3" json:"request,omitempty"`
 	AuthInfo              []byte                 `protobuf:"bytes,4,opt,name=auth_info,json=authInfo,proto3" json:"auth_info,omitempty"`
+	TraceId               string                 `protobuf:"bytes,5,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -88,6 +89,13 @@ func (x *WrappedRequest) GetAuthInfo() []byte {
 		return x.AuthInfo
 	}
 	return nil
+}
+
+func (x *WrappedRequest) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
 }
 
 // JsonRpcRequest represents a JSON-RPC request message
@@ -772,12 +780,13 @@ var File_proto_mcppb_jsonrpc_proto protoreflect.FileDescriptor
 
 const file_proto_mcppb_jsonrpc_proto_rawDesc = "" +
 	"\n" +
-	"\x19proto/mcppb/jsonrpc.proto\x12\x05mcppb\x1a\x1cgoogle/protobuf/struct.proto\"\xae\x01\n" +
+	"\x19proto/mcppb/jsonrpc.proto\x12\x05mcppb\x1a\x1cgoogle/protobuf/struct.proto\"\xc9\x01\n" +
 	"\x0eWrappedRequest\x12\x15\n" +
 	"\x06is_ask\x18\x01 \x01(\bR\x05isAsk\x127\n" +
 	"\x18respond_to_connection_id\x18\x02 \x01(\tR\x15respondToConnectionId\x12/\n" +
 	"\arequest\x18\x03 \x01(\v2\x15.mcppb.JsonRpcRequestR\arequest\x12\x1b\n" +
-	"\tauth_info\x18\x04 \x01(\fR\bauthInfo\"\xbc\x01\n" +
+	"\tauth_info\x18\x04 \x01(\fR\bauthInfo\x12\x19\n" +
+	"\btrace_id\x18\x05 \x01(\tR\atraceId\"\xbc\x01\n" +
 	"\x0eJsonRpcRequest\x12\x18\n" +
 	"\ajsonrpc\x18\x01 \x01(\tR\ajsonrpc\x12\x17\n" +
 	"\x06int_id\x18\x02 \x01(\x03H\x00R\x05intId\x12\x1d\n" +

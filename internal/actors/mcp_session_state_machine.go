@@ -219,13 +219,17 @@ func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *Se
 	// TODO Set a timeout here, need to think through just a bit what timeout to use
 	ctx := context.WithValue(context.Background(), utils.SessionIdCtx, sessionData.SessionID)
 
-	if len(msg.AuthInfo) > 0 {
+	if len(msg.AuthInfo) > 0 && sessionData.ServerInfo.GetAuthHandler() != nil {
 		authInfoRaw := msg.AuthInfo
 		authInfo, err := sessionData.ServerInfo.GetAuthHandler().Deserialize(authInfoRaw)
 		if err != nil {
 			return utils.MessageHandlingResult{}, fmt.Errorf("failed to deserialize auth info: %w", err)
 		}
 		ctx = auth.SetAuthInfo(ctx, authInfo)
+	}
+
+	if len(msg.TraceId) > 0 && sessionData.ServerInfo.GetTraceHandler() != nil {
+		ctx = sessionData.ServerInfo.GetTraceHandler().SetTraceId(ctx, msg.TraceId)
 	}
 
 	// Handle the request based on the method

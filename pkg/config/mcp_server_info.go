@@ -15,12 +15,18 @@ type McpServerInfo interface {
 	GetServerConfig() *ServerConfig
 	GetExecutors() MethodHandler
 	GetAuthHandler() AuthHandler
+	GetTraceHandler() TraceHandler
 }
 
 type AuthHandler interface {
 	ExtractAuth(r *http.Request) auth.AuthInfo
 	Serialize(auth auth.AuthInfo) ([]byte, error)
 	Deserialize(b []byte) (auth.AuthInfo, error)
+}
+
+type TraceHandler interface {
+	ExtractTraceId(r *http.Request) string
+	SetTraceId(ctx context.Context, traceId string) context.Context
 }
 
 type MethodHandler interface {

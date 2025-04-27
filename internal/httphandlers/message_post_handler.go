@@ -47,6 +47,7 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		IsAsk:                 false,
 		RespondToConnectionId: utils.GetDefaultSSEConnectionName(sessionId),
 		Request:               protoMsg,
+		TraceId:               utils.GetTraceId(ctx),
 	}
 
 	if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {

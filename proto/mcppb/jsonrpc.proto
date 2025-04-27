@@ -11,6 +11,7 @@ message WrappedRequest {
   string respond_to_connection_id = 2;
   JsonRpcRequest request = 3;
   bytes auth_info = 4;
+  string trace_id = 5;
 }
 
 // JsonRpcRequest represents a JSON-RPC request message

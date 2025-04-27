@@ -83,6 +83,10 @@ func (s *TestPromptServerInfo) GetAuthHandler() config.AuthHandler {
 	return nil
 }
 
+func (s *TestPromptServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
 // MockPromptRegistry is a mock implementation of the PromptRegistry interface
 type MockPromptRegistry struct {
 	prompts map[string]resources.Prompt

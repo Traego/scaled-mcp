@@ -55,6 +55,10 @@ func (s *TestUtilitiesServerInfo) GetAuthHandler() config.AuthHandler {
 	return nil // Not needed for these tests
 }
 
+func (s *TestUtilitiesServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
 func TestUtilitiesExecutor_CanHandleMethod(t *testing.T) {
 	// Create a test server info
 	serverInfo := NewTestUtilitiesServerInfo()

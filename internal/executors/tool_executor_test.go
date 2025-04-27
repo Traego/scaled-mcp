@@ -107,6 +107,10 @@ func (s *TestServerInfo) GetAuthHandler() config.AuthHandler {
 	return nil
 }
 
+func (s *TestServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
 func TestToolExecutor_CanHandleMethod(t *testing.T) {
 	// Create a test server info
 	serverInfo := NewTestServerInfo()

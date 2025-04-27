@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	actors2 "github.com/traego/scaled-mcp/internal/actors"
-	"github.com/traego/scaled-mcp/internal/executors"
-	"github.com/traego/scaled-mcp/internal/httphandlers"
-	"github.com/traego/scaled-mcp/pkg/auth"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +11,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	actors2 "github.com/traego/scaled-mcp/internal/actors"
+	"github.com/traego/scaled-mcp/internal/executors"
+	"github.com/traego/scaled-mcp/internal/httphandlers"
+	"github.com/traego/scaled-mcp/pkg/auth"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -53,6 +54,8 @@ type McpServer struct {
 	internalHandler http.Handler
 
 	authHandler config.AuthHandler
+
+	traceHandler config.TraceHandler
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
@@ -61,6 +64,10 @@ func (s *McpServer) GetExecutors() config.MethodHandler {
 
 func (s *McpServer) GetAuthHandler() config.AuthHandler {
 	return s.authHandler
+}
+
+func (s *McpServer) GetTraceHandler() config.TraceHandler {
+	return s.traceHandler
 }
 
 func (s *McpServer) GetServerConfig() *config.ServerConfig {
@@ -136,6 +143,12 @@ func WithExecutors(executors *executors.Executors) McpServerOption {
 func WithAuthHandler(ah config.AuthHandler) McpServerOption {
 	return func(s *McpServer) {
 		s.authHandler = ah
+	}
+}
+
+func WithTraceHandler(th config.TraceHandler) McpServerOption {
+	return func(s *McpServer) {
+		s.traceHandler = th
 	}
 }
 
@@ -233,11 +246,40 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 	return server, nil
 }
 
+// // RegisterHandlers registers MCP handlers on the provided ServeMux
+// // This should be called before applying any middleware to the mux
+// func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
+// 	// Register MCP endpoints
+// 	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
+// 		switch r.Method {
+// 		case http.MethodPost:
+// 			s.mcpHandler.HandleMCPPost(w, r)
+// 		case http.MethodGet:
+// 			s.mcpHandler.HandleSSEGet(w, r)
+// 		default:
+// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		}
+// 	})
+
+// 	// Register SSE endpoint if backward compatibility is enabled
+// 	if s.config.BackwardCompatible20241105 {
+// 		mux.HandleFunc(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
+// 		mux.HandleFunc(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+// 	}
+
+// 	// Health check endpoint
+// 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+// 		w.Header().Set("Content-Type", "application/json")
+// 		w.WriteHeader(http.StatusOK)
+// 		_, _ = w.Write([]byte(`{"status":"ok"}`))
+// 	})
+// }
+
 // RegisterHandlers registers MCP handlers on the provided ServeMux
 // This should be called before applying any middleware to the mux
 func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
-	// Register MCP endpoints
-	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
+	// Register MCP endpoints with auth middleware
+	mux.Handle(s.config.HTTP.MCPPath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
 			s.mcpHandler.HandleMCPPost(w, r)
@@ -246,15 +288,15 @@ func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	}))))
 
 	// Register SSE endpoint if backward compatibility is enabled
 	if s.config.BackwardCompatible20241105 {
-		mux.HandleFunc(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
-		mux.HandleFunc(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+		mux.Handle(s.config.HTTP.SSEPath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.mcpHandler.HandleSSEGet))))
+		mux.Handle(s.config.HTTP.MessagePath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.mcpHandler.HandleMessagePost))))
 	}
 
-	// Health check endpoint
+	// Health check endpoint (typically doesn't need auth)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -378,8 +420,6 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 		r.Use(middleware.RequestID)
 		r.Use(middleware.RealIP)
 		r.Use(s.loggingMiddleware)
-		r.Use(s.jsonRpcErrorMiddleware)
-		r.Use(s.authHandlerMiddleware)
 		r.Use(middleware.Recoverer) // Recover from panics
 
 		// CORS middleware if needed
@@ -400,15 +440,34 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 
 	// Main MCP endpoint - handles both POST (for new sessions) and GET (for resuming sessions)
 	r.Route(s.config.HTTP.MCPPath, func(r chi.Router) {
+		r.Use(s.traceHandlerMiddleware)
+		r.Use(s.jsonRpcErrorMiddleware)
+		r.Use(s.authHandlerMiddleware)
 		r.Post("/", s.mcpHandler.HandleMCPPost)
 		r.Get("/", s.mcpHandler.HandleSSEGet)
 	})
 
-	// Optional /messages endpoint for 2024 version client negotiation
 	if s.config.BackwardCompatible20241105 {
-		r.Get(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
-		r.Post(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+		r.Route(s.config.HTTP.SSEPath, func(r chi.Router) {
+			r.Use(s.traceHandlerMiddleware)
+			r.Use(s.jsonRpcErrorMiddleware)
+			r.Use(s.authHandlerMiddleware)
+			r.Get("/", s.mcpHandler.HandleSSEGet)
+		})
+
+		r.Route(s.config.HTTP.MessagePath, func(r chi.Router) {
+			r.Use(s.traceHandlerMiddleware)
+			r.Use(s.jsonRpcErrorMiddleware)
+			r.Use(s.authHandlerMiddleware)
+			r.Post("/", s.mcpHandler.HandleMessagePost)
+		})
 	}
+
+	//// Optional /messages endpoint for 2024 version client negotiation
+	//if s.config.BackwardCompatible20241105 {
+	//	r.Get(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
+	//	r.Post(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+	//}
 
 	// Health check endpoint
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -498,6 +557,24 @@ func (s *McpServer) authHandlerMiddleware(next http.Handler) http.Handler {
 				r = r.WithContext(ctx)
 			}
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *McpServer) traceHandlerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO I think we can actually move this check out to the outer, it's a waste to run every time.
+		var traceId string
+		if s.traceHandler != nil {
+			traceId = s.traceHandler.ExtractTraceId(r)
+		}
+
+		if traceId != "" {
+			traceId = utils.MustGenerateSecureID(20)
+		}
+
+		r = r.WithContext(utils.SetTraceId(r.Context(), traceId))
+
 		next.ServeHTTP(w, r)
 	})
 }

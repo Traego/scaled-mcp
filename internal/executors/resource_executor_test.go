@@ -88,6 +88,10 @@ func (s *TestResourceServerInfo) GetAuthHandler() config.AuthHandler {
 	return nil
 }
 
+func (s *TestResourceServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
 // MockResourceRegistry is a mock implementation of the ResourceRegistry interface
 type MockResourceRegistry struct {
 	resources         map[string][]resources.ResourceContents
