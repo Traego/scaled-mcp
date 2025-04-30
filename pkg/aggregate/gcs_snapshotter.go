@@ -15,9 +15,9 @@ import (
 )
 
 type GCSSnapshotter struct {
-	client     *storage.Client
-	bucketName string
-	basePrefix string
+	client      GCSClientInterface
+	bucketName  string
+	basePrefix  string
 }
 
 func NewGCSSnapshotter(ctx context.Context, bucketName string, basePrefix string) (*GCSSnapshotter, error) {
@@ -25,12 +25,17 @@ func NewGCSSnapshotter(ctx context.Context, bucketName string, basePrefix string
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCS client: %w", err)
 	}
+	
+	adapter := NewGCSClientAdapter(client)
+	return NewGCSSnapshotterWithClient(adapter, bucketName, basePrefix), nil
+}
 
+func NewGCSSnapshotterWithClient(client GCSClientInterface, bucketName string, basePrefix string) *GCSSnapshotter {
 	return &GCSSnapshotter{
 		client:     client,
 		bucketName: bucketName,
 		basePrefix: basePrefix,
-	}, nil
+	}
 }
 
 func (s *GCSSnapshotter) Close() error {
@@ -48,13 +53,13 @@ func (s *GCSSnapshotter) SaveSnapshot(ctx context.Context, streamName string, ag
 	obj := bucket.Object(objectPath)
 
 	w := obj.NewWriter(ctx)
-	w.ContentType = "application/octet-stream"
-	w.Metadata = map[string]string{
+	w.SetContentType("application/octet-stream")
+	w.SetMetadata(map[string]string{
 		"streamName":  streamName,
 		"aggregateID": aggregateID,
 		"version":     strconv.FormatInt(version, 10),
 		"created":     time.Now().UTC().Format(time.RFC3339),
-	}
+	})
 
 	if _, err := w.Write(data); err != nil {
 		w.Close()
