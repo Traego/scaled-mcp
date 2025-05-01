@@ -172,13 +172,13 @@ func TestResourceTemplateProviderInvocation(t *testing.T) {
 			return nil, fmt.Errorf("invalid URI format: %s", uri)
 		}
 		id := parts[2]
-		
+
 		// Convert ID to int for testing error case
 		idNum, err := strconv.Atoi(id)
 		if err != nil {
 			return nil, fmt.Errorf("invalid ID: %s", id)
 		}
-		
+
 		// Return error for specific ID to test error handling
 		if idNum == 999 {
 			return nil, fmt.Errorf("resource not available")
@@ -204,11 +204,16 @@ func TestResourceTemplateProviderInvocation(t *testing.T) {
 	// Test 1: Valid URI
 	testUri := "test/template/123"
 	contents, err := provider(context.Background(), testUri)
+	c, ok := contents[0].(*ResourceContentText)
+	assert.True(t, ok)
+
 	assert.NoError(t, err)
 	assert.Len(t, contents, 1)
-	assert.Equal(t, testUri, contents[0].URI)
-	assert.Equal(t, mimeType, contents[0].MimeType)
-	assert.Equal(t, `{"id": "123", "name": "Resource 123"}`, contents[0].Content)
+	assert.False(t, contents[0].IsBinary())
+	assert.True(t, contents[0].IsText())
+	assert.Equal(t, testUri, c.URI)
+	assert.Equal(t, mimeType, c.MimeType)
+	assert.Equal(t, `{"id": "123", "name": "Resource 123"}`, c.Text)
 	assert.True(t, contents[0].IsText())
 	assert.False(t, contents[0].IsBinary())
 
@@ -235,7 +240,7 @@ func TestBinaryResourceContents(t *testing.T) {
 	providerFunc := func(ctx context.Context, uri string) ([]ResourceContents, error) {
 		// Mock binary data
 		binaryData := []byte{0x89, 0x50, 0x4E, 0x47} // PNG file header
-		
+
 		return []ResourceContents{
 			NewBinaryResourceContents(uri, mimeType, binaryData),
 		}, nil
@@ -250,12 +255,17 @@ func TestBinaryResourceContents(t *testing.T) {
 	// Test binary content
 	testUri := "test/template/image"
 	contents, err := provider(context.Background(), testUri)
-	
+
+	c, ok := contents[0].(ResourceContentBinary)
+	assert.True(t, ok)
+
 	assert.NoError(t, err)
 	assert.Len(t, contents, 1)
-	assert.Equal(t, testUri, contents[0].URI)
-	assert.Equal(t, mimeType, contents[0].MimeType)
-	assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47}, contents[0].Blob)
+	assert.True(t, contents[0].IsBinary())
+	assert.False(t, contents[0].IsText())
+	assert.Equal(t, testUri, c.URI)
+	assert.Equal(t, mimeType, c.MimeType)
+	assert.Equal(t, []byte{0x89, 0x50, 0x4E, 0x47}, c.Blob)
 	assert.False(t, contents[0].IsText())
 	assert.True(t, contents[0].IsBinary())
 }

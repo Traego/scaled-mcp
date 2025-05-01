@@ -25,10 +25,10 @@ func NewTestResourceServerInfo() *TestResourceServerInfo {
 	resourceRegistry := &MockResourceRegistry{
 		resources: map[string][]resources.ResourceContents{
 			"test-resource": {
-				{
+				resources.ResourceContentText{
 					URI:      "test-resource",
 					MimeType: "text/plain",
-					Content:  "This is a test resource",
+					Text:     "This is a test resource",
 				},
 			},
 		},
@@ -255,7 +255,7 @@ func TestResourceExecutor_HandleMethod_Read(t *testing.T) {
 		content := result[0].(map[string]interface{})
 		assert.Equal(t, "test-resource", content["uri"], "URI should match")
 		assert.Equal(t, "text/plain", content["mimeType"], "MIME type should match")
-		assert.Equal(t, "This is a test resource", content["content"], "Content should match")
+		assert.Equal(t, "This is a test resource", content["text"], "Content should match")
 	})
 
 	t.Run("Read Non-Existent Resource", func(t *testing.T) {

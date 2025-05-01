@@ -29,10 +29,10 @@ func TestStaticResourceRegistry(t *testing.T) {
 			return nil, errors.New("resource not found")
 		}
 		return []ResourceContents{
-			{
+			ResourceContentText{
 				URI:      uri,
 				MimeType: "text/plain",
-				Content:  "This is test content",
+				Text:     "This is test content",
 			},
 		}, nil
 	}
@@ -87,6 +87,9 @@ func TestStaticResourceRegistry(t *testing.T) {
 
 		// Read an existing resource
 		contents, err := registry.ReadResource(ctx, resourceURI)
+		_, ok := contents[0].(ResourceContentText)
+		assert.True(t, ok)
+
 		if err != nil {
 			t.Fatalf("Failed to read resource: %v", err)
 		}
@@ -95,12 +98,12 @@ func TestStaticResourceRegistry(t *testing.T) {
 			t.Fatalf("Expected 1 content item, got %d", len(contents))
 		}
 
-		if contents[0].URI != resourceURI {
-			t.Errorf("Expected content URI %q, got %q", resourceURI, contents[0].URI)
+		if contents[0].GetURI() != resourceURI {
+			t.Errorf("Expected content URI %q, got %q", resourceURI, contents[0].GetURI())
 		}
 
-		if contents[0].Content != "This is test content" {
-			t.Errorf("Expected content %q, got %q", "This is test content", contents[0].Content)
+		if contents[0].GetText() != "This is test content" {
+			t.Errorf("Expected content %q, got %q", "This is test content", contents[0].GetText())
 		}
 
 		// Read a non-existent resource
@@ -383,15 +386,15 @@ func TestStaticResourceRegistry_ResourceProvider(t *testing.T) {
 			return nil, errors.New("resource not found")
 		}
 		return []ResourceContents{
-			{
+			ResourceContentText{
 				URI:      uri + "/part1",
 				MimeType: "application/json",
-				Content:  `{"part": 1, "data": "first part"}`,
+				Text:     `{"part": 1, "data": "first part"}`,
 			},
-			{
+			ResourceContentText{
 				URI:      uri + "/part2",
 				MimeType: "application/json",
-				Content:  `{"part": 2, "data": "second part"}`,
+				Text:     `{"part": 2, "data": "second part"}`,
 			},
 		}, nil
 	}
@@ -403,18 +406,21 @@ func TestStaticResourceRegistry_ResourceProvider(t *testing.T) {
 	t.Run("MultipleContents", func(t *testing.T) {
 		ctx := context.Background()
 		contents, err := registry.ReadResource(ctx, resourceURI)
+		c, ok := contents[0].(ResourceContentText)
+		assert.True(t, ok)
+
 		require.NoError(t, err)
 		assert.Len(t, contents, 2, "Should return 2 content items")
 
 		// Check first content
-		assert.Equal(t, resourceURI+"/part1", contents[0].URI)
-		assert.Equal(t, "application/json", contents[0].MimeType)
-		assert.Equal(t, `{"part": 1, "data": "first part"}`, contents[0].Content)
+		assert.Equal(t, resourceURI+"/part1", c.GetURI())
+		assert.Equal(t, "application/json", c.MimeType)
+		assert.Equal(t, `{"part": 1, "data": "first part"}`, c.Text)
 
 		// Check second content
-		assert.Equal(t, resourceURI+"/part2", contents[1].URI)
-		assert.Equal(t, "application/json", contents[1].MimeType)
-		assert.Equal(t, `{"part": 2, "data": "second part"}`, contents[1].Content)
+		assert.Equal(t, resourceURI+"/part2", contents[1].GetURI())
+		assert.Equal(t, "application/json", contents[1].GetMimeType())
+		assert.Equal(t, `{"part": 2, "data": "second part"}`, contents[1].GetText())
 	})
 
 	// Test resource with no provider

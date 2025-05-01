@@ -231,10 +231,10 @@ func registerTextResource(registry *resources.StaticResourceRegistry) {
 	// Register the resource with its provider
 	err := registry.RegisterResource(textResource, func(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
 		return []resources.ResourceContents{
-			{
+			&resources.ResourceContentText{
 				URI:      uri,
 				MimeType: "text/plain",
-				Content:  "This is a sample text resource for the MCP server.",
+				Text:     "This is a sample text resource for the MCP server.",
 			},
 		}, nil
 	})
@@ -268,10 +268,10 @@ func main() {
 	// Register the resource with its provider
 	err := registry.RegisterResource(codeResource, func(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
 		return []resources.ResourceContents{
-			{
+			&resources.ResourceContentText{
 				URI:      uri,
 				MimeType: "text/x-go",
-				Content:  sampleCode,
+				Text:     sampleCode,
 			},
 		}, nil
 	})
@@ -305,10 +305,10 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	// Register the resource with its provider
 	err = registry.RegisterResource(fileResource, func(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
 		return []resources.ResourceContents{
-			{
+			&resources.ResourceContentText{
 				URI:      uri,
 				MimeType: "text/plain",
-				Content:  "This is an client_example text file content.",
+				Text:     "This is an client_example text file content.",
 			},
 		}, nil
 	})
@@ -337,10 +337,10 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	// Register the resource with its provider
 	err = registry.RegisterResource(apiResource, func(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
 		return []resources.ResourceContents{
-			{
+			&resources.ResourceContentText{
 				URI:      uri,
 				MimeType: "application/json",
-				Content:  `{"users": [{"id": 1, "name": "John Doe"}, {"id": 2, "name": "Jane Smith"}]}`,
+				Text:     `{"users": [{"id": 1, "name": "John Doe"}, {"id": 2, "name": "Jane Smith"}]}`,
 			},
 		}, nil
 	})
@@ -369,10 +369,10 @@ func registerResourceTemplates(registry *resources.StaticResourceRegistry) {
 	// Register the resource with its provider
 	err = registry.RegisterResource(docsResource, func(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
 		return []resources.ResourceContents{
-			{
+			&resources.ResourceContentText{
 				URI:      uri,
 				MimeType: "text/markdown",
-				Content:  "# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```",
+				Text:     "# Getting Started with MCP Server\n\nThis guide will help you get started with the MCP server.\n\n## Installation\n\n```go\ngo get github.com/traego/scaled-mcp\n```\n\n## Basic Usage\n\nCreate a new server with default configuration:\n\n```go\nserver, err := server.NewMcpServer(config.DefaultConfig())\n```",
 			},
 		}, nil
 	})
