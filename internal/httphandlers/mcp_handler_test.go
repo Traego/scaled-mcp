@@ -338,15 +338,7 @@ func (m *mockAuthHandler) Deserialize(b []byte) (auth.AuthInfo, error) {
 	return &mockAuthInfo{}, nil
 }
 
-type mockMethodHandler struct{}
 
-func (m *mockMethodHandler) CanHandleMethod(method string) bool {
-	return false
-}
-
-func (m *mockMethodHandler) HandleMethod(ctx context.Context, method string, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
-	return nil, nil
-}
 
 type errorReader struct{}
 
