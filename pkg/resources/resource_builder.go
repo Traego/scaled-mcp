@@ -1,5 +1,9 @@
 package resources
 
+import (
+	"context"
+)
+
 // ResourceBuilder is a builder for creating resources
 type ResourceBuilder struct {
 	resource Resource
@@ -8,7 +12,11 @@ type ResourceBuilder struct {
 // ResourceTemplateBuilder is a builder for creating resource templates
 type ResourceTemplateBuilder struct {
 	template ResourceTemplate
+	provider ResourceTemplateProvider
 }
+
+// ResourceTemplateProvider is a function that provides resource contents for a given URI that matches a template
+type ResourceTemplateProvider func(ctx context.Context, uri string) ([]ResourceContents, error)
 
 // NewResource creates a new resource builder
 func NewResource(uri string, name string) *ResourceBuilder {
@@ -65,7 +73,19 @@ func (b *ResourceTemplateBuilder) WithMimeType(mimeType string) *ResourceTemplat
 	return b
 }
 
+// WithProvider sets the provider function for the resource template
+func (b *ResourceTemplateBuilder) WithProvider(provider ResourceTemplateProvider) *ResourceTemplateBuilder {
+	b.provider = provider
+	return b
+}
+
 // Build builds the resource template
+// This method is kept for backward compatibility
 func (b *ResourceTemplateBuilder) Build() ResourceTemplate {
 	return b.template
+}
+
+// BuildWithProvider builds the resource template and returns both the template and its provider function
+func (b *ResourceTemplateBuilder) BuildWithProvider() (ResourceTemplate, ResourceTemplateProvider) {
+	return b.template, b.provider
 }

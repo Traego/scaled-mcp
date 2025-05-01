@@ -11,11 +11,56 @@ var (
 )
 
 // ResourceContents represents the contents of a resource
+// It can contain either text or binary data as per the MCP specification
 type ResourceContents struct {
 	URI      string `json:"uri"`
 	MimeType string `json:"mimeType,omitempty"`
-	Content  string `json:"content,omitempty"`
-	Blob     []byte `json:"blob,omitempty"`
+	// Content is used for backward compatibility with existing code
+	// When serialized to JSON, it maps to the "text" field according to MCP spec
+	Content string `json:"text,omitempty"`
+	// Text is used for MCP spec alignment and is not used for serialization
+	Text    string
+	// For binary content (base64 encoded)
+	Blob []byte `json:"blob,omitempty"`
+}
+
+// NewTextResourceContents creates a new text resource contents
+func NewTextResourceContents(uri string, mimeType string, text string) ResourceContents {
+	return ResourceContents{
+		URI:      uri,
+		MimeType: mimeType,
+		Content:  text,
+		Text:     text,
+	}
+}
+
+// NewBinaryResourceContents creates a new binary resource contents
+func NewBinaryResourceContents(uri string, mimeType string, blob []byte) ResourceContents {
+	return ResourceContents{
+		URI:      uri,
+		MimeType: mimeType,
+		Blob:     blob,
+	}
+}
+
+// IsText returns true if the resource contains text content
+func (r ResourceContents) IsText() bool {
+	return r.Content != ""
+}
+
+// IsBinary returns true if the resource contains binary content
+func (r ResourceContents) IsBinary() bool {
+	return len(r.Blob) > 0
+}
+
+// GetURI returns the URI of the resource
+func (r ResourceContents) GetURI() string {
+	return r.URI
+}
+
+// GetMimeType returns the MIME type of the resource
+func (r ResourceContents) GetMimeType() string {
+	return r.MimeType
 }
 
 // Resource represents an MCP resource definition
