@@ -14,7 +14,6 @@ import (
 	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/auth"
 	"github.com/traego/scaled-mcp/pkg/config"
-	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
 )
