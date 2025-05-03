@@ -1,0 +1,32 @@
+baseURL: https://scaledmcp.com/
+languageCode: en-us
+title: Scaled MCP - Horizontally Scalable Message Context Protocol
+theme: book
+
+# Book theme parameters
+params:
+  # Theme
+  BookTheme: "auto"
+  BookToC: true
+  BookSection: "docs"
+  BookRepo: "https://github.com/traego/scaled-mcp"
+  BookHomeText: "Home"
+  BookMenuBundle: "/menu"
+  
+  # SEO
+  description: "Documentation for the Go library implementations of the MCP (Message Context Protocol) specification"
+  author: Traego
+  BookComments: false
+  BookPortableLinks: true
+  BookSearch: true
+  BookServiceWorker: true
+  
+# Markup configuration
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  
+# Ignore logs for HTML warnings
+ignoreLogs:
+  - 'warning-goldmark-raw-html'

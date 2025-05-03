@@ -5,3 +5,21 @@ go.work.sum
 coverage.out
 coverage.txt
 vendor
+
+# Hugo build files
+scaledmcp-site/public/
+scaledmcp-site/resources/_gen/
+scaledmcp-site/.hugo_build.lock
+scaledmcp-site/hugo_stats.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node modules (for Hugo themes that use npm)
+node_modules/

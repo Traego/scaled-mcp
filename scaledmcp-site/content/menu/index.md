@@ -1,0 +1,22 @@
+---
+headless: true
+---
+
+- [**Overview**]({{< relref "/" >}})
+- [**Getting Started**]({{< relref "/docs/getting-started" >}})
+- **Core Concepts**
+  - [Architecture]({{< relref "/docs/concepts" >}})
+  - [Tools]({{< relref "/docs/concepts/tools" >}})
+  - [Sessions]({{< relref "/docs/concepts/sessions" >}})
+  - [Actor System]({{< relref "/docs/concepts/actors" >}})
+- **Examples**
+  - [Minimal Server]({{< relref "/docs/examples/minimal-server" >}})
+  - [Static Tool Server]({{< relref "/docs/examples/static-tool-server" >}})
+  - [Dynamic Tool Server]({{< relref "/docs/examples/dynamic-tool-server" >}})
+  - [External HTTP Server]({{< relref "/docs/examples/external-http-server" >}})
+  - [Clustered Server]({{< relref "/docs/examples/clustered-server" >}})
+- [**API Reference**]({{< relref "/docs/reference" >}})
+- [**About**]({{< relref "/about" >}})
+- **External Links**
+  - [GitHub Repository](https://github.com/traego/scaled-mcp)
+  - [GoDoc Reference](https://pkg.go.dev/github.com/traego/scaled-mcp)

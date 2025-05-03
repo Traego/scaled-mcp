@@ -1,0 +1,3 @@
+[submodule "scaledmcp-site/themes/book"]
+	path = scaledmcp-site/themes/book
+	url = https://github.com/alex-shpak/hugo-book
