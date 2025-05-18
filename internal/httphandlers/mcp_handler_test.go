@@ -178,7 +178,7 @@ func TestHandleError(t *testing.T) {
 		assert.Equal(t, "2.0", responseMessage.JSONRPC)
 		assert.Equal(t, float64(1), responseMessage.ID)
 		assert.NotNil(t, responseMessage.Error)
-		
+
 		errorMap, ok := responseMessage.Error.(map[string]interface{})
 		require.True(t, ok, "Error should be a map")
 		assert.Equal(t, float64(protocol.ErrInvalidParams), errorMap["code"])
@@ -205,7 +205,7 @@ func TestHandleError(t *testing.T) {
 		assert.Equal(t, "2.0", responseMessage.JSONRPC)
 		assert.Equal(t, float64(1), responseMessage.ID)
 		assert.NotNil(t, responseMessage.Error)
-		
+
 		errorMap, ok := responseMessage.Error.(map[string]interface{})
 		require.True(t, ok, "Error should be a map")
 		assert.Equal(t, float64(protocol.ErrInvalidParams), errorMap["code"])
@@ -228,14 +228,13 @@ func TestHandleError(t *testing.T) {
 		assert.Equal(t, "2.0", responseMessage.JSONRPC)
 		assert.Equal(t, float64(1), responseMessage.ID)
 		assert.NotNil(t, responseMessage.Error)
-		
+
 		errorMap, ok := responseMessage.Error.(map[string]interface{})
 		require.True(t, ok, "Error should be a map")
 		assert.Equal(t, float64(protocol.ErrInternal), errorMap["code"])
 		assert.Equal(t, "Internal error: regular error", errorMap["message"])
 	})
 }
-
 
 type mockServerInfo struct{}
 
@@ -336,8 +335,6 @@ func (m *mockAuthHandler) Serialize(auth auth.AuthInfo) ([]byte, error) {
 func (m *mockAuthHandler) Deserialize(b []byte) (auth.AuthInfo, error) {
 	return &mockAuthInfo{}, nil
 }
-
-
 
 type errorReader struct{}
 

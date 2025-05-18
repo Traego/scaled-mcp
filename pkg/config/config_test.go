@@ -40,7 +40,7 @@ func TestTestConfig(t *testing.T) {
 	assert.NotNil(t, cfg)
 	assert.Nil(t, cfg.Redis)
 	assert.True(t, cfg.Session.UseInMemory)
-	
+
 	defaultCfg := DefaultConfig()
 	assert.Equal(t, defaultCfg.HTTP, cfg.HTTP)
 	assert.Equal(t, defaultCfg.Actor, cfg.Actor)

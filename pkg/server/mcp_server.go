@@ -33,14 +33,14 @@ import (
 
 // McpServer represents an MCP server
 type McpServer struct {
-	// Configuration
+	Handlers *httphandlers.MCPHandler
+
 	config             *config.ServerConfig
 	actorSystem        actor.ActorSystem
 	actorMutex         sync.Mutex
 	serverCapabilities protocol.ServerCapabilities
 	enableSSE          bool
 	httpServer         *http.Server
-	mcpHandler         *httphandlers.MCPHandler
 	featureRegistry    resources.FeatureRegistry
 	executors          *executors.Executors
 
@@ -238,7 +238,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 	}
 
 	// Create the MCP handler
-	server.mcpHandler = httphandlers.NewMCPHandler(cfg, actorSystem, server)
+	server.Handlers = httphandlers.NewMCPHandler(cfg, actorSystem, server)
 
 	// Create the internal handler
 	server.internalHandler = server.createHTTPHandler()
@@ -253,9 +253,9 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 // 	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
 // 		switch r.Method {
 // 		case http.MethodPost:
-// 			s.mcpHandler.HandleMCPPost(w, r)
+// 			s.Handlers.HandleMCPPost(w, r)
 // 		case http.MethodGet:
-// 			s.mcpHandler.HandleSSEGet(w, r)
+// 			s.Handlers.HandleSSEGet(w, r)
 // 		default:
 // 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 // 		}
@@ -263,8 +263,8 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 
 // 	// Register SSE endpoint if backward compatibility is enabled
 // 	if s.config.BackwardCompatible20241105 {
-// 		mux.HandleFunc(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
-// 		mux.HandleFunc(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+// 		mux.HandleFunc(s.config.HTTP.SSEPath, s.Handlers.HandleSSEGet)
+// 		mux.HandleFunc(s.config.HTTP.MessagePath, s.Handlers.HandleMessagePost)
 // 	}
 
 // 	// Health check endpoint
@@ -282,9 +282,9 @@ func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 	mux.Handle(s.config.HTTP.MCPPath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost:
-			s.mcpHandler.HandleMCPPost(w, r)
+			s.Handlers.HandleMCPPost(w, r)
 		case http.MethodGet:
-			s.mcpHandler.HandleSSEGet(w, r)
+			s.Handlers.HandleSSEGet(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -292,8 +292,8 @@ func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 
 	// Register SSE endpoint if backward compatibility is enabled
 	if s.config.BackwardCompatible20241105 {
-		mux.Handle(s.config.HTTP.SSEPath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.mcpHandler.HandleSSEGet))))
-		mux.Handle(s.config.HTTP.MessagePath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.mcpHandler.HandleMessagePost))))
+		mux.Handle(s.config.HTTP.SSEPath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleSSEGet))))
+		mux.Handle(s.config.HTTP.MessagePath, s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMessagePost))))
 	}
 
 	// Health check endpoint (typically doesn't need auth)
@@ -443,8 +443,8 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 		r.Use(s.traceHandlerMiddleware)
 		r.Use(s.jsonRpcErrorMiddleware)
 		r.Use(s.authHandlerMiddleware)
-		r.Post("/", s.mcpHandler.HandleMCPPost)
-		r.Get("/", s.mcpHandler.HandleSSEGet)
+		r.Post("/", s.Handlers.HandleMCPPost)
+		r.Get("/", s.Handlers.HandleSSEGet)
 	})
 
 	if s.config.BackwardCompatible20241105 {
@@ -452,21 +452,21 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 			r.Use(s.traceHandlerMiddleware)
 			r.Use(s.jsonRpcErrorMiddleware)
 			r.Use(s.authHandlerMiddleware)
-			r.Get("/", s.mcpHandler.HandleSSEGet)
+			r.Get("/", s.Handlers.HandleSSEGet)
 		})
 
 		r.Route(s.config.HTTP.MessagePath, func(r chi.Router) {
 			r.Use(s.traceHandlerMiddleware)
 			r.Use(s.jsonRpcErrorMiddleware)
 			r.Use(s.authHandlerMiddleware)
-			r.Post("/", s.mcpHandler.HandleMessagePost)
+			r.Post("/", s.Handlers.HandleMessagePost)
 		})
 	}
 
 	//// Optional /messages endpoint for 2024 version client negotiation
 	//if s.config.BackwardCompatible20241105 {
-	//	r.Get(s.config.HTTP.SSEPath, s.mcpHandler.HandleSSEGet)
-	//	r.Post(s.config.HTTP.MessagePath, s.mcpHandler.HandleMessagePost)
+	//	r.Get(s.config.HTTP.SSEPath, s.Handlers.HandleSSEGet)
+	//	r.Post(s.config.HTTP.MessagePath, s.Handlers.HandleMessagePost)
 	//}
 
 	// Health check endpoint
