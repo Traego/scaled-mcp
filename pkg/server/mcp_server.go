@@ -455,7 +455,11 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 	// Register MCP routes on the router (whether provided or created)
 
 	// Main MCP endpoint - handles both POST (for new sessions) and GET (for resuming sessions)
-	r.Route(s.config.HTTP.MCPPath, func(r chi.Router) {
+	mcpPath := s.config.HTTP.MCPPath
+	if mcpPath == "" {
+		mcpPath = "/mcp"
+	}
+	r.Route(mcpPath, func(r chi.Router) {
 		r.Use(s.traceHandlerMiddleware)
 		r.Use(s.jsonRpcErrorMiddleware)
 		r.Use(s.authHandlerMiddleware)
@@ -464,14 +468,22 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 	})
 
 	if s.config.BackwardCompatible20241105 {
-		r.Route(s.config.HTTP.SSEPath, func(r chi.Router) {
+		ssePath := s.config.HTTP.SSEPath
+		if ssePath == "" {
+			ssePath = "/sse"
+		}
+		r.Route(ssePath, func(r chi.Router) {
 			r.Use(s.traceHandlerMiddleware)
 			r.Use(s.jsonRpcErrorMiddleware)
 			r.Use(s.authHandlerMiddleware)
 			r.Get("/", s.Handlers.HandleSSEGet)
 		})
 
-		r.Route(s.config.HTTP.MessagePath, func(r chi.Router) {
+		messagePath := s.config.HTTP.MessagePath
+		if messagePath == "" {
+			ssePath = "/messages"
+		}
+		r.Route(messagePath, func(r chi.Router) {
 			r.Use(s.traceHandlerMiddleware)
 			r.Use(s.jsonRpcErrorMiddleware)
 			r.Use(s.authHandlerMiddleware)
