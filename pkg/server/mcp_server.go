@@ -87,6 +87,22 @@ func (s *McpServer) GetActorSystem() actor.ActorSystem {
 	return s.actorSystem
 }
 
+func (s *McpServer) HandleMCPGetExternal() http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMCPGet)))
+}
+
+func (s *McpServer) HandleMCPPostExternal() http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMCPPost)))
+}
+
+func (s *McpServer) HandleSSEGetExternal() http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleSSEGet)))
+}
+
+func (s *McpServer) HandleMessagePostExternal() http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMessagePost)))
+}
+
 var _ config.McpServerInfo = (*McpServer)(nil)
 
 // McpServerOption represents an option for the MCP server
@@ -246,7 +262,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 	return server, nil
 }
 
-// // RegisterHandlers registers MCP handlers on the provided ServeMux
+// // RegisterHandlers registers MCP Handlers on the provided ServeMux
 // // This should be called before applying any middleware to the mux
 // func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 // 	// Register MCP endpoints
@@ -275,7 +291,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 // 	})
 // }
 
-// RegisterHandlers registers MCP handlers on the provided ServeMux
+// RegisterHandlers registers MCP Handlers on the provided ServeMux
 // This should be called before applying any middleware to the mux
 func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 	// Register MCP endpoints with auth middleware
@@ -312,12 +328,12 @@ func (s *McpServer) Start(ctx context.Context) error {
 	// Handle server creation/configuration
 	if s.httpServer != nil {
 		// User provided a server
-		// Check if we can auto-register handlers on the mux
+		// Check if we can auto-register Handlers on the mux
 		if s.httpServer.Handler != nil {
 			if mux, ok := s.httpServer.Handler.(*http.ServeMux); ok {
-				// Auto-register handlers on the mux
+				// Auto-register Handlers on the mux
 				s.RegisterHandlers(mux)
-				slog.InfoContext(ctx, "Automatically registered MCP handlers on provided ServeMux")
+				slog.InfoContext(ctx, "Automatically registered MCP Handlers on provided ServeMux")
 			}
 		}
 		s.createdServer = false

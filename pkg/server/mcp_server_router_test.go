@@ -17,7 +17,7 @@ import (
 )
 
 // TestMcpServerWithRouter tests the pattern where the user provides their own chi router
-// The MCP server will register handlers on the router and create/start its own HTTP server
+// The MCP server will register Handlers on the router and create/start its own HTTP server
 func TestMcpServerWithRouter(t *testing.T) {
 	ctx := context.Background()
 
