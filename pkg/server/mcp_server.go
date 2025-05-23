@@ -481,7 +481,7 @@ func (s *McpServer) createHTTPHandler() http.Handler {
 
 		messagePath := s.config.HTTP.MessagePath
 		if messagePath == "" {
-			ssePath = "/messages"
+			messagePath = "/messages"
 		}
 		r.Route(messagePath, func(r chi.Router) {
 			r.Use(s.traceHandlerMiddleware)
