@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (h *MCPHandler) SSEGetWithRoot(baseUrl string) http.HandlerFunc {
+func (h *MCPHandler) SSEGetWithBaseUrl(baseUrl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.SSEGetFunc(w, r, baseUrl)
 	}
