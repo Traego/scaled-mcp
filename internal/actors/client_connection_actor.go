@@ -35,12 +35,12 @@ type ClientConnectionActor struct {
 	sendEndpoint         bool
 	connectionId         string
 	defaultSseConnection bool
-	baseUrl              string
+	basePath             string
 }
 
 // NewClientConnectionActor creates a new actor for handling client connections
 // It supports both one-way (SSE) and two-way communication with clients
-func NewClientConnectionActor(cfg *config.ServerConfig, sessionId string, params *protocol.InitializeParams, channel channels.OneWayChannel, sendEndpoint bool, defaultSseConnection bool, baseUrl string) actor.Actor {
+func NewClientConnectionActor(cfg *config.ServerConfig, sessionId string, params *protocol.InitializeParams, channel channels.OneWayChannel, sendEndpoint bool, defaultSseConnection bool, basePath string) actor.Actor {
 	// I think here we actually need to do the negotiation, so that we can either start with one way or two way comms
 
 	// TODO(arsene): this is a bit of a hack, we need to pass a logger in the constructor
@@ -52,7 +52,7 @@ func NewClientConnectionActor(cfg *config.ServerConfig, sessionId string, params
 		channel:              channel,
 		sendEndpoint:         sendEndpoint,
 		defaultSseConnection: defaultSseConnection,
-		baseUrl:              baseUrl,
+		basePath:             basePath,
 	}
 }
 
@@ -114,9 +114,9 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 			// Ok this is even more complex - this c.cfg is supplied from the client. So, if they hand in an invalid
 			// protocol, I have to still start the sse session. Anywhere, this something not quite right here
 			if c.cfg.ProtocolVersion == protocol.ProtocolVersion20250326 {
-				messageEndpoint = fmt.Sprintf("%s%s?sessionId=%s", c.baseUrl, c.cfg.HTTP.MCPPath, c.sessionId)
+				messageEndpoint = fmt.Sprintf("%s%s?sessionId=%s", c.basePath, c.cfg.HTTP.MCPPath, c.sessionId)
 			} else {
-				messageEndpoint = fmt.Sprintf("%s%s?sessionId=%s", c.baseUrl, c.cfg.HTTP.MessagePath, c.sessionId)
+				messageEndpoint = fmt.Sprintf("%s%s?sessionId=%s", c.basePath, c.cfg.HTTP.MessagePath, c.sessionId)
 			}
 
 			// Send the endpoint event

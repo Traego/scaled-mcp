@@ -8,9 +8,9 @@ import (
 	"net/http"
 )
 
-func (h *MCPHandler) SSEGetWithBaseUrl(baseUrl string) http.HandlerFunc {
+func (h *MCPHandler) SSEGetWithBasePath(basePath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h.SSEGetFunc(w, r, baseUrl)
+		h.SSEGetFunc(w, r, basePath)
 	}
 }
 
@@ -19,7 +19,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	h.SSEGetFunc(w, r, "")
 }
 
-func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, baseUrl string) {
+func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath string) {
 	// I think this is easy...spin up the death watcher, spin up the connection watcher, wait for death to come
 	ctx := r.Context() // TODO Add logging details around these
 
@@ -40,7 +40,7 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, baseUrl 
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
-	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, baseUrl)
+	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, basePath)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
