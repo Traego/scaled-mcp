@@ -8,8 +8,18 @@ import (
 	"net/http"
 )
 
+func (h *MCPHandler) SSEGetWithRoot(baseUrl string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h.SSEGetFunc(w, r, baseUrl)
+	}
+}
+
 // This is backwards compatibility for 2024 SSE sessions, for server to client messages
 func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
+	h.SSEGetFunc(w, r, "")
+}
+
+func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, baseUrl string) {
 	// I think this is easy...spin up the death watcher, spin up the connection watcher, wait for death to come
 	ctx := r.Context() // TODO Add logging details around these
 
@@ -30,7 +40,7 @@ func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
-	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true)
+	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, baseUrl)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {

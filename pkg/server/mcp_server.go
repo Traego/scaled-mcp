@@ -95,7 +95,7 @@ func (s *McpServer) HandleMCPPostExternal() http.Handler {
 	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMCPPost)))
 }
 
-func (s *McpServer) HandleSSEGetExternal() http.Handler {
+func (s *McpServer) HandleSSEGetExternal(httpRoot string) http.Handler {
 	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleSSEGet)))
 }
 

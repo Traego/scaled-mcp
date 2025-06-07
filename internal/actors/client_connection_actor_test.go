@@ -211,6 +211,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true, // defaultSseConnection = true
+			"",
 		)
 
 		// Spawn the actor
@@ -244,6 +245,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			false, // defaultSseConnection = false
+			"",
 		)
 
 		// Spawn the actor
@@ -276,6 +278,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -316,6 +319,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -363,6 +367,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -401,6 +406,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			false, // Don't send endpoint
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -463,6 +469,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			false,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -506,6 +513,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -561,6 +569,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor
@@ -610,6 +619,7 @@ func TestClientConnectionActor(t *testing.T) {
 			channel,
 			true,
 			true,
+			"",
 		)
 
 		// Spawn the actor

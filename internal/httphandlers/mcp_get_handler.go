@@ -29,7 +29,7 @@ func (h *MCPHandler) HandleMCPGet(w http.ResponseWriter, r *http.Request) {
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r)
 
-	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, false)
+	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, false, "")
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
