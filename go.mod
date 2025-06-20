@@ -1,6 +1,6 @@
 module github.com/traego/scaled-mcp
 
-go 1.24.2
+go 1.24.4
 
 require (
 	disorder.dev/shandler v0.0.0-20250411134702-523d18ddef40

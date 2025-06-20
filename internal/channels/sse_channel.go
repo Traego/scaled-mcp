@@ -14,12 +14,22 @@ type SSEChannel struct {
 }
 
 // NewSSEChannel creates a new SSE channel from an HTTP response writer and request
-func NewSSEChannel(w http.ResponseWriter, r *http.Request) *SSEChannel {
+func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string) *SSEChannel {
 	// Set up SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Expose-Headers", "Content-Type")
+
+	// Set a secure, HTTP-only cookie containing the session ID so reconnect handlers can retrieve it.
+	http.SetCookie(w, &http.Cookie{
+		Name:     "mcp_session_id",
+		Value:    sessionId,
+		Path:     "/",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	// Write the HTTP status before any data is written
 	w.WriteHeader(http.StatusOK)
