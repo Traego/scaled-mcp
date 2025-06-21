@@ -289,3 +289,186 @@ func TestRegisterStructToolWithHandler(t *testing.T) {
 		t.Errorf("Result age = %v, want %v", resultMap["age"], 25)
 	}
 }
+
+func TestStructHelpers(t *testing.T) {
+	registry := NewStaticToolRegistry()
+
+	handler := func(ctx context.Context, input *SimpleStruct) (interface{}, error) {
+		return map[string]interface{}{
+			"message": "Hello " + input.Name,
+		}, nil
+	}
+
+	err := RegisterStructTool(registry, "test-helper", "Test helper function", handler)
+	if err != nil {
+		t.Fatalf("RegisterStructTool() error = %v", err)
+	}
+
+	tool, err := registry.GetTool(context.Background(), "test-helper")
+	if err != nil {
+		t.Fatalf("GetTool() error = %v", err)
+	}
+
+	if tool.Name != "test-helper" {
+		t.Errorf("Tool name = %v, want %v", tool.Name, "test-helper")
+	}
+
+	MustRegisterStructTool(registry, "must-test", "Must test function", handler)
+
+	mustTool, err := registry.GetTool(context.Background(), "must-test")
+	if err != nil {
+		t.Fatalf("GetTool() for must tool error = %v", err)
+	}
+
+	if mustTool.Name != "must-test" {
+		t.Errorf("Must tool name = %v, want %v", mustTool.Name, "must-test")
+	}
+}
+
+func TestDefaultValueParsing(t *testing.T) {
+	type DefaultStruct struct {
+		StringField  string  `mcp:"str,String field,default=hello"`
+		IntField     int     `mcp:"int,Int field,default=42"`
+		FloatField   float64 `mcp:"float,Float field,default=3.14"`
+		BoolField    bool    `mcp:"bool,Bool field,default=true"`
+		UintField    uint    `mcp:"uint,Uint field,default=100"`
+		InvalidField string  `mcp:"invalid,Invalid field,default=invalid_int"`
+	}
+
+	structType := reflect.TypeOf(DefaultStruct{})
+	schema, err := GenerateSchemaFromStruct(structType)
+	if err != nil {
+		t.Fatalf("GenerateSchemaFromStruct() error = %v", err)
+	}
+
+	tests := []struct {
+		fieldName string
+		expected  interface{}
+	}{
+		{"str", "hello"},
+		{"int", int64(42)},
+		{"float", 3.14},
+		{"bool", true},
+		{"uint", uint64(100)},
+		{"invalid", "invalid_int"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.fieldName, func(t *testing.T) {
+			prop, exists := schema.Properties[tt.fieldName]
+			if !exists {
+				t.Fatalf("Property %s not found", tt.fieldName)
+			}
+			if prop.Default != tt.expected {
+				t.Errorf("Default value for %s = %v, want %v", tt.fieldName, prop.Default, tt.expected)
+			}
+		})
+	}
+}
+
+func TestComplexUnmarshaling(t *testing.T) {
+	type PointerStruct struct {
+		Name     *string `mcp:"name,Name field"`
+		Age      *int    `mcp:"age,Age field"`
+		Optional *bool   `mcp:"optional,Optional field"`
+	}
+
+	tests := []struct {
+		name     string
+		params   map[string]interface{}
+		target   interface{}
+		expected interface{}
+		wantErr  bool
+	}{
+		{
+			name: "Pointer fields",
+			params: map[string]interface{}{
+				"name": "John",
+				"age":  float64(30),
+			},
+			target: &PointerStruct{},
+			expected: &PointerStruct{
+				Name: stringPtr("John"),
+				Age:  intPtr(30),
+			},
+			wantErr: false,
+		},
+		{
+			name:    "Non-pointer target",
+			params:  map[string]interface{}{},
+			target:  SimpleStruct{},
+			wantErr: true,
+		},
+		{
+			name:    "Non-struct target",
+			params:  map[string]interface{}{},
+			target:  stringPtr("test"),
+			wantErr: true,
+		},
+		{
+			name: "Type conversion errors",
+			params: map[string]interface{}{
+				"name": 123,
+				"age":  "not_a_number",
+			},
+			target:  &SimpleStruct{},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := UnmarshalParams(tt.params, tt.target)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UnmarshalParams() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.expected != nil {
+				targetValue := reflect.ValueOf(tt.target).Elem()
+				expectedValue := reflect.ValueOf(tt.expected).Elem()
+
+				if !reflect.DeepEqual(targetValue.Interface(), expectedValue.Interface()) {
+					t.Errorf("UnmarshalParams() result = %+v, want %+v", targetValue.Interface(), expectedValue.Interface())
+				}
+			}
+		})
+	}
+}
+
+func TestUnsupportedTypes(t *testing.T) {
+	type UnsupportedStruct struct {
+		Channel chan int `mcp:"channel,Channel field"`
+	}
+
+	structType := reflect.TypeOf(UnsupportedStruct{})
+	_, err := GenerateSchemaFromStruct(structType)
+	if err == nil {
+		t.Error("Expected error for unsupported type, got nil")
+	}
+}
+
+func TestErrorCases(t *testing.T) {
+	t.Run("Non-struct type", func(t *testing.T) {
+		_, err := GenerateSchemaFromStruct(reflect.TypeOf("string"))
+		if err == nil {
+			t.Error("Expected error for non-struct type, got nil")
+		}
+	})
+
+	t.Run("Nil pointer type", func(t *testing.T) {
+		var ptr *SimpleStruct
+		_, err := GenerateSchemaFromStruct(reflect.TypeOf(ptr))
+		if err != nil {
+			t.Errorf("Unexpected error for pointer type: %v", err)
+		}
+	})
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+func intPtr(i int) *int {
+	return &i
+}
