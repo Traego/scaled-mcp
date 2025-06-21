@@ -666,9 +666,12 @@ func TestMustRegisterStructToolPanic(t *testing.T) {
 		InputSchema: protocol.InputSchema{Type: "object"},
 	}
 
-	registry.RegisterTool(tool, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+	err := registry.RegisterTool(tool, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 		return nil, nil
 	})
+	if err != nil {
+		t.Fatalf("Failed to register initial tool: %v", err)
+	}
 
 	defer func() {
 		if r := recover(); r == nil {
