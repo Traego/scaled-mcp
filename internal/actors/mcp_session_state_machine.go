@@ -13,6 +13,7 @@ import (
 	"github.com/tochemey/goakt/v3/goaktpb"
 
 	"github.com/traego/scaled-mcp/pkg/config"
+	mcpcontext "github.com/traego/scaled-mcp/pkg/context"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/utils"
@@ -51,6 +52,9 @@ type SessionData struct {
 
 	// Flag to track if the session is initialized
 	ClientNotificationsInitialized bool
+
+	// Elicitation data storage for long-lived session data
+	ElicitationData map[string]interface{}
 }
 
 // NewMcpSessionStateMachine creates a new MCP session state machine actor
@@ -74,6 +78,7 @@ func NewMcpSessionStateMachine(serverInfo config.McpServerInfo, sessionID string
 		SessionTimeout:                 sessionTimeout,
 		ClientConnectionActors:         make(map[string]*actor.PID),
 		ClientNotificationsInitialized: false,
+		ElicitationData:                make(map[string]interface{}),
 	}
 
 	// Create state machine starting in uninitialized state
@@ -377,6 +382,18 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	sessionData.ProtocolVersion = params.ProtocolVersion
 	sessionData.ClientInfo = params.ClientInfo
 	sessionData.LastActivity = time.Now()
+
+	// Initialize elicitation data storage
+	if sessionData.ElicitationData == nil {
+		sessionData.ElicitationData = make(map[string]interface{})
+	}
+
+	if callback := sessionData.ServerInfo.GetSessionStartupCallback(); callback != nil {
+		mcpCtx := mcpcontext.NewMcpContext(sessionData.SessionID, nil, ctx)
+		if err := callback(mcpCtx); err != nil {
+			slog.ErrorContext(ctx, "Session startup callback failed", "session_id", sessionData.SessionID, "error", err)
+		}
+	}
 
 	// Create the result
 	result := protocol.InitializeResult{

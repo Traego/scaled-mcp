@@ -87,6 +87,10 @@ func (s *TestPromptServerInfo) GetTraceHandler() config.TraceHandler {
 	return nil
 }
 
+func (s *TestPromptServerInfo) GetSessionStartupCallback() config.SessionStartupCallback {
+	return nil
+}
+
 // MockPromptRegistry is a mock implementation of the PromptRegistry interface
 type MockPromptRegistry struct {
 	prompts map[string]resources.Prompt
