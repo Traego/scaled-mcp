@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/traego/scaled-mcp/pkg/protocol"
+	"os"
 	"time"
 )
 
@@ -43,6 +44,8 @@ type ServerConfig struct {
 	ServerCapabilities protocol.ServerCapabilities `json:"server_capabilities"`
 
 	RequestTimeout time.Duration `json:"request_timeout"`
+
+	Telemetry *TelemetryConfig `json:"telemetry"`
 }
 
 // ServerInfo holds information about the server
@@ -223,7 +226,33 @@ func DefaultConfig() *ServerConfig {
 			Prompts:   &protocol.PromptsServerCapability{},
 			Resources: &protocol.ResourcesServerCapability{},
 		},
+		Telemetry: DefaultTelemetryConfig(),
 	}
+}
+
+type TelemetryConfig struct {
+	ServiceName    string `json:"service_name"`
+	ServiceVersion string `json:"service_version"`
+	ExporterType   string `json:"exporter_type"`
+	OTLPEndpoint   string `json:"otlp_endpoint"`
+	Enabled        bool   `json:"enabled"`
+}
+
+func DefaultTelemetryConfig() *TelemetryConfig {
+	return &TelemetryConfig{
+		ServiceName:    getEnvOrDefault("OTEL_SERVICE_NAME", "scaled-mcp-server"),
+		ServiceVersion: getEnvOrDefault("OTEL_SERVICE_VERSION", "1.0.0"),
+		ExporterType:   getEnvOrDefault("OTEL_EXPORTER_TYPE", "stdout"),
+		OTLPEndpoint:   getEnvOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318"),
+		Enabled:        getEnvOrDefault("OTEL_ENABLED", "true") == "true",
+	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // TestConfig returns a configuration suitable for testing

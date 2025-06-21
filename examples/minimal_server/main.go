@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -25,7 +26,13 @@ func main() {
 	cfg.BackwardCompatible20241105 = true
 
 	// Customize configuration if needed
-	cfg.HTTP.Port = 9985
+	port := 9985
+	if portEnv := os.Getenv("PORT"); portEnv != "" {
+		if p, err := strconv.Atoi(portEnv); err == nil {
+			port = p
+		}
+	}
+	cfg.HTTP.Port = port
 
 	// Create the MCP server with default options
 	// This will create a new HTTP server internally
@@ -42,6 +49,11 @@ func main() {
 	}
 
 	slog.Info("MCP server started", "port", cfg.HTTP.Port)
+	slog.Info("OpenTelemetry telemetry configuration:")
+	slog.Info("  OTEL_ENABLED=true (default) - Enable/disable telemetry")
+	slog.Info("  OTEL_EXPORTER_TYPE=stdout (default) - Exporter type: stdout, otlp")
+	slog.Info("  OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 (default) - OTLP endpoint")
+	slog.Info("  OTEL_SERVICE_NAME=scaled-mcp-server (default) - Service name")
 
 	// Wait for termination signal
 	quit := make(chan os.Signal, 1)

@@ -16,6 +16,7 @@ import (
 	"github.com/traego/scaled-mcp/internal/executors"
 	"github.com/traego/scaled-mcp/internal/httphandlers"
 	"github.com/traego/scaled-mcp/pkg/auth"
+	"github.com/traego/scaled-mcp/pkg/telemetry"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -56,6 +57,8 @@ type McpServer struct {
 	authHandler config.AuthHandler
 
 	traceHandler config.TraceHandler
+
+	telemetryShutdown func(context.Context) error
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
@@ -236,6 +239,10 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		server.executors = executors.DefaultExecutors(server, nil)
 	}
 
+	if server.traceHandler == nil && server.config.Telemetry.Enabled {
+		server.traceHandler = telemetry.NewOpenTelemetryTraceHandlerWithUtils()
+	}
+
 	// Create a default static tool registry if none provided
 	if server.featureRegistry.ToolRegistry == nil {
 		server.featureRegistry.ToolRegistry = resources.NewStaticToolRegistry()
@@ -323,6 +330,21 @@ func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
 
 // Start starts the MCP server
 func (s *McpServer) Start(ctx context.Context) error {
+	if s.config.Telemetry.Enabled {
+		telemetryConfig := &telemetry.Config{
+			ServiceName:    s.config.Telemetry.ServiceName,
+			ServiceVersion: s.config.Telemetry.ServiceVersion,
+			ExporterType:   s.config.Telemetry.ExporterType,
+			OTLPEndpoint:   s.config.Telemetry.OTLPEndpoint,
+			Enabled:        s.config.Telemetry.Enabled,
+		}
+		shutdown, err := telemetry.InitializeTracing(ctx, telemetryConfig)
+		if err != nil {
+			return fmt.Errorf("failed to initialize telemetry: %w", err)
+		}
+		s.telemetryShutdown = shutdown
+	}
+
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%d", s.config.HTTP.Host, s.config.HTTP.Port)
 
@@ -410,6 +432,12 @@ func (s *McpServer) Stop(ctx context.Context) {
 		slog.InfoContext(ctx, "Stopping HTTP Server")
 		if err := s.httpServer.Shutdown(ctx); err != nil {
 			slog.Error("Failed to shutdown HTTP server", "err", err)
+		}
+	}
+
+	if s.telemetryShutdown != nil {
+		if err := s.telemetryShutdown(ctx); err != nil {
+			slog.Error("Failed to shutdown telemetry", "err", err)
 		}
 	}
 }
@@ -598,7 +626,7 @@ func (s *McpServer) traceHandlerMiddleware(next http.Handler) http.Handler {
 			traceId = s.traceHandler.ExtractTraceId(r)
 		}
 
-		if traceId != "" {
+		if traceId == "" {
 			traceId = utils.MustGenerateSecureID(20)
 		}
 

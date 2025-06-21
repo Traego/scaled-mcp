@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/traego/scaled-mcp/pkg/auth"
+	"github.com/traego/scaled-mcp/pkg/telemetry"
 	"log/slog"
 	"time"
 
@@ -16,6 +17,9 @@ import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/utils"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Session states
@@ -189,15 +193,29 @@ func handleRegisterConnection(ctx *actor.ReceiveContext, sessionData *SessionDat
 
 // handleWrappedRequestUninitialized handles wrapped requests in the uninitialized state
 func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
+	tracer := telemetry.GetTracer("scaled-mcp-server/actors")
 	ctx := context.WithValue(context.Background(), utils.SessionIdCtx, sessionData.SessionID)
-	// In uninitialized state, we only accept initialize requests
+
+	if msg.TraceId != "" {
+		ctx = utils.SetTraceId(ctx, msg.TraceId)
+	}
+
+	ctx, span := tracer.Start(ctx, "handleWrappedRequestUninitialized",
+		trace.WithAttributes(
+			attribute.String("mcp.session_id", sessionData.SessionID),
+			attribute.String("mcp.method", msg.Request.Method),
+			attribute.String("mcp.trace_id", msg.TraceId),
+		),
+	)
+	defer span.End()
+
 	switch msg.Request.Method {
 	case "initialize":
+		span.SetAttributes(attribute.String("mcp.state_transition", "uninitialized->initialized"))
 		response := handleInitialize(ctx, sessionData, msg.Request)
 		sendResponse(rctx, ctx, sessionData, msg, response)
 		sessionData.LastActivity = time.Now()
 
-		// Transition to initialized state
 		nextState := StateInitialized
 		return utils.MessageHandlingResult{
 			NextStateId: &nextState,
@@ -205,7 +223,7 @@ func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *
 		}, nil
 
 	default:
-		// Return error for non-initialize requests in uninitialized state
+		span.SetStatus(codes.Error, "Non-initialize request in uninitialized state")
 		rctx.Logger().Info("mcp session actor got non-lifecycle message before being initialized", "session_id", sessionData.SessionID, "method", msg.Request.Method)
 		errorResp := utils.CreateErrorResponse(msg.Request, -32002, "Server not initialized", nil)
 		sendResponse(rctx, ctx, sessionData, msg, errorResp)
@@ -216,29 +234,44 @@ func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *
 
 // handleWrappedRequestInitialized handles wrapped requests in the initialized state
 func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *SessionData, msg *mcppb.WrappedRequest) (utils.MessageHandlingResult, error) {
-	// TODO Set a timeout here, need to think through just a bit what timeout to use
+	tracer := telemetry.GetTracer("scaled-mcp-server/actors")
 	ctx := context.WithValue(context.Background(), utils.SessionIdCtx, sessionData.SessionID)
+
+	if len(msg.TraceId) > 0 {
+		ctx = utils.SetTraceId(ctx, msg.TraceId)
+	}
+
+	ctx, span := tracer.Start(ctx, "handleWrappedRequestInitialized",
+		trace.WithAttributes(
+			attribute.String("mcp.session_id", sessionData.SessionID),
+			attribute.String("mcp.method", msg.Request.Method),
+			attribute.String("mcp.trace_id", msg.TraceId),
+		),
+	)
+	defer span.End()
 
 	if len(msg.AuthInfo) > 0 && sessionData.ServerInfo.GetAuthHandler() != nil {
 		authInfoRaw := msg.AuthInfo
 		authInfo, err := sessionData.ServerInfo.GetAuthHandler().Deserialize(authInfoRaw)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Failed to deserialize auth info")
 			return utils.MessageHandlingResult{}, fmt.Errorf("failed to deserialize auth info: %w", err)
 		}
 		ctx = auth.SetAuthInfo(ctx, authInfo)
+		span.SetAttributes(attribute.String("mcp.auth_principal", authInfo.GetPrincipalId()))
 	}
 
 	if len(msg.TraceId) > 0 && sessionData.ServerInfo.GetTraceHandler() != nil {
 		ctx = sessionData.ServerInfo.GetTraceHandler().SetTraceId(ctx, msg.TraceId)
 	}
 
-	// Handle the request based on the method
 	switch msg.Request.Method {
 	case "shutdown":
+		span.SetAttributes(attribute.String("mcp.state_transition", "initialized->shutdown"))
 		response := handleShutdown(msg.Request)
 		sendResponse(rctx, ctx, sessionData, msg, response)
 
-		// Transition to shutdown state
 		nextState := StateShutdown
 		return utils.MessageHandlingResult{
 			NextStateId: &nextState,
@@ -246,16 +279,19 @@ func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *Se
 		}, nil
 
 	case "notifications/initialized":
+		span.SetAttributes(attribute.String("mcp.notification_type", "initialized"))
 		slog.InfoContext(ctx, "Handling notifications/initialized request", "session_id", sessionData.SessionID)
-		// This is a notification that initialization is complete
 		sessionData.LastActivity = time.Now()
 		sessionData.ClientNotificationsInitialized = true
 		sessionData.LastActivity = time.Now()
 		return utils.Stay(sessionData)
 	default:
-		// Handle non-lifecycle messages
+		span.SetAttributes(attribute.String("mcp.message_type", "non_lifecycle"))
 		response, err := handleNonLifecycleRequest(ctx, sessionData, msg.Request.Id, msg.Request)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Failed to handle non-lifecycle request")
+
 			var retErr *mcppb.JsonRpcResponse
 
 			var jsonRpcError *protocol.JsonRpcError
@@ -426,6 +462,15 @@ func handleShutdown(req *mcppb.JsonRpcRequest) *mcppb.JsonRpcResponse {
 
 // handleNonLifecycleRequest processes other MCP requests
 func handleNonLifecycleRequest(ctx context.Context, sessionData *SessionData, messageId interface{}, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
+	tracer := telemetry.GetTracer("scaled-mcp-server/actors")
+	ctx, span := tracer.Start(ctx, "handleNonLifecycleRequest",
+		trace.WithAttributes(
+			attribute.String("mcp.method", req.Method),
+			attribute.String("mcp.request_id", fmt.Sprintf("%v", messageId)),
+		),
+	)
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, sessionData.ServerInfo.GetServerConfig().RequestTimeout)
 	defer cancel()
 
@@ -445,12 +490,16 @@ func handleNonLifecycleRequest(ctx context.Context, sessionData *SessionData, me
 	// Check if this is a tool-related method
 	exc := sessionData.ServerInfo.GetExecutors()
 	if sessionData.ServerInfo.GetExecutors().CanHandleMethod(req.Method) {
+		span.SetAttributes(attribute.Bool("mcp.method_supported", true))
 		resp, err := exc.HandleMethod(ctx, req.Method, req)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "Executor failed to handle method")
 			return nil, fmt.Errorf("problem handling non-lifecycle request: %w", err)
 		}
 		return resp, nil
 	} else {
+		span.SetStatus(codes.Error, "Method not found")
 		return nil, protocol.NewMethodNotFoundError(req.Method, messageId)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
+
 )
 
 type ToolExecutor struct {
