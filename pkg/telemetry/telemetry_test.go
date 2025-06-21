@@ -114,32 +114,36 @@ func TestGetTracer(t *testing.T) {
 		ExporterType:   "stdout",
 		Enabled:        true,
 	}
-	
+
 	ctx := context.Background()
 	shutdown, err := InitializeTracing(ctx, cfg)
 	if err != nil {
 		t.Fatalf("InitializeTracing failed: %v", err)
 	}
-	defer shutdown(ctx)
-	
+	defer func() {
+		if err := shutdown(ctx); err != nil {
+			t.Errorf("Shutdown failed: %v", err)
+		}
+	}()
+
 	tracer := GetTracer("test-tracer")
 	if tracer == nil {
 		t.Fatal("GetTracer returned nil")
 	}
-	
+
 	_, span := tracer.Start(ctx, "test-operation")
 	if span == nil {
 		t.Fatal("Start returned nil span")
 	}
-	
+
 	spanCtx := span.SpanContext()
 	if !spanCtx.IsValid() {
 		t.Error("Expected valid span context")
 	}
-	
+
 	if spanCtx.TraceID().String() == "00000000000000000000000000000000" {
 		t.Error("Expected non-zero trace ID")
 	}
-	
+
 	span.End()
 }
