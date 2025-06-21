@@ -366,6 +366,58 @@ func TestDefaultValueParsing(t *testing.T) {
 	}
 }
 
+func TestParseDefaultValueComprehensive(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		typ      reflect.Type
+		expected interface{}
+	}{
+		{"string", "hello", reflect.TypeOf(""), "hello"},
+		{"string_empty", "", reflect.TypeOf(""), ""},
+		
+		{"int", "42", reflect.TypeOf(int(0)), int64(42)},
+		{"int8", "127", reflect.TypeOf(int8(0)), int64(127)},
+		{"int16", "32767", reflect.TypeOf(int16(0)), int64(32767)},
+		{"int32", "2147483647", reflect.TypeOf(int32(0)), int64(2147483647)},
+		{"int64", "9223372036854775807", reflect.TypeOf(int64(0)), int64(9223372036854775807)},
+		{"int_invalid", "not_a_number", reflect.TypeOf(int(0)), "not_a_number"},
+		
+		{"uint", "42", reflect.TypeOf(uint(0)), uint64(42)},
+		{"uint8", "255", reflect.TypeOf(uint8(0)), uint64(255)},
+		{"uint16", "65535", reflect.TypeOf(uint16(0)), uint64(65535)},
+		{"uint32", "4294967295", reflect.TypeOf(uint32(0)), uint64(4294967295)},
+		{"uint64", "18446744073709551615", reflect.TypeOf(uint64(0)), uint64(18446744073709551615)},
+		{"uint_invalid", "not_a_number", reflect.TypeOf(uint(0)), "not_a_number"},
+		
+		{"float32", "3.14", reflect.TypeOf(float32(0)), 3.14},
+		{"float64", "2.718281828", reflect.TypeOf(float64(0)), 2.718281828},
+		{"float_invalid", "not_a_float", reflect.TypeOf(float64(0)), "not_a_float"},
+		
+		{"bool_true", "true", reflect.TypeOf(bool(false)), true},
+		{"bool_false", "false", reflect.TypeOf(bool(false)), false},
+		{"bool_1", "1", reflect.TypeOf(bool(false)), true},
+		{"bool_0", "0", reflect.TypeOf(bool(false)), false},
+		{"bool_invalid", "maybe", reflect.TypeOf(bool(false)), "maybe"},
+		
+		{"ptr_string", "hello", reflect.TypeOf((*string)(nil)), "hello"},
+		{"ptr_int", "42", reflect.TypeOf((*int)(nil)), int64(42)},
+		{"ptr_bool", "true", reflect.TypeOf((*bool)(nil)), true},
+		
+		{"unsupported_chan", "test", reflect.TypeOf(make(chan int)), "test"},
+		{"unsupported_func", "test", reflect.TypeOf(func() {}), "test"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseDefaultValue(tt.value, tt.typ)
+			if result != tt.expected {
+				t.Errorf("parseDefaultValue(%q, %v) = %v, want %v", tt.value, tt.typ, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestComplexUnmarshaling(t *testing.T) {
 	type PointerStruct struct {
 		Name     *string `mcp:"name,Name field"`
@@ -413,6 +465,45 @@ func TestComplexUnmarshaling(t *testing.T) {
 			},
 			target:  &SimpleStruct{},
 			wantErr: true,
+		},
+		{
+			name: "Nil parameter value",
+			params: map[string]interface{}{
+				"name": nil,
+				"age":  float64(25),
+			},
+			target: &SimpleStruct{},
+			expected: &SimpleStruct{
+				Name: "",
+				Age:  25,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Direct assignment",
+			params: map[string]interface{}{
+				"name": "Direct",
+				"age":  int(30),
+			},
+			target: &SimpleStruct{},
+			expected: &SimpleStruct{
+				Name: "Direct",
+				Age:  30,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Type conversion - int64 to int",
+			params: map[string]interface{}{
+				"name": "Test",
+				"age":  int64(42),
+			},
+			target: &SimpleStruct{},
+			expected: &SimpleStruct{
+				Name: "Test",
+				Age:  42,
+			},
+			wantErr: false,
 		},
 	}
 
@@ -471,4 +562,190 @@ func stringPtr(s string) *string {
 
 func intPtr(i int) *int {
 	return &i
+}
+
+func TestSetFieldValueComprehensive(t *testing.T) {
+	type TestStruct struct {
+		StringField  string
+		IntField     int
+		Int8Field    int8
+		Int16Field   int16
+		Int32Field   int32
+		Int64Field   int64
+		UintField    uint
+		Uint8Field   uint8
+		Uint16Field  uint16
+		Uint32Field  uint32
+		Uint64Field  uint64
+		Float32Field float32
+		Float64Field float64
+		BoolField    bool
+		SliceField   []string
+		PtrString    *string
+		PtrInt       *int
+	}
+
+	tests := []struct {
+		name        string
+		fieldName   string
+		paramValue  interface{}
+		wantErr     bool
+		expectedVal interface{}
+	}{
+		{"string_direct", "StringField", "hello", false, "hello"},
+		{"int_assignable", "IntField", 123, false, 123},
+		
+		{"int_from_float64", "IntField", float64(42), false, 42},
+		{"int_from_int64", "IntField", int64(42), false, 42},
+		{"int_direct", "IntField", 42, false, 42},
+		{"int_error_string", "IntField", "invalid", true, nil},
+		{"int8_from_float64", "Int8Field", float64(127), false, int8(127)},
+		{"int16_from_float64", "Int16Field", float64(32767), false, int16(32767)},
+		{"int32_from_float64", "Int32Field", float64(2147483647), false, int32(2147483647)},
+		{"int64_from_float64", "Int64Field", float64(42), false, int64(42)},
+		
+		{"uint_from_float64", "UintField", float64(42), false, uint(42)},
+		{"uint_from_uint64", "UintField", uint64(42), false, uint(42)},
+		{"uint_direct", "UintField", uint(42), false, uint(42)},
+		{"uint_error_string", "UintField", "invalid", true, nil},
+		{"uint8_from_float64", "Uint8Field", float64(255), false, uint8(255)},
+		{"uint16_from_float64", "Uint16Field", float64(65535), false, uint16(65535)},
+		{"uint32_from_float64", "Uint32Field", float64(4294967295), false, uint32(4294967295)},
+		{"uint64_from_float64", "Uint64Field", float64(42), false, uint64(42)},
+		
+		{"float32_from_float64", "Float32Field", float64(3.14), false, float32(3.14)},
+		{"float64_direct", "Float64Field", 3.14159, false, 3.14159},
+		{"float_error_string", "Float64Field", "invalid", true, nil},
+		
+		{"bool_direct", "BoolField", true, false, true},
+		{"bool_error_string", "BoolField", "invalid", true, nil},
+		
+		{"ptr_string_nil_field", "PtrString", "hello", false, "hello"},
+		{"ptr_int_nil_field", "PtrInt", float64(42), false, 42},
+		
+		{"nil_value", "StringField", nil, false, ""},
+		
+		{"assignable_type", "StringField", "direct_assign", false, "direct_assign"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			target := &TestStruct{}
+			targetValue := reflect.ValueOf(target).Elem()
+			fieldValue := targetValue.FieldByName(tt.fieldName)
+
+			err := setFieldValue(fieldValue, tt.paramValue)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("setFieldValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr && tt.expectedVal != nil {
+				actualVal := fieldValue.Interface()
+				if fieldValue.Kind() == reflect.Ptr && !fieldValue.IsNil() {
+					actualVal = fieldValue.Elem().Interface()
+				}
+				if actualVal != tt.expectedVal {
+					t.Errorf("setFieldValue() result = %v, want %v", actualVal, tt.expectedVal)
+				}
+			}
+		})
+	}
+}
+
+func TestMustRegisterStructToolPanic(t *testing.T) {
+	registry := NewStaticToolRegistry()
+
+	validHandler := func(ctx context.Context, input *SimpleStruct) (interface{}, error) {
+		return nil, nil
+	}
+
+	tool := protocol.Tool{
+		Name:        "test-duplicate",
+		Description: "Duplicate tool",
+		InputSchema: protocol.InputSchema{Type: "object"},
+	}
+
+	registry.RegisterTool(tool, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+		return nil, nil
+	})
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("MustRegisterStructTool should have panicked with duplicate tool registration")
+		}
+	}()
+
+	MustRegisterStructTool(registry, "test-duplicate", "Duplicate tool", validHandler)
+}
+
+func TestGoTypeToSchemaTypeComprehensive(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    reflect.Type
+		expected string
+		wantErr  bool
+	}{
+		{"string", reflect.TypeOf(""), "string", false},
+		{"int", reflect.TypeOf(int(0)), "integer", false},
+		{"int8", reflect.TypeOf(int8(0)), "integer", false},
+		{"int16", reflect.TypeOf(int16(0)), "integer", false},
+		{"int32", reflect.TypeOf(int32(0)), "integer", false},
+		{"int64", reflect.TypeOf(int64(0)), "integer", false},
+		{"uint", reflect.TypeOf(uint(0)), "integer", false},
+		{"uint8", reflect.TypeOf(uint8(0)), "integer", false},
+		{"uint16", reflect.TypeOf(uint16(0)), "integer", false},
+		{"uint32", reflect.TypeOf(uint32(0)), "integer", false},
+		{"uint64", reflect.TypeOf(uint64(0)), "integer", false},
+		{"float32", reflect.TypeOf(float32(0)), "number", false},
+		{"float64", reflect.TypeOf(float64(0)), "number", false},
+		{"bool", reflect.TypeOf(bool(false)), "boolean", false},
+		
+		{"slice", reflect.TypeOf([]string{}), "array", false},
+		{"array", reflect.TypeOf([5]string{}), "array", false},
+		{"map", reflect.TypeOf(map[string]interface{}{}), "object", false},
+		{"struct", reflect.TypeOf(struct{}{}), "object", false},
+		{"interface", reflect.TypeOf((*interface{})(nil)).Elem(), "object", false},
+		
+		{"ptr_string", reflect.TypeOf((*string)(nil)), "string", false},
+		{"ptr_int", reflect.TypeOf((*int)(nil)), "integer", false},
+		{"ptr_float", reflect.TypeOf((*float64)(nil)), "number", false},
+		{"ptr_bool", reflect.TypeOf((*bool)(nil)), "boolean", false},
+		{"ptr_slice", reflect.TypeOf((*[]string)(nil)), "array", false},
+		{"ptr_map", reflect.TypeOf((*map[string]interface{})(nil)), "object", false},
+		{"ptr_struct", reflect.TypeOf((*struct{})(nil)), "object", false},
+		
+		{"function", reflect.TypeOf(func() {}), "", true},
+		{"channel", reflect.TypeOf(make(chan int)), "", true},
+		{"complex64", reflect.TypeOf(complex64(0)), "", true},
+		{"complex128", reflect.TypeOf(complex128(0)), "", true},
+		{"uintptr", reflect.TypeOf(uintptr(0)), "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := goTypeToSchemaType(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("goTypeToSchemaType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && result != tt.expected {
+				t.Errorf("goTypeToSchemaType() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseStructFieldErrors(t *testing.T) {
+	type InvalidStruct struct {
+		BadField chan int `mcp:"bad,Bad field"`
+	}
+
+	structType := reflect.TypeOf(InvalidStruct{})
+	field := structType.Field(0)
+
+	_, _, _, err := parseStructField(field)
+	if err == nil {
+		t.Error("parseStructField should return error for unsupported type")
+	}
 }
