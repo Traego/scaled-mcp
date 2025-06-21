@@ -271,9 +271,37 @@ mcpServer, err := server.NewMcpServer(cfg,
 
 ### Tool Definition
 
-The library provides two ways to define tool inputs:
+The library provides three ways to define tool inputs:
 
-#### 1. Using WithInputs (Recommended)
+#### 1. Using Struct-Based Reflection (Recommended)
+
+```go
+// Define input struct with mcp tags
+type CalculatorInput struct {
+    Operation string  `mcp:"operation,The operation to perform (add subtract multiply divide),required"`
+    A         float64 `mcp:"a,First operand,required"`
+    B         float64 `mcp:"b,Second operand,required"`
+}
+
+// Type-safe handler function
+func calculatorHandler(ctx context.Context, input *CalculatorInput) (interface{}, error) {
+    // Direct access to typed fields: input.Operation, input.A, input.B
+    switch input.Operation {
+    case "add":
+        return map[string]interface{}{"result": input.A + input.B}, nil
+    // ...
+    }
+}
+
+// Register with automatic schema generation (method 1)
+calculatorType := reflect.TypeOf(CalculatorInput{})
+registry.RegisterStructToolWithHandler("calculator", "Performs arithmetic operations", calculatorType, calculatorHandler)
+
+// Or use the convenience function (method 2)
+resources.RegisterStructTool(registry, "calculator", "Performs arithmetic operations", calculatorHandler)
+```
+
+#### 2. Using WithInputs
 
 ```go
 weatherTool := resources.NewTool("weather").
@@ -295,7 +323,7 @@ weatherTool := resources.NewTool("weather").
     Build()
 ```
 
-#### 2. Using Individual Parameter Methods
+#### 3. Using Individual Parameter Methods
 
 ```go
 calculatorTool := resources.NewTool("calculator").
@@ -314,6 +342,25 @@ calculatorTool := resources.NewTool("calculator").
     Add().
     Build()
 ```
+
+#### Struct Tag Format
+
+The `mcp` struct tag follows the format: `mcp:"name,description,required,default=value"`
+
+- **name**: Field name in the schema (defaults to lowercase field name)
+- **description**: Human-readable description of the field
+- **required**: Mark field as required
+- **default=value**: Set a default value for optional fields
+- **-**: Skip field (not included in schema)
+
+**Supported Go Types:**
+- `string` → `"string"`
+- `int`, `int64`, etc. → `"integer"`
+- `float64`, `float32` → `"number"`
+- `bool` → `"boolean"`
+- `[]T`, `[N]T` → `"array"`
+- `struct`, `map` → `"object"`
+- `*T` → Same as `T` (pointer types)
 
 ## Important Notes
 

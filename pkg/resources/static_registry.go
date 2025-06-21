@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"log/slog"
+	"reflect"
 	"sort"
 	"sync"
 )
@@ -43,6 +44,58 @@ func (r *StaticToolRegistry) RegisterTool(tool protocol.Tool, handler ToolHandle
 
 	slog.Info("Registered tool", "name", tool.Name)
 	return nil
+}
+
+// RegisterStructToolWithHandler registers a tool with a typed handler function
+func (r *StaticToolRegistry) RegisterStructToolWithHandler(name, description string, structType reflect.Type, handlerFunc interface{}) error {
+	if name == "" {
+		return fmt.Errorf("tool name cannot be empty")
+	}
+
+	schema, err := GenerateSchemaFromStruct(structType)
+	if err != nil {
+		return fmt.Errorf("failed to generate schema from struct: %w", err)
+	}
+
+	tool := protocol.Tool{
+		Name:        name,
+		Description: description,
+		InputSchema: schema,
+	}
+
+	handlerValue := reflect.ValueOf(handlerFunc)
+	handlerType := handlerValue.Type()
+
+	if handlerType.Kind() != reflect.Func {
+		return fmt.Errorf("handler must be a function")
+	}
+
+	if handlerType.NumIn() != 2 || handlerType.NumOut() != 2 {
+		return fmt.Errorf("handler must have signature func(context.Context, *StructType) (interface{}, error)")
+	}
+
+	wrappedHandler := func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+		inputPtr := reflect.New(structType)
+		if err := UnmarshalParams(params, inputPtr.Interface()); err != nil {
+			return nil, fmt.Errorf("%w: failed to unmarshal parameters: %v", ErrInvalidParams, err)
+		}
+
+		args := []reflect.Value{
+			reflect.ValueOf(ctx),
+			inputPtr,
+		}
+
+		results := handlerValue.Call(args)
+
+		var err error
+		if !results[1].IsNil() {
+			err = results[1].Interface().(error)
+		}
+
+		return results[0].Interface(), err
+	}
+
+	return r.RegisterTool(tool, wrappedHandler)
 }
 
 // GetTool returns a tool by name
