@@ -24,7 +24,6 @@ type ComplexStruct struct {
 type IgnoredFieldStruct struct {
 	Included string `mcp:"included,This field is included"`
 	Ignored  string `mcp:"-"`
-	private  string
 }
 
 func TestGenerateSchemaFromStruct(t *testing.T) {
