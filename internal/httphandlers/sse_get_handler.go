@@ -2,11 +2,10 @@ package httphandlers
 
 import (
 	"fmt"
-	"net/http"
-
 	actors2 "github.com/traego/scaled-mcp/internal/actors"
 	"github.com/traego/scaled-mcp/internal/channels"
 	"github.com/traego/scaled-mcp/pkg/utils"
+	"net/http"
 )
 
 func (h *MCPHandler) SSEGetWithBasePath(basePath string) http.HandlerFunc {
@@ -24,22 +23,22 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 	// I think this is easy...spin up the death watcher, spin up the connection watcher, wait for death to come
 	ctx := r.Context() // TODO Add logging details around these
 
-	// err will be reused throughout this function
-	var err error
+	// To read the session_id cookie
+	cookie, err := r.Cookie("session_id")
+	if err != nil && err != http.ErrNoCookie {
+		handleError(w, err, "")
+		return
+	}
 
-	// Attempt to retrieve the session ID from cookie (set during initial connection)
 	var sessionId string
-	cookie, cerr := r.Cookie("mcp_session_id")
-	if cerr == nil && cookie != nil && cookie.Value != "" {
-		sessionId = cookie.Value
-	} else {
-		// Fallback to generating a fresh secure session ID
-		var gerr error
-		sessionId, gerr = utils.GenerateSecureID(20)
-		if gerr != nil {
-			handleError(w, gerr, "")
+	if cookie == nil {
+		sessionId, err = utils.GenerateSecureID(20)
+		if err != nil {
+			handleError(w, err, "")
 			return
 		}
+	} else {
+		sessionId = cookie.Value
 	}
 
 	san := utils.GetSessionActorName(sessionId)
@@ -54,7 +53,7 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 			return
 		}
 	}
-
+	
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r, sessionId)
 

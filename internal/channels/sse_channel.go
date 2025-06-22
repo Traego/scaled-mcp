@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // SSEChannel represents an SSE channel for sending events to clients
@@ -15,12 +16,12 @@ type SSEChannel struct {
 
 // NewSSEChannel creates a new SSE channel from an HTTP response writer and request
 func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string) *SSEChannel {
-	// Set a secure, HTTP-only cookie containing the session ID so reconnect handlers can retrieve it.
+	// Set a session cookie on the channel
 	http.SetCookie(w, &http.Cookie{
-		Name:     "mcp_session_id",
+		Name:     "session_id",
 		Value:    sessionId,
 		Path:     "/",
-		Secure:   true,
+		Expires:  time.Now().Add(1 * time.Hour),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
