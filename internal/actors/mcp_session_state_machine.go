@@ -207,7 +207,7 @@ func handleWrappedRequestUninitialized(rctx *actor.ReceiveContext, sessionData *
 	default:
 		// Return error for non-initialize requests in uninitialized state
 		rctx.Logger().Info("mcp session actor got non-lifecycle message before being initialized", "session_id", sessionData.SessionID, "method", msg.Request.Method)
-		errorResp := utils.CreateErrorResponse(msg.Request, -32002, "Server not initialized", nil)
+		errorResp := utils.CreateErrorResponse(msg.Request, -32002, "Session not initialized", nil)
 		sendResponse(rctx, ctx, sessionData, msg, errorResp)
 
 		return utils.Stay(sessionData)
@@ -234,6 +234,13 @@ func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *Se
 
 	// Handle the request based on the method
 	switch msg.Request.Method {
+	case "initialize":
+		response := handleInitialize(ctx, sessionData, msg.Request)
+		sendResponse(rctx, ctx, sessionData, msg, response)
+		sessionData.LastActivity = time.Now()
+
+		return utils.Stay(sessionData)
+
 	case "shutdown":
 		response := handleShutdown(msg.Request)
 		sendResponse(rctx, ctx, sessionData, msg, response)

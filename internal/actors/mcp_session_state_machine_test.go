@@ -389,7 +389,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		errorResp := jsonRpcResponse.GetError()
 		require.NotNil(t, errorResp)
 		assert.Equal(t, int32(-32002), errorResp.Code)
-		assert.Contains(t, errorResp.Message, "Server not initialized")
+		assert.Contains(t, errorResp.Message, "Session not initialized")
 
 		// Clean up
 		err = pid.Shutdown(ctx)

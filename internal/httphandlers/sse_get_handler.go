@@ -57,8 +57,13 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r, sessionId, h.config.HTTP.SSLEnabled)
 
+	clientId, err := utils.GenerateSecureID(20)
+	if err != nil {
+		handleError(w, err, "")
+	}
+
 	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, basePath)
-	clientActorName := fmt.Sprintf("%s-client", sessionId)
+	clientActorName := fmt.Sprintf("%s-client", clientId)
 	clientActor, err := h.actorSystem.Spawn(ctx, clientActorName, cca)
 	if err != nil {
 		respErr := fmt.Errorf("error spawning sse session: %w", err)
