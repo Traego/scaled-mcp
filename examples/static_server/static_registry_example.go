@@ -45,6 +45,9 @@ func main() {
 	cfg := config.DefaultConfig()
 	cfg.BackwardCompatible20241105 = true
 	cfg.HTTP.Port = 9985
+	cfg.HTTP.CORS.Enable = true
+	cfg.HTTP.CORS.AllowCredentials = true
+	cfg.HTTP.CORS.AllowedOrigins = []string{"*"}
 
 	mcpServer, err := server.NewMcpServer(cfg,
 		server.WithToolRegistry(toolRegistry),
