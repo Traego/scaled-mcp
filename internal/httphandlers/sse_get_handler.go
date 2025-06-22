@@ -53,9 +53,9 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 			return
 		}
 	}
-	
+
 	// Create an SSE channel for communication
-	channel := channels.NewSSEChannel(w, r, sessionId)
+	channel := channels.NewSSEChannel(w, r, sessionId, h.config.HTTP.SSLEnabled)
 
 	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, basePath)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
