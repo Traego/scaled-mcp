@@ -16,7 +16,7 @@ type SSEChannel struct {
 
 // NewSSEChannel creates a new SSE channel from an HTTP response writer and request
 func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string) *SSEChannel {
-	// Set a test cookie on the response for session identification/debugging
+	// Set a session cookie on the channel
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    sessionId,
