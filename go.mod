@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	disorder.dev/shandler v0.0.0-20250411134702-523d18ddef40
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-chi/cors v1.2.1
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
