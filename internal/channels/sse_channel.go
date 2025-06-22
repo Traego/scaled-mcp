@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // SSEChannel represents an SSE channel for sending events to clients
@@ -14,7 +15,17 @@ type SSEChannel struct {
 }
 
 // NewSSEChannel creates a new SSE channel from an HTTP response writer and request
-func NewSSEChannel(w http.ResponseWriter, r *http.Request) *SSEChannel {
+func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string) *SSEChannel {
+	// Set a test cookie on the response for session identification/debugging
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    sessionId,
+		Path:     "/",
+		Expires:  time.Now().Add(1 * time.Hour),
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	// Set up SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")

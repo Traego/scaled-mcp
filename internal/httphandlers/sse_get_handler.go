@@ -23,22 +23,47 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 	// I think this is easy...spin up the death watcher, spin up the connection watcher, wait for death to come
 	ctx := r.Context() // TODO Add logging details around these
 
-	sessionId, err := utils.GenerateSecureID(20)
-	if err != nil {
+	// To read the session_id cookie
+	cookie, err := r.Cookie("session_id")
+	if err != nil && err != http.ErrNoCookie {
 		handleError(w, err, "")
 		return
 	}
 
-	sa := actors2.NewMcpSessionStateMachine(h.serverInfo, sessionId)
-	san := utils.GetSessionActorName(sessionId)
-	_, err = h.actorSystem.Spawn(ctx, san, sa)
-	if err != nil {
-		handleError(w, err, "")
-		return
+	var sessionId string
+	if cookie == nil {
+		sessionId, err = utils.GenerateSecureID(20)
+		if err != nil {
+			handleError(w, err, "")
+			return
+		}
+	} else {
+		sessionId = cookie.Value
 	}
+
+	san := utils.GetSessionActorName(sessionId)
+
+	// Ensure the session actor exists; spawn only if we don't find it running
+	_, existingPid, _ := h.actorSystem.ActorOf(ctx, san)
+	if existingPid == nil {
+		sa := actors2.NewMcpSessionStateMachine(h.serverInfo, sessionId)
+		_, err = h.actorSystem.Spawn(ctx, san, sa)
+		if err != nil {
+			handleError(w, err, "")
+			return
+		}
+	}
+
+	//sa := actors2.NewMcpSessionStateMachine(h.serverInfo, sessionId)
+	//
+	//_, err = h.actorSystem.Spawn(ctx, san, sa)
+	//if err != nil {
+	//	handleError(w, err, "")
+	//	return
+	//}
 
 	// Create an SSE channel for communication
-	channel := channels.NewSSEChannel(w, r)
+	channel := channels.NewSSEChannel(w, r, sessionId)
 
 	cca := actors2.NewClientConnectionActor(h.config, sessionId, nil, channel, true, true, basePath)
 	clientActorName := fmt.Sprintf("%s-client", sessionId)
