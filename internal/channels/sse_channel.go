@@ -32,16 +32,6 @@ func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string) *SS
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Expose-Headers", "Content-Type")
 
-	// Set a secure, HTTP-only cookie containing the session ID so reconnect handlers can retrieve it.
-	http.SetCookie(w, &http.Cookie{
-		Name:     "mcp_session_id",
-		Value:    sessionId,
-		Path:     "/",
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-
 	// Write the HTTP status before any data is written
 	w.WriteHeader(http.StatusOK)
 
