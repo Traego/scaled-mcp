@@ -71,6 +71,8 @@ type HTTPConfig struct {
 	// Path for the backward compatible POST endpoint
 	MessagePath string `json:"message_path"`
 
+	SSLEnabled bool `json:"ssl_enabled"`
+
 	// TLS configuration
 	TLS TLSConfig `json:"tls"`
 
