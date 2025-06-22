@@ -53,15 +53,7 @@ func (h *MCPHandler) SSEGetFunc(w http.ResponseWriter, r *http.Request, basePath
 			return
 		}
 	}
-
-	//sa := actors2.NewMcpSessionStateMachine(h.serverInfo, sessionId)
-	//
-	//_, err = h.actorSystem.Spawn(ctx, san, sa)
-	//if err != nil {
-	//	handleError(w, err, "")
-	//	return
-	//}
-
+	
 	// Create an SSE channel for communication
 	channel := channels.NewSSEChannel(w, r, sessionId)
 

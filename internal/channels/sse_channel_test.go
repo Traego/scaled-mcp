@@ -18,7 +18,7 @@ func TestSSEChannel_NewSSEChannel(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Verify the headers are set correctly
@@ -43,7 +43,7 @@ func TestSSEChannel_GetDoneChannel(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Get the done channel
@@ -64,7 +64,7 @@ func TestSSEChannel_Send_String(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Send a string event
@@ -86,7 +86,7 @@ func TestSSEChannel_Send_Object(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Create a test object
@@ -118,7 +118,7 @@ func TestSSEChannel_Send_NoEventType(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Send an event without an event type
@@ -140,7 +140,7 @@ func TestSSEChannel_SendEndpoint(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Send an endpoint event
@@ -162,7 +162,7 @@ func TestSSEChannel_Send_MarshalError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Create an object that will cause a marshal error (circular reference)
@@ -186,7 +186,7 @@ func TestSSEChannel_Interface(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a new SSE channel
-	channel := NewSSEChannel(w, r)
+	channel := NewSSEChannel(w, r, "test-session")
 	require.NotNil(t, channel)
 
 	// Verify that the channel implements the OneWayChannel interface
