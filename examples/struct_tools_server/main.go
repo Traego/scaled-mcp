@@ -71,8 +71,10 @@ func main() {
 	}()
 
 	slog.Info("Struct-based tools server is available")
-	slog.Info("Tools available: calculator, greeting, weather")
-	slog.Info("All tools use struct-based reflection for schema generation")
+	slog.Info("Tools available: calculator, greeting, weather, calculator_typed, greeting_typed")
+	slog.Info("Reflection-based tools: calculator, greeting, weather")
+	slog.Info("Generics-based tools: calculator_typed, greeting_typed")
+	slog.Info("All tools use struct-based schema generation")
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -98,6 +100,10 @@ func registerStructTools(registry *resources.StaticToolRegistry) error {
 	weatherType := reflect.TypeOf(WeatherInput{})
 	if err := registry.RegisterStructToolWithHandler("weather", "Get weather information for a location", weatherType, weatherHandler); err != nil {
 		return fmt.Errorf("failed to register weather tool: %w", err)
+	}
+
+	if err := registerGenericsTools(registry); err != nil {
+		return fmt.Errorf("failed to register generics tools: %w", err)
 	}
 
 	return nil
@@ -191,4 +197,89 @@ func weatherHandler(ctx context.Context, input *WeatherInput) (interface{}, erro
 	}
 
 	return result, nil
+}
+
+type CalculatorOutput struct {
+	Result    float64 `mcp:"result,The calculation result,required"`
+	Operation string  `mcp:"operation,The operation performed,required"`
+	A         float64 `mcp:"a,First operand,required"`
+	B         float64 `mcp:"b,Second operand,required"`
+}
+
+type GreetingOutput struct {
+	Greeting string `mcp:"greeting,The generated greeting,required"`
+	Language string `mcp:"language,The language used,required"`
+	Formal   bool   `mcp:"formal,Whether formal greeting was used,required"`
+}
+
+func registerGenericsTools(registry *resources.StaticToolRegistry) error {
+	calculatorHandlerTyped := func(ctx context.Context, input *CalculatorInput) (*CalculatorOutput, error) {
+		var result float64
+		switch input.Operation {
+		case "add":
+			result = input.A + input.B
+		case "subtract":
+			result = input.A - input.B
+		case "multiply":
+			result = input.A * input.B
+		case "divide":
+			if input.B == 0 {
+				return nil, fmt.Errorf("%w: division by zero", resources.ErrInvalidParams)
+			}
+			result = input.A / input.B
+		default:
+			return nil, fmt.Errorf("%w: unknown operation %s", resources.ErrInvalidParams, input.Operation)
+		}
+
+		return &CalculatorOutput{
+			Result:    result,
+			Operation: input.Operation,
+			A:         input.A,
+			B:         input.B,
+		}, nil
+	}
+
+	greetingHandlerTyped := func(ctx context.Context, input *GreetingInput) (*GreetingOutput, error) {
+		var greeting string
+
+		if input.Formal {
+			switch input.Language {
+			case "en":
+				greeting = fmt.Sprintf("Good day, %s", input.Name)
+			case "es":
+				greeting = fmt.Sprintf("Buenos días, %s", input.Name)
+			case "fr":
+				greeting = fmt.Sprintf("Bonjour, %s", input.Name)
+			default:
+				greeting = fmt.Sprintf("Good day, %s", input.Name)
+			}
+		} else {
+			switch input.Language {
+			case "en":
+				greeting = fmt.Sprintf("Hello, %s!", input.Name)
+			case "es":
+				greeting = fmt.Sprintf("¡Hola, %s!", input.Name)
+			case "fr":
+				greeting = fmt.Sprintf("Salut, %s!", input.Name)
+			default:
+				greeting = fmt.Sprintf("Hello, %s!", input.Name)
+			}
+		}
+
+		return &GreetingOutput{
+			Greeting: greeting,
+			Language: input.Language,
+			Formal:   input.Formal,
+		}, nil
+	}
+
+	if err := resources.RegisterStructToolWithTypes(registry, "calculator_typed", "Performs arithmetic with typed output", calculatorHandlerTyped); err != nil {
+		return fmt.Errorf("failed to register typed calculator tool: %w", err)
+	}
+
+	if err := resources.RegisterStructToolWithTypes(registry, "greeting_typed", "Generate a greeting with typed output", greetingHandlerTyped); err != nil {
+		return fmt.Errorf("failed to register typed greeting tool: %w", err)
+	}
+
+	return nil
 }

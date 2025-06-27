@@ -299,6 +299,42 @@ registry.RegisterStructToolWithHandler("calculator", "Performs arithmetic operat
 
 // Or use the convenience function (method 2)
 resources.RegisterStructTool(registry, "calculator", "Performs arithmetic operations", calculatorHandler)
+
+### Generics-Based Tool Registration (New in June 2025)
+
+For even better type safety, you can use the new generics-based approach with two type parameters for input and output:
+
+```go
+type CalculatorInput struct {
+    Operation string  `mcp:"operation,The operation to perform,required"`
+    A         float64 `mcp:"a,First operand,required"`
+    B         float64 `mcp:"b,Second operand,required"`
+}
+
+type CalculatorOutput struct {
+    Result    float64 `mcp:"result,The calculation result,required"`
+    Operation string  `mcp:"operation,The operation performed,required"`
+}
+
+func calculatorHandler(ctx context.Context, input *CalculatorInput) (*CalculatorOutput, error) {
+    result := input.A + input.B
+    return &CalculatorOutput{
+        Result:    result,
+        Operation: input.Operation,
+    }, nil
+}
+
+// Register with compile-time type safety for both input and output
+err := resources.RegisterStructToolWithTypes(registry, "calculator", "Performs arithmetic", calculatorHandler)
+```
+
+This approach provides:
+- **Compile-time type safety** for both input and output
+- **Automatic schema generation** for both input and output types
+- **Zero reflection** at registration time (uses generics instead)
+- **Better IDE support** with full type checking
+
+
 ```
 
 #### 2. Using WithInputs
@@ -343,7 +379,7 @@ calculatorTool := resources.NewTool("calculator").
     Build()
 ```
 
-#### Struct Tag Format
+### Struct Tag Format
 
 The `mcp` struct tag follows the format: `mcp:"name,description,required,default=value"`
 

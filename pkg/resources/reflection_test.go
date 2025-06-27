@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 )
 
@@ -680,6 +681,106 @@ func TestMustRegisterStructToolPanic(t *testing.T) {
 	}()
 
 	MustRegisterStructTool(registry, "test-duplicate", "Duplicate tool", validHandler)
+}
+
+type CalculatorOutput struct {
+	Result    float64 `mcp:"result,The calculation result,required"`
+	Operation string  `mcp:"operation,The operation performed,required"`
+	A         float64 `mcp:"a,First operand,required"`
+	B         float64 `mcp:"b,Second operand,required"`
+}
+
+func TestRegisterStructToolWithTypes(t *testing.T) {
+	registry := NewStaticToolRegistry()
+
+	handler := func(ctx context.Context, input *SimpleStruct) (*CalculatorOutput, error) {
+		return &CalculatorOutput{
+			Result:    float64(input.Age * 2),
+			Operation: "double_age",
+			A:         float64(input.Age),
+			B:         2.0,
+		}, nil
+	}
+
+	err := RegisterStructToolWithTypes(registry, "calculator", "Doubles the age", handler)
+	assert.NoError(t, err)
+
+	tool, err := registry.GetTool(context.Background(), "calculator")
+	assert.NoError(t, err)
+	assert.Equal(t, "calculator", tool.Name)
+	assert.NotNil(t, tool.OutputSchema)
+	assert.Equal(t, "object", tool.OutputSchema.Type)
+	assert.Contains(t, tool.OutputSchema.Properties, "result")
+	assert.Contains(t, tool.OutputSchema.Properties, "operation")
+	assert.Contains(t, tool.OutputSchema.Properties, "a")
+	assert.Contains(t, tool.OutputSchema.Properties, "b")
+
+	result, err := registry.CallTool(context.Background(), "calculator", map[string]interface{}{
+		"name": "John",
+		"age":  25,
+	})
+	assert.NoError(t, err)
+
+	output, ok := result.(*CalculatorOutput)
+	assert.True(t, ok)
+	assert.Equal(t, 50.0, output.Result)
+	assert.Equal(t, "double_age", output.Operation)
+	assert.Equal(t, 25.0, output.A)
+	assert.Equal(t, 2.0, output.B)
+}
+
+func TestStructHelpersWithTypes(t *testing.T) {
+	registry := NewStaticToolRegistry()
+
+	handler := func(ctx context.Context, input *SimpleStruct) (*CalculatorOutput, error) {
+		return &CalculatorOutput{
+			Result:    float64(input.Age),
+			Operation: "identity",
+			A:         float64(input.Age),
+			B:         1.0,
+		}, nil
+	}
+
+	err := RegisterStructToolWithTypes(registry, "identity", "Returns the age", handler)
+	assert.NoError(t, err)
+
+	tool, err := registry.GetTool(context.Background(), "identity")
+	assert.NoError(t, err)
+	assert.NotNil(t, tool.OutputSchema)
+	assert.Equal(t, "object", tool.OutputSchema.Type)
+	assert.Contains(t, tool.OutputSchema.Properties, "result")
+
+	result, err := registry.CallTool(context.Background(), "identity", map[string]interface{}{
+		"name": "Alice",
+		"age":  30,
+	})
+	assert.NoError(t, err)
+
+	output, ok := result.(*CalculatorOutput)
+	assert.True(t, ok)
+	assert.Equal(t, 30.0, output.Result)
+	assert.Equal(t, "identity", output.Operation)
+}
+
+func TestMustRegisterStructToolWithTypesPanic(t *testing.T) {
+	registry := NewStaticToolRegistry()
+
+	validHandler := func(ctx context.Context, input *SimpleStruct) (*CalculatorOutput, error) {
+		return &CalculatorOutput{
+			Result:    float64(input.Age),
+			Operation: "test",
+			A:         float64(input.Age),
+			B:         1.0,
+		}, nil
+	}
+
+	assert.NotPanics(t, func() {
+		MustRegisterStructToolWithTypes(registry, "valid_tool", "A valid tool", validHandler)
+	})
+
+	assert.Panics(t, func() {
+		MustRegisterStructToolWithTypes(registry, "", "Empty name tool", validHandler)
+	})
 }
 
 func TestGoTypeToSchemaTypeComprehensive(t *testing.T) {
