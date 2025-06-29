@@ -1,7 +1,6 @@
 package actors
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -14,10 +13,9 @@ import (
 func StartActorSystem(t *testing.T) actor.ActorSystem {
 	// Create a new actor system
 	ctx := t.Context()
-	actorSystem, err := actor.NewActorSystem("test-system",
-		actor.WithPassivationDisabled(),
-		//actor.WithLogger(logger.DiscardSlogLogger),
-	)
+	actorSystem, err := actor.NewActorSystem("test-system") //actor.WithPassivationDisabled(),
+	//actor.WithLogger(logger.DiscardSlogLogger),
+
 	require.NoError(t, err)
 
 	// Start the actor system
@@ -187,7 +185,7 @@ func TestDeathWatcher(t *testing.T) {
 // testTerminatingActor is a simple actor that can be terminated
 type testTerminatingActor struct{}
 
-func (t *testTerminatingActor) PreStart(ctx context.Context) error {
+func (t *testTerminatingActor) PreStart(ctx *actor.Context) error {
 	return nil
 }
 
@@ -195,7 +193,7 @@ func (t *testTerminatingActor) Receive(ctx *actor.ReceiveContext) {
 	// Do nothing
 }
 
-func (t *testTerminatingActor) PostStop(ctx context.Context) error {
+func (t *testTerminatingActor) PostStop(ctx *actor.Context) error {
 	return nil
 }
 

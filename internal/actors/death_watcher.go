@@ -69,7 +69,7 @@ func SpawnDeathWatcher(ctx context.Context, actorSystem actor.ActorSystem, pid *
 	return dwa, notifications, nil
 }
 
-func (d *DeathWatcher) PreStart(ctx context.Context) error {
+func (d *DeathWatcher) PreStart(ctx *actor.Context) error {
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (d *DeathWatcher) Receive(ctx *actor.ReceiveContext) {
 	}
 }
 
-func (d *DeathWatcher) PostStop(ctx context.Context) error {
+func (d *DeathWatcher) PostStop(ctx *actor.Context) error {
 	return nil
 }
 

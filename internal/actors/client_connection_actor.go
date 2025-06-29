@@ -1,7 +1,6 @@
 package actors
 
 import (
-	"context"
 	"fmt"
 	"github.com/traego/scaled-mcp/internal/channels"
 	"log/slog"
@@ -56,7 +55,7 @@ func NewClientConnectionActor(cfg *config.ServerConfig, sessionId string, params
 	}
 }
 
-func (c *ClientConnectionActor) PreStart(ctx context.Context) error {
+func (c *ClientConnectionActor) PreStart(ctx *actor.Context) error {
 	if c.defaultSseConnection {
 		c.connectionId = utils.GetDefaultSSEConnectionName(c.sessionId)
 	} else {
@@ -250,7 +249,7 @@ func (c *ClientConnectionActor) Receive(ctx *actor.ReceiveContext) {
 	}
 }
 
-func (c *ClientConnectionActor) PostStop(ctx context.Context) error {
+func (c *ClientConnectionActor) PostStop(ctx *actor.Context) error {
 	slog.Debug(fmt.Sprintf("Stopping client connection %s actor for session %s", c.connectionId, c.sessionId))
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -209,9 +208,11 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		opts = append(opts, actor.WithRemote(remote.NewConfig(cfg.Clustering.NodeHost, cfg.Clustering.RemotingPort)))
 	}
 
-	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}).WithGroup("mcp"))))
-	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}).WithGroup("mcp"))))
-	opts = append(opts, actor.WithPassivationDisabled())
+	opts = append(opts, actor.WithLogger(logger.NewSlog(slog.Default().Handler())))
+
+	// logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelWarn}).WithGroup("mcp"))))
+	//opts = append(opts, actor.WithLogger(logger.NewSlog(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}).WithGroup("mcp"))))
+	//opts = append(opts, actor.WithPasWithPassivationDisabled())
 
 	// Create the actor system
 	actorSystem, err := actor.NewActorSystem("mcp-actors-system", opts...)
@@ -262,35 +263,6 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 
 	return server, nil
 }
-
-// // RegisterHandlers registers MCP Handlers on the provided ServeMux
-// // This should be called before applying any middleware to the mux
-// func (s *McpServer) RegisterHandlers(mux *http.ServeMux) {
-// 	// Register MCP endpoints
-// 	mux.HandleFunc(s.config.HTTP.MCPPath, func(w http.ResponseWriter, r *http.Request) {
-// 		switch r.Method {
-// 		case http.MethodPost:
-// 			s.Handlers.HandleMCPPost(w, r)
-// 		case http.MethodGet:
-// 			s.Handlers.HandleSSEGet(w, r)
-// 		default:
-// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		}
-// 	})
-
-// 	// Register SSE endpoint if backward compatibility is enabled
-// 	if s.config.BackwardCompatible20241105 {
-// 		mux.HandleFunc(s.config.HTTP.SSEPath, s.Handlers.HandleSSEGet)
-// 		mux.HandleFunc(s.config.HTTP.MessagePath, s.Handlers.HandleMessagePost)
-// 	}
-
-// 	// Health check endpoint
-// 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-// 		w.Header().Set("Content-Type", "application/json")
-// 		w.WriteHeader(http.StatusOK)
-// 		_, _ = w.Write([]byte(`{"status":"ok"}`))
-// 	})
-// }
 
 // RegisterHandlers registers MCP Handlers on the provided ServeMux
 // This should be called before applying any middleware to the mux

@@ -128,7 +128,7 @@ func NewTestConnectionActor(t *testing.T) *TestConnectionActor {
 	}
 }
 
-func (a *TestConnectionActor) PreStart(ctx context.Context) error {
+func (a *TestConnectionActor) PreStart(ctx *actor.Context) error {
 	return nil
 }
 
@@ -147,7 +147,7 @@ func (a *TestConnectionActor) Receive(ctx *actor.ReceiveContext) {
 	}
 }
 
-func (a *TestConnectionActor) PostStop(ctx context.Context) error {
+func (a *TestConnectionActor) PostStop(ctx *actor.Context) error {
 	return nil
 }
 
@@ -236,7 +236,7 @@ func TestMcpSessionStateMachine(t *testing.T) {
 	// Create a new actor system for testing
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
-		actor.WithPassivationDisabled(),
+		//actor.WithPassivationDisabled(),
 		actor.WithLogger(logger.DiscardSlogLogger))
 	require.NoError(t, err)
 

@@ -161,7 +161,7 @@ func NewMockSessionActor(registerFunc func(*mcppb.RegisterConnection) *mcppb.Reg
 	}
 }
 
-func (m *MockSessionActor) PreStart(ctx context.Context) error {
+func (m *MockSessionActor) PreStart(ctx *actor.Context) error {
 	return nil
 }
 
@@ -175,7 +175,7 @@ func (m *MockSessionActor) Receive(ctx *actor.ReceiveContext) {
 	}
 }
 
-func (m *MockSessionActor) PostStop(ctx context.Context) error {
+func (m *MockSessionActor) PostStop(ctx *actor.Context) error {
 	return nil
 }
 
@@ -183,7 +183,7 @@ func TestClientConnectionActor(t *testing.T) {
 	// Create a new actor system
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
-		actor.WithPassivationDisabled(),
+		//actor.WithPassivationDisabled(),
 		actor.WithLogger(logger.DiscardSlogLogger),
 	)
 	require.NoError(t, err)

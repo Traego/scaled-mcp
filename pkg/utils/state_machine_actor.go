@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"fmt"
 	"github.com/tochemey/goakt/v3/goaktpb"
 	"log/slog"
@@ -77,12 +76,12 @@ func (a *StateMachineActor) WhenUnhandled(handler func(ctx *actor.ReceiveContext
 }
 
 // PreStart is called when the actor is started
-func (a *StateMachineActor) PreStart(ctx context.Context) error {
+func (a *StateMachineActor) PreStart(ctx *actor.Context) error {
 	a.mu.RLock()
 	initialState := a.initialState
 	a.mu.RUnlock()
 
-	slog.DebugContext(ctx, "Starting state machine actor", "initial_state", initialState)
+	slog.DebugContext(ctx.Context(), "Starting state machine actor", "initial_state", initialState)
 	return nil
 }
 
@@ -152,12 +151,12 @@ func (a *StateMachineActor) Receive(ctx *actor.ReceiveContext) {
 }
 
 // PostStop is called when the actor is stopped
-func (a *StateMachineActor) PostStop(ctx context.Context) error {
+func (a *StateMachineActor) PostStop(ctx *actor.Context) error {
 	a.mu.RLock()
 	finalState := a.currentState
 	a.mu.RUnlock()
 
-	slog.DebugContext(ctx, "stopping state machine actor: "+a.id, "final_state", finalState, "state_id", a.id)
+	slog.DebugContext(ctx.Context(), "stopping state machine actor: "+a.id, "final_state", finalState, "state_id", a.id)
 	return nil
 }
 

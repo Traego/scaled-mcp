@@ -20,9 +20,10 @@ type JSONRPCMessage struct {
 
 // Tool represents an MCP tool definition
 type Tool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description,omitempty"`
-	InputSchema InputSchema `json:"inputSchema,omitempty,omitzero"`
+	Name         string       `json:"name"`
+	Description  string       `json:"description,omitempty"`
+	InputSchema  InputSchema  `json:"inputSchema,omitempty,omitzero"`
+	OutputSchema *InputSchema `json:"outputSchema,omitempty"`
 }
 
 // InputSchema represents the schema for tool inputs
