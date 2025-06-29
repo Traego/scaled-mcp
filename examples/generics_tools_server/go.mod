@@ -1,6 +1,6 @@
 module generics_tools_server
 
-go 1.21
+go 1.24.4
 
 replace github.com/traego/scaled-mcp => ../../
 

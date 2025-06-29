@@ -376,35 +376,35 @@ func TestParseDefaultValueComprehensive(t *testing.T) {
 	}{
 		{"string", "hello", reflect.TypeOf(""), "hello"},
 		{"string_empty", "", reflect.TypeOf(""), ""},
-		
+
 		{"int", "42", reflect.TypeOf(int(0)), int64(42)},
 		{"int8", "127", reflect.TypeOf(int8(0)), int64(127)},
 		{"int16", "32767", reflect.TypeOf(int16(0)), int64(32767)},
 		{"int32", "2147483647", reflect.TypeOf(int32(0)), int64(2147483647)},
 		{"int64", "9223372036854775807", reflect.TypeOf(int64(0)), int64(9223372036854775807)},
 		{"int_invalid", "not_a_number", reflect.TypeOf(int(0)), "not_a_number"},
-		
+
 		{"uint", "42", reflect.TypeOf(uint(0)), uint64(42)},
 		{"uint8", "255", reflect.TypeOf(uint8(0)), uint64(255)},
 		{"uint16", "65535", reflect.TypeOf(uint16(0)), uint64(65535)},
 		{"uint32", "4294967295", reflect.TypeOf(uint32(0)), uint64(4294967295)},
 		{"uint64", "18446744073709551615", reflect.TypeOf(uint64(0)), uint64(18446744073709551615)},
 		{"uint_invalid", "not_a_number", reflect.TypeOf(uint(0)), "not_a_number"},
-		
+
 		{"float32", "3.14", reflect.TypeOf(float32(0)), 3.14},
 		{"float64", "2.718281828", reflect.TypeOf(float64(0)), 2.718281828},
 		{"float_invalid", "not_a_float", reflect.TypeOf(float64(0)), "not_a_float"},
-		
+
 		{"bool_true", "true", reflect.TypeOf(bool(false)), true},
 		{"bool_false", "false", reflect.TypeOf(bool(false)), false},
 		{"bool_1", "1", reflect.TypeOf(bool(false)), true},
 		{"bool_0", "0", reflect.TypeOf(bool(false)), false},
 		{"bool_invalid", "maybe", reflect.TypeOf(bool(false)), "maybe"},
-		
+
 		{"ptr_string", "hello", reflect.TypeOf((*string)(nil)), "hello"},
 		{"ptr_int", "42", reflect.TypeOf((*int)(nil)), int64(42)},
 		{"ptr_bool", "true", reflect.TypeOf((*bool)(nil)), true},
-		
+
 		{"unsupported_chan", "test", reflect.TypeOf(make(chan int)), "test"},
 		{"unsupported_func", "test", reflect.TypeOf(func() {}), "test"},
 	}
@@ -595,7 +595,7 @@ func TestSetFieldValueComprehensive(t *testing.T) {
 	}{
 		{"string_direct", "StringField", "hello", false, "hello"},
 		{"int_assignable", "IntField", 123, false, 123},
-		
+
 		{"int_from_float64", "IntField", float64(42), false, 42},
 		{"int_from_int64", "IntField", int64(42), false, 42},
 		{"int_direct", "IntField", 42, false, 42},
@@ -604,7 +604,7 @@ func TestSetFieldValueComprehensive(t *testing.T) {
 		{"int16_from_float64", "Int16Field", float64(32767), false, int16(32767)},
 		{"int32_from_float64", "Int32Field", float64(2147483647), false, int32(2147483647)},
 		{"int64_from_float64", "Int64Field", float64(42), false, int64(42)},
-		
+
 		{"uint_from_float64", "UintField", float64(42), false, uint(42)},
 		{"uint_from_uint64", "UintField", uint64(42), false, uint(42)},
 		{"uint_direct", "UintField", uint(42), false, uint(42)},
@@ -613,19 +613,19 @@ func TestSetFieldValueComprehensive(t *testing.T) {
 		{"uint16_from_float64", "Uint16Field", float64(65535), false, uint16(65535)},
 		{"uint32_from_float64", "Uint32Field", float64(4294967295), false, uint32(4294967295)},
 		{"uint64_from_float64", "Uint64Field", float64(42), false, uint64(42)},
-		
+
 		{"float32_from_float64", "Float32Field", float64(3.14), false, float32(3.14)},
 		{"float64_direct", "Float64Field", 3.14159, false, 3.14159},
 		{"float_error_string", "Float64Field", "invalid", true, nil},
-		
+
 		{"bool_direct", "BoolField", true, false, true},
 		{"bool_error_string", "BoolField", "invalid", true, nil},
-		
+
 		{"ptr_string_nil_field", "PtrString", "hello", false, "hello"},
 		{"ptr_int_nil_field", "PtrInt", float64(42), false, 42},
-		
+
 		{"nil_value", "StringField", nil, false, ""},
-		
+
 		{"assignable_type", "StringField", "direct_assign", false, "direct_assign"},
 	}
 
@@ -702,7 +702,7 @@ func TestRegisterStructToolWithTypes(t *testing.T) {
 		}, nil
 	}
 
-	err := RegisterStructToolWithTypes(registry, "calculator", "Doubles the age", handler)
+	err := RegisterTool(registry, "calculator", "Doubles the age", handler)
 	assert.NoError(t, err)
 
 	tool, err := registry.GetTool(context.Background(), "calculator")
@@ -741,7 +741,7 @@ func TestStructHelpersWithTypes(t *testing.T) {
 		}, nil
 	}
 
-	err := RegisterStructToolWithTypes(registry, "identity", "Returns the age", handler)
+	err := RegisterTool(registry, "identity", "Returns the age", handler)
 	assert.NoError(t, err)
 
 	tool, err := registry.GetTool(context.Background(), "identity")
@@ -775,11 +775,11 @@ func TestMustRegisterStructToolWithTypesPanic(t *testing.T) {
 	}
 
 	assert.NotPanics(t, func() {
-		MustRegisterStructToolWithTypes(registry, "valid_tool", "A valid tool", validHandler)
+		MustRegisterTool(registry, "valid_tool", "A valid tool", validHandler)
 	})
 
 	assert.Panics(t, func() {
-		MustRegisterStructToolWithTypes(registry, "", "Empty name tool", validHandler)
+		MustRegisterTool(registry, "", "Empty name tool", validHandler)
 	})
 }
 
@@ -804,13 +804,13 @@ func TestGoTypeToSchemaTypeComprehensive(t *testing.T) {
 		{"float32", reflect.TypeOf(float32(0)), "number", false},
 		{"float64", reflect.TypeOf(float64(0)), "number", false},
 		{"bool", reflect.TypeOf(bool(false)), "boolean", false},
-		
+
 		{"slice", reflect.TypeOf([]string{}), "array", false},
 		{"array", reflect.TypeOf([5]string{}), "array", false},
 		{"map", reflect.TypeOf(map[string]interface{}{}), "object", false},
 		{"struct", reflect.TypeOf(struct{}{}), "object", false},
 		{"interface", reflect.TypeOf((*interface{})(nil)).Elem(), "object", false},
-		
+
 		{"ptr_string", reflect.TypeOf((*string)(nil)), "string", false},
 		{"ptr_int", reflect.TypeOf((*int)(nil)), "integer", false},
 		{"ptr_float", reflect.TypeOf((*float64)(nil)), "number", false},
@@ -818,7 +818,7 @@ func TestGoTypeToSchemaTypeComprehensive(t *testing.T) {
 		{"ptr_slice", reflect.TypeOf((*[]string)(nil)), "array", false},
 		{"ptr_map", reflect.TypeOf((*map[string]interface{})(nil)), "object", false},
 		{"ptr_struct", reflect.TypeOf((*struct{})(nil)), "object", false},
-		
+
 		{"function", reflect.TypeOf(func() {}), "", true},
 		{"channel", reflect.TypeOf(make(chan int)), "", true},
 		{"complex64", reflect.TypeOf(complex64(0)), "", true},

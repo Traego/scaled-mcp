@@ -41,7 +41,7 @@ func TestStateMachineActor(t *testing.T) {
 	// Create a new actor system for testing
 	ctx := context.Background()
 	actorSystem, err := actor.NewActorSystem("test-system",
-		actor.WithPassivationDisabled(),
+		//actor.WithPassivationDisabled(),
 		actor.WithLogger(logger.DiscardSlogLogger))
 	require.NoError(t, err)
 
@@ -168,7 +168,7 @@ func TestStateMachineActor(t *testing.T) {
 		// Create a new actor system for this test to avoid interference
 		testCtx := context.Background()
 		testActorSystem, err := actor.NewActorSystem("test-unhandled-system-1",
-			actor.WithPassivationDisabled(),
+			//actor.WithPassivationDisabled(),
 			actor.WithLogger(log.DefaultLogger))
 		require.NoError(t, err)
 
@@ -217,7 +217,7 @@ func TestStateMachineActor(t *testing.T) {
 		// Create a new actor system for this test to avoid interference
 		testCtx := context.Background()
 		testActorSystem, err := actor.NewActorSystem("test-unhandled-system-2",
-			actor.WithPassivationDisabled(),
+			//actor.WithPassivationDisabled(),
 			actor.WithLogger(log.DefaultLogger))
 		require.NoError(t, err)
 
@@ -230,7 +230,7 @@ func TestStateMachineActor(t *testing.T) {
 
 		// Create a fresh actor system for this test to avoid any interference
 		testActorSystem2, err := actor.NewActorSystem("test-unhandled-system-3",
-			actor.WithPassivationDisabled(),
+			//actor.WithPassivationDisabled(),
 			actor.WithLogger(log.DefaultLogger))
 		require.NoError(t, err)
 

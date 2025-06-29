@@ -19,8 +19,8 @@ func MustRegisterStructTool[T any](registry *StaticToolRegistry, name, descripti
 	}
 }
 
-// RegisterStructToolWithTypes registers a tool with typed input and output using generics
-func RegisterStructToolWithTypes[TInput, TOutput any](
+// RegisterTool registers a tool with typed input and output using generics
+func RegisterTool[TInput, TOutput any](
 	registry *StaticToolRegistry,
 	name, description string,
 	handler func(ctx context.Context, input *TInput) (*TOutput, error),
@@ -65,12 +65,12 @@ func RegisterStructToolWithTypes[TInput, TOutput any](
 	return registry.RegisterTool(tool, wrappedHandler)
 }
 
-func MustRegisterStructToolWithTypes[TInput, TOutput any](
+func MustRegisterTool[TInput, TOutput any](
 	registry *StaticToolRegistry,
 	name, description string,
 	handler func(ctx context.Context, input *TInput) (*TOutput, error),
 ) {
-	if err := RegisterStructToolWithTypes(registry, name, description, handler); err != nil {
+	if err := RegisterTool(registry, name, description, handler); err != nil {
 		panic(err)
 	}
 }

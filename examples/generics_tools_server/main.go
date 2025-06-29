@@ -151,11 +151,11 @@ func registerGenericsTools(registry *resources.StaticToolRegistry) error {
 		}, nil
 	}
 
-	if err := resources.RegisterStructToolWithTypes(registry, "calculator_typed", "Performs arithmetic with typed output", calculatorHandler); err != nil {
+	if err := resources.RegisterTool(registry, "calculator_typed", "Performs arithmetic with typed output", calculatorHandler); err != nil {
 		return fmt.Errorf("failed to register typed calculator tool: %w", err)
 	}
 
-	if err := resources.RegisterStructToolWithTypes(registry, "greeting_typed", "Generate a greeting with typed output", greetingHandler); err != nil {
+	if err := resources.RegisterTool(registry, "greeting_typed", "Generate a greeting with typed output", greetingHandler); err != nil {
 		return fmt.Errorf("failed to register typed greeting tool: %w", err)
 	}
 
