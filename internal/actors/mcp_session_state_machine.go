@@ -380,7 +380,7 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 
 	// Create the result
 	result := protocol.InitializeResult{
-		ProtocolVersion: params.ProtocolVersion,
+		ProtocolVersion: useProtocolVersion,
 		ServerInfo: protocol.ServerInfo{
 			Name:    "scaled-mcp-server",
 			Version: "1.0.0", // TODO: Get from config

@@ -213,7 +213,7 @@ func TestMCPServer2024(t *testing.T) {
 		}
 	})
 
-	t.Run("Invalid Protocol Version", func(t *testing.T) {
+	t.Run("Invalid Protocol Version Should Default to Previous", func(t *testing.T) {
 		// Create a separate context for this test that we can cancel
 		testCtx, testCancel := context.WithCancel(context.Background())
 		defer testCancel()
@@ -319,11 +319,7 @@ func TestMCPServer2024(t *testing.T) {
 			resp := jsonrpc.RawJSONRPCResponse{}
 			err = json.Unmarshal([]byte(msg.Data), &resp)
 			require.NoError(t, err, "Failed to unmarshal json response")
-			assert.Equal(t, -32602, resp.Error.Code)
-			assert.Equal(t, "Unsupported protocol version", resp.Error.Message)
-			assert.Equal(t, string(protocol.ProtocolVersion20241105), resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{})[0].(string))
-			assert.Equal(t, string(protocol.ProtocolVersion20250326), resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{})[1].(string))
-			//assert.Equal(t, []interface{protocol.ProtocolVersion20241105), string(protocol.ProtocolVersion20250326)}, resp.Error.Data.(map[string]interface{})["supportedVersions"].([]interface{}))
+			assert.Equal(t, string(protocol.OrderedProtocolVersions[0]), resp.Result.(map[string]interface{})["protocolVersion"])
 
 		case <-time.After(5 * time.Second):
 			t.Fatal("Timeout waiting for SSE connection")
