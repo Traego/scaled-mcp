@@ -98,8 +98,6 @@ func (r *StaticToolRegistry) RegisterStructToolWithHandler(name, description str
 	return r.RegisterTool(tool, wrappedHandler)
 }
 
-
-
 // GetTool returns a tool by name
 func (r *StaticToolRegistry) GetTool(ctx context.Context, name string) (protocol.Tool, error) {
 	r.mu.RLock()
