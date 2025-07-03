@@ -364,30 +364,23 @@ func handleInitialize(ctx context.Context, sessionData *SessionData, req *mcppb.
 	}
 
 	// Check protocol version
-	supportedVersions := []protocol.ProtocolVersion{protocol.ProtocolVersion20241105, protocol.ProtocolVersion20250326}
-	versionSupported := false
-	for _, v := range supportedVersions {
+
+	useProtocolVersion := protocol.OrderedProtocolVersions[0]
+	for _, v := range protocol.OrderedProtocolVersions {
 		if params.ProtocolVersion == v {
-			versionSupported = true
+			useProtocolVersion = params.ProtocolVersion
 			break
 		}
 	}
 
-	if !versionSupported {
-		errorData := map[string]interface{}{
-			"supportedVersions": supportedVersions,
-		}
-		return utils.CreateErrorResponse(req, -32602, "Unsupported protocol version", errorData)
-	}
-
 	// Store client info and capabilities
-	sessionData.ProtocolVersion = params.ProtocolVersion
+	sessionData.ProtocolVersion = useProtocolVersion
 	sessionData.ClientInfo = params.ClientInfo
 	sessionData.LastActivity = time.Now()
 
 	// Create the result
 	result := protocol.InitializeResult{
-		ProtocolVersion: params.ProtocolVersion,
+		ProtocolVersion: useProtocolVersion,
 		ServerInfo: protocol.ServerInfo{
 			Name:    "scaled-mcp-server",
 			Version: "1.0.0", // TODO: Get from config

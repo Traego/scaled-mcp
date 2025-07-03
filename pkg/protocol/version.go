@@ -13,3 +13,5 @@ const (
 	// ProtocolVersionAuto will automatically detect and use the highest supported version.
 	ProtocolVersionAuto ProtocolVersion = "auto"
 )
+
+var OrderedProtocolVersions = []ProtocolVersion{ProtocolVersion20250326, ProtocolVersion20241105}
