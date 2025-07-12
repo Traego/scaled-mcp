@@ -86,7 +86,14 @@ func (p *PromptExecutor) handleListPrompts(ctx context.Context, params map[strin
 	}
 
 	// Call the registry
-	result := p.serverInfo.GetFeatureRegistry().PromptRegistry.ListPrompts(ctx, opts)
+	result, err := p.serverInfo.GetFeatureRegistry().PromptRegistry.ListPrompts(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error listing prompts: %w", err)
+	}
+
+	if result.Prompts == nil {
+		result.Prompts = make([]resources.Prompt, 0)
+	}
 
 	return result, nil
 }

@@ -69,7 +69,7 @@ func (r *StaticResourceRegistry) RegisterResourceTemplate(template ResourceTempl
 }
 
 // ListResources returns a paginated list of resources
-func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts ResourceListOptions) ResourceListResult {
+func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts ResourceListOptions) (ResourceListResult, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -102,7 +102,7 @@ func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts Resourc
 
 	// No resources or cursor beyond the end
 	if startPos >= len(uris) {
-		return result
+		return result, nil
 	}
 
 	// Get the resources for this page
@@ -116,7 +116,7 @@ func (r *StaticResourceRegistry) ListResources(ctx context.Context, opts Resourc
 		result.NextCursor = uris[endPos-1]
 	}
 
-	return result
+	return result, nil
 }
 
 // ReadResource reads a resource by URI
@@ -193,7 +193,7 @@ func (r *StaticResourceRegistry) UnsubscribeResource(ctx context.Context, uri st
 }
 
 // ListResourceTemplates returns a paginated list of resource templates
-func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) ResourceTemplateListResult {
+func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) (ResourceTemplateListResult, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -226,7 +226,7 @@ func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts
 
 	// No templates or cursor beyond the end
 	if startPos >= len(uris) {
-		return result
+		return result, nil
 	}
 
 	// Get the templates for this page
@@ -240,7 +240,7 @@ func (r *StaticResourceRegistry) ListResourceTemplates(ctx context.Context, opts
 		result.NextCursor = uris[endPos-1]
 	}
 
-	return result
+	return result, nil
 }
 
 // GetSubscribers returns the subscribers for a resource

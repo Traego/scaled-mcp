@@ -47,7 +47,7 @@ func (r *StaticPromptRegistry) GetPrompt(ctx context.Context, name string) (Prom
 }
 
 // ListPrompts returns a paginated list of prompts
-func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListOptions) PromptListResult {
+func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListOptions) (PromptListResult, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -80,7 +80,7 @@ func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListO
 
 	// No prompts or cursor beyond the end
 	if startPos >= len(names) {
-		return result
+		return result, nil
 	}
 
 	// Get the prompts for this page
@@ -94,7 +94,7 @@ func (r *StaticPromptRegistry) ListPrompts(ctx context.Context, opts PromptListO
 		result.NextCursor = names[endPos-1]
 	}
 
-	return result
+	return result, nil
 }
 
 // ProcessPrompt processes a prompt template with the given arguments

@@ -90,7 +90,16 @@ func (r *ResourceExecutor) handleListResources(ctx context.Context, params map[s
 	}
 
 	// Call the registry
-	return r.serverInfo.GetFeatureRegistry().ResourceRegistry.ListResources(ctx, opts), nil
+	result, err := r.serverInfo.GetFeatureRegistry().ResourceRegistry.ListResources(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error listing resources: %w", err)
+	}
+
+	if result.Resources == nil {
+		result.Resources = make([]resources.Resource, 0)
+	}
+
+	return result, nil
 }
 
 // handleReadResource handles a request to read a specific resource
@@ -188,7 +197,16 @@ func (r *ResourceExecutor) handleListResourceTemplates(ctx context.Context, para
 	}
 
 	// Call the registry
-	return r.serverInfo.GetFeatureRegistry().ResourceRegistry.ListResourceTemplates(ctx, opts), nil
+	result, err := r.serverInfo.GetFeatureRegistry().ResourceRegistry.ListResourceTemplates(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error listing resource templates: %w", err)
+	}
+
+	if result.ResourceTemplates == nil {
+		result.ResourceTemplates = make([]resources.ResourceTemplate, 0)
+	}
+
+	return result, nil
 }
 
 // Ensure ResourceExecutor implements config.MethodHandler

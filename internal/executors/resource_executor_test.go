@@ -100,7 +100,7 @@ type MockResourceRegistry struct {
 	subscriptions     map[string]bool
 }
 
-func (m *MockResourceRegistry) ListResources(ctx context.Context, opts resources.ResourceListOptions) resources.ResourceListResult {
+func (m *MockResourceRegistry) ListResources(ctx context.Context, opts resources.ResourceListOptions) (resources.ResourceListResult, error) {
 	result := resources.ResourceListResult{
 		Resources: make([]resources.Resource, 0, len(m.resourceList)),
 	}
@@ -108,7 +108,7 @@ func (m *MockResourceRegistry) ListResources(ctx context.Context, opts resources
 	// Simple implementation that ignores cursor for testing
 	result.Resources = append(result.Resources, m.resourceList...)
 
-	return result
+	return result, nil
 }
 
 func (m *MockResourceRegistry) ReadResource(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
@@ -135,7 +135,7 @@ func (m *MockResourceRegistry) UnsubscribeResource(ctx context.Context, uri stri
 	return nil
 }
 
-func (m *MockResourceRegistry) ListResourceTemplates(ctx context.Context, opts resources.ResourceTemplateListOptions) resources.ResourceTemplateListResult {
+func (m *MockResourceRegistry) ListResourceTemplates(ctx context.Context, opts resources.ResourceTemplateListOptions) (resources.ResourceTemplateListResult, error) {
 	result := resources.ResourceTemplateListResult{
 		ResourceTemplates: make([]resources.ResourceTemplate, 0, len(m.resourceTemplates)),
 	}
@@ -143,7 +143,7 @@ func (m *MockResourceRegistry) ListResourceTemplates(ctx context.Context, opts r
 	// Simple implementation that ignores cursor for testing
 	result.ResourceTemplates = append(result.ResourceTemplates, m.resourceTemplates...)
 
-	return result
+	return result, nil
 }
 
 func TestResourceExecutor_CanHandleMethod(t *testing.T) {
