@@ -819,4 +819,72 @@ func TestMcpSessionStateMachine(t *testing.T) {
 		err = pid.Shutdown(ctx)
 		require.NoError(t, err)
 	})
+
+	t.Run("should handle notifications/cancelled message", func(t *testing.T) {
+		// Create server info with test executor
+		executor := NewTestExecutor()
+		serverInfo := NewTestServerInfo(executor)
+
+		// Create session actor
+		sessionID := "test-session-cancelled"
+		sessionActor := NewMcpSessionStateMachine(serverInfo, sessionID)
+
+		// Get the state machine to verify state transitions
+		stateMachine, ok := sessionActor.(*utils.StateMachineActor)
+		require.True(t, ok)
+
+		// Spawn the actor
+		pid, err := actorSystem.Spawn(ctx, "test-session-cancelled", sessionActor)
+		require.NoError(t, err)
+
+		// First initialize the session
+		result, err := initializeSession(ctx, t, pid, protocol.ProtocolVersion20250326, "test-conn-cancelled")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// Verify the actor is in the initialized state
+		assert.Equal(t, StateInitialized, stateMachine.GetCurrentState())
+
+		// Initial timestamp before notification
+		initialTimestamp := sessionData(stateMachine).LastActivity
+
+		// Wait a moment to ensure timestamp difference
+		time.Sleep(5 * time.Millisecond)
+
+		// Now send notifications/cancelled
+		cancelledNotification := &mcppb.JsonRpcRequest{
+			Jsonrpc: "2.0",
+			Method:  "notifications/cancelled",
+			// No ID needed for notifications
+		}
+
+		wrappedNotification := &mcppb.WrappedRequest{
+			Request:               cancelledNotification,
+			IsAsk:                 false, // Notifications are always Tell, not Ask
+			RespondToConnectionId: "test-conn-cancelled",
+		}
+
+		err = actor.Tell(ctx, pid, wrappedNotification)
+		require.NoError(t, err)
+
+		// Wait a bit for the notification to be processed
+		time.Sleep(50 * time.Millisecond)
+
+		// Verify the state remains initialized
+		assert.Equal(t, StateInitialized, stateMachine.GetCurrentState())
+
+		// Verify LastActivity timestamp was updated
+		updatedData := sessionData(stateMachine)
+		assert.True(t, updatedData.LastActivity.After(initialTimestamp),
+			"LastActivity should be updated after receiving notifications/cancelled")
+
+		// Clean up
+		err = pid.Shutdown(ctx)
+		require.NoError(t, err)
+	})
+}
+
+// Helper function to get the session data from a state machine
+func sessionData(stateMachine *utils.StateMachineActor) *SessionData {
+	return stateMachine.GetData().(*SessionData)
 }

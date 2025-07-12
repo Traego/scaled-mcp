@@ -257,6 +257,10 @@ func handleWrappedRequestInitialized(rctx *actor.ReceiveContext, sessionData *Se
 		// This is a notification that initialization is complete
 		sessionData.LastActivity = time.Now()
 		sessionData.ClientNotificationsInitialized = true
+		return utils.Stay(sessionData)
+	case "notifications/cancelled":
+		slog.InfoContext(ctx, "Handling notifications/cancelled request", "session_id", sessionData.SessionID)
+		// Update the last activity timestamp to keep the session alive
 		sessionData.LastActivity = time.Now()
 		return utils.Stay(sessionData)
 	default:

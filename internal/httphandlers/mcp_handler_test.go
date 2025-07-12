@@ -258,8 +258,8 @@ func (m *mockPromptRegistry) GetPrompt(ctx context.Context, name string) (resour
 	return resources.Prompt{}, false
 }
 
-func (m *mockPromptRegistry) ListPrompts(ctx context.Context, opts resources.PromptListOptions) resources.PromptListResult {
-	return resources.PromptListResult{}
+func (m *mockPromptRegistry) ListPrompts(ctx context.Context, opts resources.PromptListOptions) (resources.PromptListResult, error) {
+	return resources.PromptListResult{}, nil
 }
 
 func (m *mockPromptRegistry) ProcessPrompt(ctx context.Context, name string, arguments map[string]string) ([]resources.PromptMessage, error) {
@@ -268,8 +268,8 @@ func (m *mockPromptRegistry) ProcessPrompt(ctx context.Context, name string, arg
 
 type mockResourceRegistry struct{}
 
-func (m *mockResourceRegistry) ListResources(ctx context.Context, opts resources.ResourceListOptions) resources.ResourceListResult {
-	return resources.ResourceListResult{}
+func (m *mockResourceRegistry) ListResources(ctx context.Context, opts resources.ResourceListOptions) (resources.ResourceListResult, error) {
+	return resources.ResourceListResult{}, nil
 }
 
 func (m *mockResourceRegistry) ReadResource(ctx context.Context, uri string) ([]resources.ResourceContents, error) {
@@ -284,8 +284,8 @@ func (m *mockResourceRegistry) UnsubscribeResource(ctx context.Context, uri stri
 	return errors.New("not implemented")
 }
 
-func (m *mockResourceRegistry) ListResourceTemplates(ctx context.Context, opts resources.ResourceTemplateListOptions) resources.ResourceTemplateListResult {
-	return resources.ResourceTemplateListResult{}
+func (m *mockResourceRegistry) ListResourceTemplates(ctx context.Context, opts resources.ResourceTemplateListOptions) (resources.ResourceTemplateListResult, error) {
+	return resources.ResourceTemplateListResult{}, nil
 }
 
 func (m *mockServerInfo) GetFeatureRegistry() resources.FeatureRegistry {

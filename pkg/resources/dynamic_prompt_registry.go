@@ -39,13 +39,13 @@ func (r *DynamicPromptRegistry) GetPrompt(ctx context.Context, name string) (Pro
 }
 
 // ListPrompts returns a paginated list of prompts
-func (r *DynamicPromptRegistry) ListPrompts(ctx context.Context, opts PromptListOptions) PromptListResult {
+func (r *DynamicPromptRegistry) ListPrompts(ctx context.Context, opts PromptListOptions) (PromptListResult, error) {
 	prompts, nextCursor := r.provider.ListPrompts(ctx, opts.Cursor)
 
 	return PromptListResult{
 		Prompts:    prompts,
 		NextCursor: nextCursor,
-	}
+	}, nil
 }
 
 // ProcessPrompt processes a prompt template with the given arguments

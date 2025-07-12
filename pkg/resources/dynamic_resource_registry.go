@@ -36,13 +36,13 @@ func NewDynamicResourceRegistry(provider ResourceProviderInterface) *DynamicReso
 }
 
 // ListResources returns a paginated list of resources
-func (r *DynamicResourceRegistry) ListResources(ctx context.Context, opts ResourceListOptions) ResourceListResult {
+func (r *DynamicResourceRegistry) ListResources(ctx context.Context, opts ResourceListOptions) (ResourceListResult, error) {
 	resources, nextCursor := r.provider.ListResources(ctx, opts.Cursor)
 
 	return ResourceListResult{
 		Resources:  resources,
 		NextCursor: nextCursor,
-	}
+	}, nil
 }
 
 // ReadResource reads a resource by URI
@@ -76,13 +76,13 @@ func (r *DynamicResourceRegistry) UnsubscribeResource(ctx context.Context, uri s
 }
 
 // ListResourceTemplates returns a paginated list of resource templates
-func (r *DynamicResourceRegistry) ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) ResourceTemplateListResult {
+func (r *DynamicResourceRegistry) ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) (ResourceTemplateListResult, error) {
 	templates, nextCursor := r.provider.ListResourceTemplates(ctx, opts.Cursor)
 
 	return ResourceTemplateListResult{
 		ResourceTemplates: templates,
 		NextCursor:        nextCursor,
-	}
+	}, nil
 }
 
 // Ensure DynamicResourceRegistry implements ResourceRegistry

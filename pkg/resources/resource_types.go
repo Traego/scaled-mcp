@@ -132,7 +132,7 @@ type ResourceTemplateListResult struct {
 // ResourceRegistry defines the interface for a resource registry
 type ResourceRegistry interface {
 	// ListResources returns a paginated list of resources
-	ListResources(ctx context.Context, opts ResourceListOptions) ResourceListResult
+	ListResources(ctx context.Context, opts ResourceListOptions) (ResourceListResult, error)
 
 	// ReadResource reads a resource by URI
 	ReadResource(ctx context.Context, uri string) ([]ResourceContents, error)
@@ -144,5 +144,5 @@ type ResourceRegistry interface {
 	UnsubscribeResource(ctx context.Context, uri string) error
 
 	// ListResourceTemplates returns a paginated list of resource templates
-	ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) ResourceTemplateListResult
+	ListResourceTemplates(ctx context.Context, opts ResourceTemplateListOptions) (ResourceTemplateListResult, error)
 }

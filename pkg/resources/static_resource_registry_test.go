@@ -61,7 +61,8 @@ func TestStaticResourceRegistry(t *testing.T) {
 	t.Run("ListResources", func(t *testing.T) {
 		ctx := context.Background()
 
-		result := registry.ListResources(ctx, ResourceListOptions{})
+		result, err2 := registry.ListResources(ctx, ResourceListOptions{})
+		require.NoError(t, err2)
 
 		if len(result.Resources) != 1 {
 			t.Fatalf("Expected 1 resource, got %d", len(result.Resources))
@@ -120,7 +121,8 @@ func TestStaticResourceRegistry(t *testing.T) {
 	t.Run("ListResourceTemplates", func(t *testing.T) {
 		ctx := context.Background()
 
-		result := registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{})
+		result, err2 := registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{})
+		require.NoError(t, err2)
 
 		if len(result.ResourceTemplates) != 1 {
 			t.Fatalf("Expected 1 resource template, got %d", len(result.ResourceTemplates))
@@ -238,18 +240,21 @@ func TestStaticResourceRegistry_Pagination(t *testing.T) {
 		ctx := context.Background()
 
 		// First page
-		result := registry.ListResources(ctx, ResourceListOptions{})
+		result, err := registry.ListResources(ctx, ResourceListOptions{})
+		require.NoError(t, err)
 		assert.Len(t, result.Resources, 20, "First page should have 20 resources")
 		assert.NotEmpty(t, result.NextCursor, "Next cursor should not be empty")
 
 		// Second page using the cursor
-		result = registry.ListResources(ctx, ResourceListOptions{Cursor: result.NextCursor})
+		result, err = registry.ListResources(ctx, ResourceListOptions{Cursor: result.NextCursor})
+		require.NoError(t, err)
 		assert.Len(t, result.Resources, 10, "Second page should have 10 resources")
 		assert.Empty(t, result.NextCursor, "Next cursor should be empty for last page")
 
 		// Using a cursor that doesn't exist returns the first page
 		// This is the actual behavior of the implementation
-		result = registry.ListResources(ctx, ResourceListOptions{Cursor: "test/resource/999"})
+		result, err = registry.ListResources(ctx, ResourceListOptions{Cursor: "test/resource/999"})
+		require.NoError(t, err)
 		assert.Len(t, result.Resources, 20, "Non-existent cursor should return first page")
 	})
 
@@ -271,18 +276,21 @@ func TestStaticResourceRegistry_Pagination(t *testing.T) {
 		ctx := context.Background()
 
 		// First page
-		result := registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{})
+		result, err := registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{})
+		require.NoError(t, err)
 		assert.Len(t, result.ResourceTemplates, 20, "First page should have 20 templates")
 		assert.NotEmpty(t, result.NextCursor, "Next cursor should not be empty")
 
 		// Second page using the cursor
-		result = registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{Cursor: result.NextCursor})
+		result, err = registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{Cursor: result.NextCursor})
+		require.NoError(t, err)
 		assert.Len(t, result.ResourceTemplates, 10, "Second page should have 10 templates")
 		assert.Empty(t, result.NextCursor, "Next cursor should be empty for last page")
 
 		// Using a cursor that doesn't exist returns the first page
 		// This is the actual behavior of the implementation
-		result = registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{Cursor: "test/template/{id}/999"})
+		result, err = registry.ListResourceTemplates(ctx, ResourceTemplateListOptions{Cursor: "test/template/{id}/999"})
+		require.NoError(t, err)
 		assert.Len(t, result.ResourceTemplates, 20, "Non-existent cursor should return first page")
 	})
 }

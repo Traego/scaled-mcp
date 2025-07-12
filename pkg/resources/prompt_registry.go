@@ -48,7 +48,7 @@ type PromptRegistry interface {
 	GetPrompt(ctx context.Context, name string) (Prompt, bool)
 
 	// ListPrompts returns a paginated list of prompts
-	ListPrompts(ctx context.Context, opts PromptListOptions) PromptListResult
+	ListPrompts(ctx context.Context, opts PromptListOptions) (PromptListResult, error)
 
 	// ProcessPrompt processes a prompt template with the given arguments
 	ProcessPrompt(ctx context.Context, name string, arguments map[string]string) ([]PromptMessage, error)

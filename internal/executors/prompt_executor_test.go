@@ -92,7 +92,7 @@ type MockPromptRegistry struct {
 	prompts map[string]resources.Prompt
 }
 
-func (m *MockPromptRegistry) ListPrompts(ctx context.Context, opts resources.PromptListOptions) resources.PromptListResult {
+func (m *MockPromptRegistry) ListPrompts(ctx context.Context, opts resources.PromptListOptions) (resources.PromptListResult, error) {
 	result := resources.PromptListResult{
 		Prompts: make([]resources.Prompt, 0, len(m.prompts)),
 	}
@@ -101,7 +101,7 @@ func (m *MockPromptRegistry) ListPrompts(ctx context.Context, opts resources.Pro
 		result.Prompts = append(result.Prompts, prompt)
 	}
 
-	return result
+	return result, nil
 }
 
 func (m *MockPromptRegistry) GetPrompt(ctx context.Context, name string) (resources.Prompt, bool) {
