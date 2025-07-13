@@ -79,6 +79,8 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 				handleError(w, err, mr.Message.ID)
 				return
 			}
+			w.WriteHeader(http.StatusAccepted)
+			return
 		} else {
 			respMsg, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
 			if err != nil {
