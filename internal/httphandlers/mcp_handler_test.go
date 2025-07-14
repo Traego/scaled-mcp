@@ -316,6 +316,10 @@ func (m *mockServerInfo) GetTraceHandler() config.TraceHandler {
 	return nil
 }
 
+func (m *mockServerInfo) GetSessionStartupCallback() config.SessionStartupCallback {
+	return nil
+}
+
 type mockAuthInfo struct{}
 
 func (m *mockAuthInfo) GetPrincipalId() string {

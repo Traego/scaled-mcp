@@ -45,6 +45,25 @@ func NewTestExecutor() *TestExecutor {
 
 				return response, nil
 			},
+			"elicitation/create": func(ctx context.Context, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error) {
+				response := &mcppb.JsonRpcResponse{
+					Jsonrpc: "2.0",
+				}
+
+				// Copy the ID from the request
+				switch id := req.Id.(type) {
+				case *mcppb.JsonRpcRequest_IntId:
+					response.Id = &mcppb.JsonRpcResponse_IntId{IntId: id.IntId}
+				case *mcppb.JsonRpcRequest_StringId:
+					response.Id = &mcppb.JsonRpcResponse_StringId{StringId: id.StringId}
+				}
+
+				response.Response = &mcppb.JsonRpcResponse_ResultJson{
+					ResultJson: `{"action": "accept", "content": {"mock": "This is a mock elicitation response"}}`,
+				}
+
+				return response, nil
+			},
 		},
 	}
 }
@@ -64,10 +83,11 @@ func (e *TestExecutor) HandleMethod(ctx context.Context, method string, req *mcp
 
 // TestServerInfo is a real implementation of config.McpServerInfo for testing
 type TestServerInfo struct {
-	serverCaps   protocol.ServerCapabilities
-	serverConfig *config.ServerConfig
-	executors    config.MethodHandler
-	registry     resources.FeatureRegistry
+	serverCaps             protocol.ServerCapabilities
+	serverConfig           *config.ServerConfig
+	executors              config.MethodHandler
+	registry               resources.FeatureRegistry
+	sessionStartupCallback config.SessionStartupCallback
 }
 
 func NewTestServerInfo(executors config.MethodHandler) config.McpServerInfo {
@@ -113,6 +133,10 @@ func (s *TestServerInfo) GetAuthHandler() config.AuthHandler {
 
 func (s *TestServerInfo) GetTraceHandler() config.TraceHandler {
 	return nil
+}
+
+func (s *TestServerInfo) GetSessionStartupCallback() config.SessionStartupCallback {
+	return s.sessionStartupCallback
 }
 
 // TestConnectionActor is a real implementation of a client connection actor for testing

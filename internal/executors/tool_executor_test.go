@@ -111,6 +111,10 @@ func (s *TestServerInfo) GetTraceHandler() config.TraceHandler {
 	return nil
 }
 
+func (s *TestServerInfo) GetSessionStartupCallback() config.SessionStartupCallback {
+	return nil
+}
+
 func TestToolExecutor_CanHandleMethod(t *testing.T) {
 	// Create a test server info
 	serverInfo := NewTestServerInfo()

@@ -15,6 +15,7 @@ type Executors struct {
 	Prompts      config.MethodHandler
 	Resources    config.MethodHandler
 	Utilities    config.MethodHandler
+	Elicitation  config.MethodHandler
 	Experimental config.MethodHandler
 }
 
@@ -24,6 +25,7 @@ func DefaultExecutors(serverInfo config.McpServerInfo, experimental config.Metho
 		Prompts:      NewPromptExecutor(serverInfo),
 		Resources:    NewResourceExecutor(serverInfo),
 		Utilities:    NewUtilitiesExecutor(serverInfo),
+		Elicitation:  NewElicitationExecutor(serverInfo),
 		Experimental: experimental,
 	}
 }
@@ -36,6 +38,8 @@ func (e *Executors) CanHandleMethod(method string) bool {
 	} else if e.Resources != nil && e.Resources.CanHandleMethod(method) {
 		return true
 	} else if e.Utilities != nil && e.Utilities.CanHandleMethod(method) {
+		return true
+	} else if e.Elicitation != nil && e.Elicitation.CanHandleMethod(method) {
 		return true
 	} else if e.Experimental != nil && e.Experimental.CanHandleMethod(method) {
 		return true
@@ -58,6 +62,10 @@ func (e *Executors) HandleMethod(ctx context.Context, method string, req *mcppb.
 		case "prompts":
 			if e.Prompts.CanHandleMethod(method) {
 				return e.Prompts.HandleMethod(ctx, method, req)
+			}
+		case "elicitation":
+			if e.Elicitation != nil && e.Elicitation.CanHandleMethod(method) {
+				return e.Elicitation.HandleMethod(ctx, method, req)
 			}
 		}
 	}

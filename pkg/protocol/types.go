@@ -101,6 +101,7 @@ type ServerCapabilities struct {
 	Resources    *ResourcesServerCapability `json:"resources,omitempty"`
 	Tools        *ToolsServerCapability     `json:"tools,omitempty"`
 	Logging      *LoggingServerCapability   `json:"logging,omitempty"`
+	Elicitation  *ElicitationCapability     `json:"elicitation,omitempty"`
 	Experimental map[string]interface{}     `json:"experimental,omitempty"`
 }
 
@@ -241,3 +242,23 @@ func NewToolCallResult(content []ToolCallContent, isError bool) ToolCallResult {
 		IsError: isError,
 	}
 }
+
+type ElicitationCapability struct {
+	// Empty struct as per the 2025 spec
+}
+
+type ElicitationRequest struct {
+	Message         string                 `json:"message"`
+	RequestedSchema map[string]interface{} `json:"requestedSchema"`
+}
+
+type ElicitationResponse struct {
+	Action  string                 `json:"action"` // "accept", "reject", or "cancel"
+	Content map[string]interface{} `json:"content,omitempty"`
+}
+
+const (
+	ElicitationActionAccept = "accept"
+	ElicitationActionReject = "reject"
+	ElicitationActionCancel = "cancel"
+)

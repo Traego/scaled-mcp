@@ -92,6 +92,10 @@ func (s *TestResourceServerInfo) GetTraceHandler() config.TraceHandler {
 	return nil
 }
 
+func (s *TestResourceServerInfo) GetSessionStartupCallback() config.SessionStartupCallback {
+	return nil
+}
+
 // MockResourceRegistry is a mock implementation of the ResourceRegistry interface
 type MockResourceRegistry struct {
 	resources         map[string][]resources.ResourceContents

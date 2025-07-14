@@ -82,3 +82,14 @@ message McpSessionInitialize {
   bool prefer_sse = 2; // Whether to prefer SSE over JSON when possible
   string server_capabilities_json = 3; // Server capabilities as JSON string
 }
+
+// Elicitation messages for MCP 2025 specification
+message ElicitationCreateRequest {
+  string message = 1;
+  string requested_schema_json = 2; // JSON schema as string
+}
+
+message ElicitationCreateResponse {
+  string action = 1; // "accept", "reject", or "cancel"
+  string content_json = 2; // JSON content matching schema (optional)
+}

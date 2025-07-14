@@ -16,6 +16,7 @@ type McpServerInfo interface {
 	GetExecutors() MethodHandler
 	GetAuthHandler() AuthHandler
 	GetTraceHandler() TraceHandler
+	GetSessionStartupCallback() SessionStartupCallback
 }
 
 type AuthHandler interface {
@@ -32,4 +33,12 @@ type TraceHandler interface {
 type MethodHandler interface {
 	CanHandleMethod(method string) bool
 	HandleMethod(ctx context.Context, method string, req *mcppb.JsonRpcRequest) (*mcppb.JsonRpcResponse, error)
+}
+
+type SessionStartupCallback func(ctx McpContext) error
+
+type McpContext interface {
+	GetSessionID() string
+	GetContext() context.Context
+	Elicit(message string, schema map[string]interface{}) (*protocol.ElicitationResponse, error)
 }

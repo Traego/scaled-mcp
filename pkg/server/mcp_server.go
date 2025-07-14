@@ -55,6 +55,8 @@ type McpServer struct {
 	authHandler config.AuthHandler
 
 	traceHandler config.TraceHandler
+
+	sessionStartupCallback config.SessionStartupCallback
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
@@ -67,6 +69,10 @@ func (s *McpServer) GetAuthHandler() config.AuthHandler {
 
 func (s *McpServer) GetTraceHandler() config.TraceHandler {
 	return s.traceHandler
+}
+
+func (s *McpServer) GetSessionStartupCallback() config.SessionStartupCallback {
+	return s.sessionStartupCallback
 }
 
 func (s *McpServer) GetServerConfig() *config.ServerConfig {
@@ -112,10 +118,11 @@ type McpServerOption func(*McpServer)
 func WithServerInfo(name, version string) McpServerOption {
 	return func(s *McpServer) {
 		s.serverCapabilities = protocol.ServerCapabilities{
-			Prompts:   &protocol.PromptsServerCapability{},
-			Resources: &protocol.ResourcesServerCapability{},
-			Tools:     &protocol.ToolsServerCapability{},
-			Logging:   &protocol.LoggingServerCapability{},
+			Prompts:     &protocol.PromptsServerCapability{},
+			Resources:   &protocol.ResourcesServerCapability{},
+			Tools:       &protocol.ToolsServerCapability{},
+			Logging:     &protocol.LoggingServerCapability{},
+			Elicitation: &protocol.ElicitationCapability{},
 		}
 	}
 }
@@ -165,6 +172,12 @@ func WithAuthHandler(ah config.AuthHandler) McpServerOption {
 func WithTraceHandler(th config.TraceHandler) McpServerOption {
 	return func(s *McpServer) {
 		s.traceHandler = th
+	}
+}
+
+func WithSessionStartupCallback(callback config.SessionStartupCallback) McpServerOption {
+	return func(s *McpServer) {
+		s.sessionStartupCallback = callback
 	}
 }
 
