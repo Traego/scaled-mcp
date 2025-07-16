@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/traego/scaled-mcp/pkg/session"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -55,6 +56,8 @@ type McpServer struct {
 	authHandler config.AuthHandler
 
 	traceHandler config.TraceHandler
+
+	sessionManager session.SessionManager
 }
 
 func (s *McpServer) GetExecutors() config.MethodHandler {
@@ -81,6 +84,10 @@ func (s *McpServer) GetServerCapabilities() protocol.ServerCapabilities {
 	return s.serverCapabilities
 }
 
+func (s *McpServer) GetSessionManager() session.SessionManager {
+	return s.sessionManager
+}
+
 // GetActorSystem returns the actor system used by the server
 func (s *McpServer) GetActorSystem() actor.ActorSystem {
 	return s.actorSystem
@@ -92,6 +99,10 @@ func (s *McpServer) HandleMCPGetExternal() http.Handler {
 
 func (s *McpServer) HandleMCPPostExternal() http.Handler {
 	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMCPPost)))
+}
+
+func (s *McpServer) HandleSessionPreflightExternal() http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleSessionPreFlight)))
 }
 
 func (s *McpServer) HandleSSEGetExternal(basePath string) http.Handler {
@@ -233,6 +244,18 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		opt(server)
 	}
 
+	if server.sessionManager == nil {
+		var secret string
+		if cfg.Session.SessionIDSecret != "" {
+			secret = cfg.Session.SessionIDSecret
+			slog.Info("Using configured session ID secret")
+		} else {
+			// Generate a random secret for session signing
+			secret = utils.MustGenerateSecureID(32)
+		}
+		server.sessionManager = session.NewSignedStatelessSessionManager(secret)
+	}
+
 	if server.executors == nil {
 		server.executors = executors.DefaultExecutors(server, nil)
 	}
@@ -255,7 +278,7 @@ func NewMcpServer(cfg *config.ServerConfig, options ...McpServerOption) (*McpSer
 		slog.Info("Using default static resource registry")
 	}
 
-	// Create the MCP handler
+	// Create the MCP handler with the session manager
 	server.Handlers = httphandlers.NewMCPHandler(cfg, actorSystem, server)
 
 	// Create the internal handler

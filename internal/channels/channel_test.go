@@ -14,7 +14,7 @@ func TestOneWayChannelInterface(t *testing.T) {
 	r, err := http.NewRequest("GET", "/events", nil)
 	require.NoError(t, err)
 
-	channel := NewSSEChannel(w, r, "test-session", false)
+	channel := NewSSEChannel(w, r, "test-session", false, true)
 	require.NotNil(t, channel)
 
 	var oneWayChannel OneWayChannel = channel
@@ -38,7 +38,7 @@ func TestSSEChannelImplementation(t *testing.T) {
 	r, err := http.NewRequest("GET", "/events", nil)
 	require.NoError(t, err)
 
-	channel := NewSSEChannel(w, r, "test-session", false)
+	channel := NewSSEChannel(w, r, "test-session", false, false)
 	require.NotNil(t, channel)
 
 	type TestObject struct {

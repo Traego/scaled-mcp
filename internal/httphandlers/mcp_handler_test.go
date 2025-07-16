@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/traego/scaled-mcp/pkg/session"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -313,6 +314,10 @@ func (m *mockServerInfo) GetAuthHandler() config.AuthHandler {
 }
 
 func (m *mockServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
+func (m *mockServerInfo) GetSessionManager() session.SessionManager {
 	return nil
 }
 

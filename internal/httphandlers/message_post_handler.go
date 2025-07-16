@@ -2,6 +2,7 @@ package httphandlers
 
 import (
 	"fmt"
+	"github.com/tochemey/goakt/v3/actor"
 	"github.com/traego/scaled-mcp/pkg/auth"
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"net/http"
@@ -21,6 +22,25 @@ Route Message to Session Actor
 func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sessionId := r.URL.Query().Get("sessionId")
+
+	if sessionId == "" {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("session not found"))
+		return
+	}
+
+	ai := auth.GetAuthInfo(ctx)
+	var principalId *string
+	if ai != nil {
+		p := ai.GetPrincipalId()
+		principalId = &p
+	}
+
+	err := h.serverInfo.GetSessionManager().VerifySessionId(sessionId, principalId)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	mcpRequest, err := parseMessageRequest(r)
 	if err != nil {
@@ -50,15 +70,17 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		TraceId:               utils.GetTraceId(ctx),
 	}
 
-	if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
-		ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
+	if ai != nil && h.serverInfo.GetAuthHandler() != nil {
+		var ser []byte
+		ser, err = h.serverInfo.GetAuthHandler().Serialize(ai)
 		if err != nil {
 			handleError(w, fmt.Errorf("unable to serialize auth"), mcpRequest.Message.ID)
 		}
 		wrapped.AuthInfo = ser
 	}
 
-	_, rid, err := h.actorSystem.ActorOf(ctx, "root")
+	var rid *actor.PID
+	_, rid, err = h.actorSystem.ActorOf(ctx, "root")
 	if err != nil {
 		handleError(w, err, mcpRequest)
 		return

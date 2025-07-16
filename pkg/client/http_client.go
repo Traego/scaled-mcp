@@ -693,6 +693,9 @@ func (c *httpClient) createNotificationRequest(ctx context.Context, endpoint str
 	// Set headers - notifications only need JSON response
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if c.authHeader != "" {
+		req.Header.Set("Authorization", c.authHeader)
+	}
 
 	// Add session ID if we have one
 	c.sessionIdMutex.Lock()

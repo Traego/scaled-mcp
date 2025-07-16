@@ -141,6 +141,9 @@ type SessionConfig struct {
 
 	// Key prefix for session storage
 	KeyPrefix string `json:"key_prefix"`
+
+	// Secret used for signing session IDs (used for reconnection security)
+	SessionIDSecret string `json:"session_id_secret"`
 }
 
 // RedisConfig holds the Redis configuration
@@ -203,6 +206,7 @@ func DefaultConfig() *ServerConfig {
 			TTL:               5 * time.Minute,
 			UseInMemory:       true,
 			KeyPrefix:         "mcp:session:",
+			SessionIDSecret:   "",
 		},
 		Actor: ActorConfig{
 			NumWorkers:      10,

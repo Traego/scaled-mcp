@@ -1,0 +1,203 @@
+package session
+
+import (
+	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+)
+
+func TestNewSessionIDManager(t *testing.T) {
+	// Test with empty secret
+	mgr1 := NewSignedStatelessSessionManager("")
+	if mgr1 == nil {
+		t.Fatal("NewSessionIDManager returned nil for empty secret")
+	}
+	assert.False(t, mgr1.CanSaveSession())
+}
+
+func TestGenerateSignedSessionID(t *testing.T) {
+	const testSecret = "test-secret-key"
+	mgr := NewSignedStatelessSessionManager(testSecret)
+
+	// Test with various lengths
+	testCases := []struct {
+		name      string
+		uniqueId  *string
+		expectErr bool
+	}{
+		{
+			name:      "Standard length without uniqueId",
+			uniqueId:  nil,
+			expectErr: false,
+		},
+		{
+			name:      "With uniqueId",
+			uniqueId:  stringPtr("user123"),
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			sessionID, err := mgr.GenerateSessionId(tc.uniqueId)
+
+			// Check error expectation
+			if (err != nil) != tc.expectErr {
+				t.Errorf("Expected error %v, got %v", tc.expectErr, err != nil)
+				return
+			}
+
+			if err != nil {
+				// Expected error case
+				return
+			}
+
+			// Verify the signature
+			err = mgr.VerifySessionId(sessionID, tc.uniqueId)
+			if err != nil {
+				t.Errorf("Generated session ID failed verification: %v", err)
+			}
+		})
+	}
+
+	// Test with very long uniqueId
+	longUniqueId := strings.Repeat("a", 1000)
+	_, err := mgr.GenerateSessionId(&longUniqueId)
+	if err != nil {
+		t.Errorf("Failed to generate session ID with long uniqueId: %v", err)
+	}
+}
+
+func TestVerifySessionId(t *testing.T) {
+	const testSecret = "test-verification-secret"
+	mgr := NewSignedStatelessSessionManager(testSecret)
+
+	// Generate a valid session ID first
+	uniqueId := "user456"
+	validSessionID, err := mgr.GenerateSessionId(&uniqueId)
+	if err != nil {
+		t.Fatalf("Failed to generate session ID: %v", err)
+	}
+
+	// Generate a session ID without uniqueId
+	validSessionIDNoUnique, err := mgr.GenerateSessionId(nil)
+	if err != nil {
+		t.Fatalf("Failed to generate session ID without uniqueId: %v", err)
+	}
+
+	// Create a different manager with a different secret
+	differentMgr := NewSignedStatelessSessionManager("different-secret")
+
+	testCases := []struct {
+		name          string
+		sessionID     string
+		checkUniqueId *string
+		expectValid   bool
+	}{
+		{
+			name:          "Valid session ID with matching uniqueId check",
+			sessionID:     validSessionID,
+			checkUniqueId: &uniqueId,
+			expectValid:   true,
+		},
+		{
+			name:          "Valid session ID without uniqueId check",
+			sessionID:     validSessionID,
+			checkUniqueId: nil,
+			expectValid:   true,
+		},
+		{
+			name:          "Valid session ID with wrong uniqueId check",
+			sessionID:     validSessionID,
+			checkUniqueId: stringPtr("wronguser"),
+			expectValid:   false,
+		},
+		{
+			name:          "Valid session without uniqueId but with uniqueId check",
+			sessionID:     validSessionIDNoUnique,
+			checkUniqueId: &uniqueId,
+			expectValid:   false,
+		},
+		{
+			name:          "Tampered signature",
+			sessionID:     strings.TrimSuffix(validSessionID, "A") + "B", // Change last character
+			checkUniqueId: &uniqueId,
+			expectValid:   false,
+		},
+		{
+			name:          "Invalid format - too few parts",
+			sessionID:     "onlyonepart",
+			checkUniqueId: nil,
+			expectValid:   false,
+		},
+		{
+			name:          "Invalid format - too many parts",
+			sessionID:     "too.many.parts.here",
+			checkUniqueId: nil,
+			expectValid:   false,
+		},
+		{
+			name:          "Empty session ID",
+			sessionID:     "",
+			checkUniqueId: nil,
+			expectValid:   false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := mgr.VerifySessionId(tc.sessionID, tc.checkUniqueId)
+
+			valid := err == nil
+			if valid != tc.expectValid {
+				t.Errorf("Expected valid=%v, got %v (err=%v)", tc.expectValid, valid, err)
+			}
+
+			if !tc.expectValid && err == nil {
+				t.Errorf("Expected error, got nil")
+			}
+
+			if tc.expectValid && err != nil {
+				t.Errorf("Expected no error, got %v", err)
+			}
+		})
+	}
+
+	// Test verification with a different secret key
+	err = differentMgr.VerifySessionId(validSessionID, &uniqueId)
+	if err == nil {
+		t.Error("Session ID should not validate with different secret key")
+	}
+}
+
+// Test end-to-end session creation and verification with multiple session managers
+func TestSessionIDManagerEndToEnd(t *testing.T) {
+	// Setup two managers with the same secret
+	const secret = "shared-secret-key"
+	mgr1 := NewSignedStatelessSessionManager(secret)
+	mgr2 := NewSignedStatelessSessionManager(secret)
+
+	// Generate session ID with first manager
+	uniqueId := "client123"
+	sessionID, err := mgr1.GenerateSessionId(&uniqueId)
+	if err != nil {
+		t.Fatalf("Failed to generate session ID: %v", err)
+	}
+
+	// Verify with second manager
+	err = mgr2.VerifySessionId(sessionID, &uniqueId)
+	if err != nil {
+		t.Errorf("Session ID generated by mgr1 should be valid for mgr2 with same secret: %v", err)
+	}
+
+	// Extract and check the random ID
+	//parts := strings.Split(sessionID, ".")
+	// if randomId != parts[0] {
+	//	t.Errorf("Expected randomId=%q, got %q", parts[0], randomId)
+	// }
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
+}

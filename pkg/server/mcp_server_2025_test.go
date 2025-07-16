@@ -18,8 +18,8 @@ import (
 // TestMCPServer2025 tests the MCP server with the 2025 spec.
 func TestMCPServer2025(t *testing.T) {
 	// Get a random available port
-	port, err := testutils.GetAvailablePort()
-	require.NoError(t, err, "Failed to get available port")
+	port, errOuter := testutils.GetAvailablePort()
+	require.NoError(t, errOuter, "Failed to get available port")
 
 	// Create a server config with 2025 compatibility (default)
 	cfg := config.DefaultConfig()
@@ -27,25 +27,25 @@ func TestMCPServer2025(t *testing.T) {
 	cfg.HTTP.Port = port
 
 	registry := resources.NewStaticToolRegistry()
-	err = registry.RegisterTool(protocol.Tool{
+	errOuter = registry.RegisterTool(protocol.Tool{
 		Name:        "Amazing Tool",
 		Description: "Does amazing things",
 		InputSchema: protocol.InputSchema{},
 	}, func(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 		return nil, nil
 	})
-	require.NoError(t, err)
+	require.NoError(t, errOuter)
 
 	// Create a new MCP server
-	mcpServer, err := NewMcpServer(cfg, WithToolRegistry(registry))
-	require.NoError(t, err, "Failed to create MCP server")
+	mcpServer, errOuter := NewMcpServer(cfg, WithToolRegistry(registry))
+	require.NoError(t, errOuter, "Failed to create MCP server")
 
 	// Start the server
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = mcpServer.Start(ctx)
-	require.NoError(t, err, "Failed to start MCP server")
+	errOuter = mcpServer.Start(ctx)
+	require.NoError(t, errOuter, "Failed to start MCP server")
 
 	defer cancel()
 	// Ensure server is stopped after the test
