@@ -3,6 +3,7 @@ package actors
 import (
 	"context"
 	"encoding/json"
+	"github.com/traego/scaled-mcp/pkg/session"
 	"testing"
 	"time"
 
@@ -112,6 +113,10 @@ func (s *TestServerInfo) GetAuthHandler() config.AuthHandler {
 }
 
 func (s *TestServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
+func (s *TestServerInfo) GetSessionManager() session.SessionManager {
 	return nil
 }
 

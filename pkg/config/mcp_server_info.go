@@ -6,6 +6,7 @@ import (
 	"github.com/traego/scaled-mcp/pkg/proto/mcppb"
 	"github.com/traego/scaled-mcp/pkg/protocol"
 	"github.com/traego/scaled-mcp/pkg/resources"
+	"github.com/traego/scaled-mcp/pkg/session"
 	"net/http"
 )
 
@@ -16,6 +17,7 @@ type McpServerInfo interface {
 	GetExecutors() MethodHandler
 	GetAuthHandler() AuthHandler
 	GetTraceHandler() TraceHandler
+	GetSessionManager() session.SessionManager
 }
 
 type AuthHandler interface {

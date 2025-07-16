@@ -3,6 +3,7 @@ package executors
 import (
 	"context"
 	"encoding/json"
+	"github.com/traego/scaled-mcp/pkg/session"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,6 +85,10 @@ func (s *TestPromptServerInfo) GetAuthHandler() config.AuthHandler {
 }
 
 func (s *TestPromptServerInfo) GetTraceHandler() config.TraceHandler {
+	return nil
+}
+
+func (s *TestPromptServerInfo) GetSessionManager() session.SessionManager {
 	return nil
 }
 

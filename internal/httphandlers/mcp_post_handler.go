@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/traego/scaled-mcp/internal/actors"
 	"github.com/traego/scaled-mcp/pkg/auth"
+	"google.golang.org/protobuf/proto"
 	"log/slog"
 	"net/http"
 
@@ -43,8 +44,22 @@ func (h *MCPHandler) HandleMCPPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w http.ResponseWriter, r *http.Request, mr McpRequest) {
+	ai := auth.GetAuthInfo(ctx)
+	var principalId *string
+	if ai != nil {
+		p := ai.GetPrincipalId()
+		principalId = &p
+	}
+
+	err := h.serverInfo.GetSessionManager().VerifySessionId(sessionId, principalId)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	if !mr.IsBatch {
-		protoMsg, err := protocol.ConvertJSONToProtoRequest(mr.Message)
+		var protoMsg *mcppb.JsonRpcRequest
+		protoMsg, err = protocol.ConvertJSONToProtoRequest(mr.Message)
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
 			return
@@ -59,15 +74,17 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			TraceId:               utils.GetTraceId(ctx),
 		}
 
-		if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
-			ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
+		if ai != nil && h.serverInfo.GetAuthHandler() != nil {
+			var ser []byte
+			ser, err = h.serverInfo.GetAuthHandler().Serialize(ai)
 			if err != nil {
 				handleError(w, fmt.Errorf("unable to serialize auth"), mr.Message.ID)
 			}
 			wrapped.AuthInfo = ser
 		}
 
-		_, rid, err := h.actorSystem.ActorOf(ctx, "root")
+		var rid *actor.PID
+		_, rid, err = h.actorSystem.ActorOf(ctx, "root")
 		if err != nil {
 			handleError(w, err, mr.Message.ID)
 		}
@@ -82,7 +99,8 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			w.WriteHeader(http.StatusAccepted)
 			return
 		} else {
-			respMsg, err := rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
+			var respMsg proto.Message
+			respMsg, err = rid.SendSync(ctx, san, &wrapped, h.config.RequestTimeout)
 			if err != nil {
 				handleError(w, err, mr.Message.ID)
 				return
@@ -90,11 +108,13 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 
 			rjm, ok := respMsg.(*mcppb.JsonRpcResponse)
 			if !ok {
-				err := actor.NewInternalError(fmt.Errorf("failed to parse json-rpc response type"))
+				err = actor.NewInternalError(fmt.Errorf("failed to parse json-rpc response type"))
 				handleError(w, err, mr.Message.ID)
 				return
 			}
-			rm, err := protocol.ConvertProtoToJSONResponse(rjm)
+
+			var rm protocol.JSONRPCMessage
+			rm, err = protocol.ConvertProtoToJSONResponse(rjm)
 			if err != nil {
 				handleError(w, err, mr.Message.ID)
 				return
@@ -108,13 +128,19 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 			return
 		}
 	} else {
-		err := actor.NewInternalError(fmt.Errorf("batch messaging not implemented"))
+		err = actor.NewInternalError(fmt.Errorf("batch messaging not implemented"))
 		handleError(w, err, mr.Message.ID)
 		return
 	}
 }
 
 func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWriter, r *http.Request, mr McpRequest) {
+	ai := auth.GetAuthInfo(ctx)
+	var principalId *string
+	if ai != nil {
+		p := ai.GetPrincipalId()
+		principalId = &p
+	}
 	// If no session and it's a post, check that it's an initialize message. If it's not, it's a bad request
 	if mr.IsBatch {
 		slog.Debug("Received batch request without sessionId (expecting single initialize message")
@@ -124,9 +150,9 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 	} else {
 		msg := mr.Message
 		if msg.Method == "initialize" {
-			sessionId, err := utils.GenerateSecureID(20)
+			sessionId, err := h.serverInfo.GetSessionManager().GenerateSessionId(principalId)
 			if err != nil {
-				handleError(w, err, msg.ID)
+				handleError(w, err, mr.Message.ID)
 				return
 			}
 
@@ -151,7 +177,7 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				TraceId:               utils.GetTraceId(ctx),
 			}
 
-			if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
+			if ai != nil && h.serverInfo.GetAuthHandler() != nil {
 				ser, err := h.serverInfo.GetAuthHandler().Serialize(ai)
 				if err != nil {
 					handleError(w, fmt.Errorf("unable to serialize auth"), mr.Message.ID)

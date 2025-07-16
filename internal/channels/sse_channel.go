@@ -15,24 +15,26 @@ type SSEChannel struct {
 }
 
 // NewSSEChannel creates a new SSE channel from an HTTP response writer and request
-func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string, secure bool) *SSEChannel {
-	// Set a session cookie on the channel
-	var sameSite http.SameSite
-	if secure {
-		sameSite = http.SameSiteNoneMode
-	} else {
-		sameSite = http.SameSiteLaxMode
-	}
+func NewSSEChannel(w http.ResponseWriter, r *http.Request, sessionId string, secure bool, setCookie bool) *SSEChannel {
+	if setCookie {
+		// Set a session cookie on the channel
+		var sameSite http.SameSite
+		if secure {
+			sameSite = http.SameSiteNoneMode
+		} else {
+			sameSite = http.SameSiteLaxMode
+		}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    sessionId,
-		Path:     "/",
-		Expires:  time.Now().Add(1 * time.Hour),
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: sameSite,
-	})
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session_id",
+			Value:    sessionId,
+			Path:     "/",
+			Expires:  time.Now().Add(1 * time.Hour),
+			HttpOnly: true,
+			Secure:   secure,
+			SameSite: sameSite,
+		})
+	}
 
 	// Set up SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
