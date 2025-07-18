@@ -29,14 +29,7 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ai := auth.GetAuthInfo(ctx)
-	var principalId *string
-	if ai != nil {
-		p := ai.GetPrincipalId()
-		principalId = &p
-	}
-
-	err := h.serverInfo.GetSessionManager().VerifySessionId(sessionId, principalId)
+	err := h.serverInfo.GetSessionManager().VerifySessionId(sessionId, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -70,7 +63,7 @@ func (h *MCPHandler) HandleMessagePost(w http.ResponseWriter, r *http.Request) {
 		TraceId:               utils.GetTraceId(ctx),
 	}
 
-	if ai != nil && h.serverInfo.GetAuthHandler() != nil {
+	if ai := auth.GetAuthInfo(ctx); ai != nil && h.serverInfo.GetAuthHandler() != nil {
 		var ser []byte
 		ser, err = h.serverInfo.GetAuthHandler().Serialize(ai)
 		if err != nil {
