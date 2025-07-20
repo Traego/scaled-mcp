@@ -1,12 +1,10 @@
 package httphandlers
 
 import (
-	"encoding/json"
 	"fmt"
 	actors2 "github.com/traego/scaled-mcp/internal/actors"
 	"github.com/traego/scaled-mcp/internal/channels"
 	"github.com/traego/scaled-mcp/pkg/utils"
-	"log/slog"
 	"net/http"
 )
 
@@ -19,46 +17,6 @@ func (h *MCPHandler) SSEGetWithBasePath(basePath string) http.HandlerFunc {
 // This is backwards compatibility for 2024 SSE sessions, for server to client messages
 func (h *MCPHandler) HandleSSEGet(w http.ResponseWriter, r *http.Request) {
 	h.SSEGetFunc(w, r, "")
-}
-
-func (h *MCPHandler) HandleSessionPreFlight(w http.ResponseWriter, r *http.Request) {
-	// Set appropriate headers for the response
-	w.Header().Set("Content-Type", "application/json")
-
-	// If we don't have a session manager initialized, return an error
-	if h.serverInfo.GetSessionManager() == nil {
-		slog.Error("session manager not initialized")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Generate a secure signed session ID that includes a random component and a signature
-	sessionID, err := h.serverInfo.GetSessionManager().GenerateSessionId(nil)
-	if err != nil {
-		slog.Error("failed to generate session ID", slog.Any("error", err))
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Return the session ID in a JSON response
-	response := map[string]string{
-		"sessionId": sessionID,
-	}
-
-	// Convert the response to JSON
-	jsonResponse, err := json.Marshal(response)
-	if err != nil {
-		slog.Error("failed to marshal response", slog.Any("error", err))
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	// Write the response
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(jsonResponse)
-	if err != nil {
-		slog.Error("failed to write response", slog.Any("error", err))
-	}
 }
 
 // SSEGetFunc handles the GET for SSE - one important note, SSE will NEVER have an auth header, so we explicitly do

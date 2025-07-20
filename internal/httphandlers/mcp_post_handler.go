@@ -208,6 +208,7 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 				handleError(w, err, msg.ID)
 				return
 			}
+			w.Header().Set("Mcp-Session-Id", sessionId)
 
 			err = writeMessage(w, ir, &sessionId)
 			if err != nil {

@@ -101,8 +101,8 @@ func (s *McpServer) HandleMCPPostExternal() http.Handler {
 	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleMCPPost)))
 }
 
-func (s *McpServer) HandleSessionPreflightExternal() http.Handler {
-	return s.traceHandlerMiddleware(s.authHandlerMiddleware(http.HandlerFunc(s.Handlers.HandleSessionPreFlight)))
+func (s *McpServer) HandleSessionPreflightExternal(tryIncludePrincipal bool) http.Handler {
+	return s.traceHandlerMiddleware(s.authHandlerMiddleware(s.Handlers.SessionPreflightHandler(tryIncludePrincipal)))
 }
 
 func (s *McpServer) HandleSSEGetExternal(basePath string) http.Handler {
