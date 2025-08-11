@@ -48,7 +48,9 @@ func (h *MCPHandler) handleMcpMessages(ctx context.Context, sessionId string, w 
 	var principalId *string
 	if ai != nil {
 		p := ai.GetPrincipalId()
-		principalId = &p
+		if p != "" {
+			principalId = &p
+		}
 	}
 
 	err := h.serverInfo.GetSessionManager().VerifySessionId(sessionId, principalId)
@@ -139,7 +141,9 @@ func (h *MCPHandler) handleMcpInitDemand(ctx context.Context, w http.ResponseWri
 	var principalId *string
 	if ai != nil {
 		p := ai.GetPrincipalId()
-		principalId = &p
+		if p != "" {
+			principalId = &p
+		}
 	}
 	// If no session and it's a post, check that it's an initialize message. If it's not, it's a bad request
 	if mr.IsBatch {
