@@ -24,7 +24,9 @@ func (h *MCPHandler) SessionPreflightHandler(tryIncludePrincipalId bool) http.Ha
 			ai := auth.GetAuthInfo(r.Context())
 			if ai != nil {
 				p := ai.GetPrincipalId()
-				principalId = &p
+				if p != "" {
+					principalId = &p
+				}
 			}
 		}
 
